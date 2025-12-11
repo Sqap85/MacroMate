@@ -13,12 +13,13 @@ import {
   Divider,
   Tabs,
   Tab,
+  Paper,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useState } from 'react';
-import type { Food, DailyGoal } from '../types';
+import type { Food, DailyGoal, MealType } from '../types';
 import { calculateWeeklyStats, formatDate, getDayName } from '../utils/dateUtils';
 
 interface HistoryModalProps {
@@ -30,6 +31,38 @@ interface HistoryModalProps {
 
 export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) {
   const [tabValue, setTabValue] = useState(0);
+  
+  // Öğün bilgilerini getir
+  const getMealInfo = (mealType: MealType) => {
+    const mealConfig = {
+      breakfast: { label: 'Kahvaltı', icon: '☕', color: '#FF6B35' },
+      lunch: { label: 'Öğle Yemeği', icon: '🍽️', color: '#F7931E' },
+      dinner: { label: 'Akşam Yemeği', icon: '🌙', color: '#9D4EDD' },
+      snack: { label: 'Atıştırmalık', icon: '🍎', color: '#06A77D' },
+    };
+    return mealConfig[mealType];
+  };
+
+  // Yemekleri öğün türüne göre grupla
+  const groupFoodsByMeal = (foods: Food[]) => {
+    const groups: Record<MealType | 'other', Food[]> = {
+      breakfast: [],
+      lunch: [],
+      dinner: [],
+      snack: [],
+      other: [], // mealType olmayan yemekler için
+    };
+
+    foods.forEach(food => {
+      if (food.mealType && food.mealType in groups) {
+        groups[food.mealType as MealType].push(food);
+      } else {
+        groups.other.push(food); // mealType olmayanlar
+      }
+    });
+
+    return groups;
+  };
   
   // Farklı zaman aralıkları
   const weeklyStats = calculateWeeklyStats(foods, 7);
@@ -284,51 +317,92 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
 
                       <Divider />
                       
-                      {/* Yemek listesi */}
+                      {/* Yemek listesi - Öğün grupları */}
                       <Box mt={1.5}>
                         <Typography 
                           variant="caption" 
                           color="text.secondary" 
                           display="block" 
-                          mb={0.75}
+                          mb={1}
                           fontWeight="600"
                         >
                           {day.foods.length} öğün
                         </Typography>
-                        <Box>
-                          {day.foods.map((food, idx) => (
-                            <Box 
-                              key={idx}
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: 0.5,
-                                mb: 0.5,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography 
-                                variant="body2" 
-                                color="text.secondary"
-                                sx={{ flexShrink: 0 }}
-                              >
-                                •
-                              </Typography>
-                              <Typography 
-                                variant="body2" 
-                                color="text.secondary"
-                                sx={{ 
-                                  wordBreak: 'break-word',
-                                  overflow: 'hidden',
-                                  flex: 1,
-                                  minWidth: 0,
+                        <Stack spacing={1.5}>
+                          {Object.entries(groupFoodsByMeal(day.foods)).map(([mealType, mealFoods]) => {
+                            if (mealFoods.length === 0) return null;
+                            
+                            // "other" için özel bilgi
+                            let mealInfo;
+                            if (mealType === 'other') {
+                              mealInfo = { label: 'Diğer', icon: '🍴', color: '#95a5a6' };
+                            } else {
+                              mealInfo = getMealInfo(mealType as MealType);
+                            }
+                            
+                            return (
+                              <Paper
+                                key={mealType}
+                                variant="outlined"
+                                sx={{
+                                  p: 1.5,
+                                  bgcolor: 'background.default',
+                                  borderLeft: 3,
+                                  borderColor: mealInfo.color,
                                 }}
                               >
-                                {food.name} <Box component="span" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>({food.calories} kcal)</Box>
-                              </Typography>
-                            </Box>
-                          ))}
-                        </Box>
+                                <Typography
+                                  variant="caption"
+                                  fontWeight="600"
+                                  sx={{ 
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    mb: 0.75,
+                                    color: mealInfo.color,
+                                  }}
+                                >
+                                  <span>{mealInfo.icon}</span>
+                                  {mealInfo.label}
+                                </Typography>
+                                <Stack spacing={0.5}>
+                                  {mealFoods.map((food, idx) => (
+                                    <Box
+                                      key={idx}
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: 0.5,
+                                        minWidth: 0,
+                                      }}
+                                    >
+                                      <Typography 
+                                        variant="body2" 
+                                        color="text.secondary"
+                                        sx={{ flexShrink: 0, fontSize: '0.8rem' }}
+                                      >
+                                        •
+                                      </Typography>
+                                      <Typography 
+                                        variant="body2" 
+                                        color="text.secondary"
+                                        sx={{ 
+                                          wordBreak: 'break-word',
+                                          overflow: 'hidden',
+                                          flex: 1,
+                                          minWidth: 0,
+                                          fontSize: '0.8rem',
+                                        }}
+                                      >
+                                        {food.name} <Box component="span" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>({food.calories} kcal)</Box>
+                                      </Typography>
+                                    </Box>
+                                  ))}
+                                </Stack>
+                              </Paper>
+                            );
+                          })}
+                        </Stack>
                       </Box>
                     </>
                   ) : (

@@ -1,5 +1,5 @@
 import { useLocalStorage } from './useLocalStorage';
-import type { Food, DailyGoal, DailyStats } from '../types';
+import type { Food, DailyGoal, DailyStats, FoodTemplate } from '../types';
 
 /**
  * Kalori takibi için ana hook
@@ -16,6 +16,7 @@ export function useFoodTracker() {
 
   const [foods, setFoods] = useLocalStorage<Food[]>('macromate-foods', []);
   const [dailyGoal, setDailyGoal] = useLocalStorage<DailyGoal>('macromate-goal', defaultGoal);
+  const [foodTemplates, setFoodTemplates] = useLocalStorage<FoodTemplate[]>('macromate-templates', []);
 
   // Bugünün tarihini al (YYYY-MM-DD formatında)
   const getTodayString = (): string => {
@@ -73,9 +74,77 @@ export function useFoodTracker() {
     setFoods(foods.filter(food => food.id !== id));
   };
 
+  // Yemek düzenle
+  const editFood = (id: string, updatedFood: Partial<Food>) => {
+    setFoods(foods.map(food => 
+      food.id === id ? { ...food, ...updatedFood } : food
+    ));
+  };
+
   // Hedefleri güncelle
   const updateGoal = (newGoal: DailyGoal) => {
     setDailyGoal(newGoal);
+  };
+
+  // Besin şablonu ekle
+  const addFoodTemplate = (template: Omit<FoodTemplate, 'id'>) => {
+    const newTemplate: FoodTemplate = {
+      ...template,
+      id: crypto.randomUUID(),
+    };
+    setFoodTemplates([...foodTemplates, newTemplate]);
+  };
+
+  // Besin şablonu sil
+  const deleteFoodTemplate = (id: string) => {
+    setFoodTemplates(foodTemplates.filter(template => template.id !== id));
+  };
+
+  // Besin şablonu düzenle
+  const editFoodTemplate = (id: string, updatedTemplate: Omit<FoodTemplate, 'id'>) => {
+    setFoodTemplates(foodTemplates.map(template =>
+      template.id === id ? { ...template, ...updatedTemplate } : template
+    ));
+  };
+
+  // Şablondan yemek ekle (miktar ile çarparak)
+  const addFoodFromTemplate = (templateId: string, amount: number, mealType?: string) => {
+    const template = foodTemplates.find(t => t.id === templateId);
+    if (!template) return;
+
+    // Gram cinsinden hesapla
+    let grams: number;
+    if (template.unit === 'piece') {
+      grams = amount * (template.servingSize || 0);
+    } else {
+      grams = amount;
+    }
+
+    const multiplier = grams / 100;
+    
+    // İsim formatı
+    let displayName: string;
+    if (template.unit === 'piece') {
+      displayName = `${template.name} (${amount} adet)`;
+    } else {
+      displayName = `${template.name} (${amount}g)`;
+    }
+
+    const newFood: Food = {
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      name: displayName,
+      calories: Math.round(template.caloriesPer100g * multiplier),
+      protein: Math.round(template.proteinPer100g * multiplier * 10) / 10,
+      carbs: Math.round(template.carbsPer100g * multiplier * 10) / 10,
+      fat: Math.round(template.fatPer100g * multiplier * 10) / 10,
+      mealType: mealType as any,
+      fromTemplate: true,
+      templateId: template.id,
+      originalAmount: amount,
+      originalUnit: template.unit,
+    };
+    setFoods([...foods, newFood]);
   };
 
   return {
@@ -85,6 +154,12 @@ export function useFoodTracker() {
     dailyStats: getDailyStats(),
     addFood,
     deleteFood,
+    editFood,
     updateGoal,
+    foodTemplates,
+    addFoodTemplate,
+    deleteFoodTemplate,
+    editFoodTemplate,
+    addFoodFromTemplate,
   };
 }

@@ -8,6 +8,25 @@ export interface Food {
   fat: number;
   timestamp: number;
   mealType?: MealType; // Öğün türü opsiyonel
+  fromTemplate?: boolean; // Şablondan mı eklendi
+  templateId?: string; // Hangi şablondan
+  originalAmount?: number; // Orijinal miktar (gram veya adet)
+  originalUnit?: MeasurementUnit; // Orijinal birim
+}
+
+// Besin şablonu ölçü birimi
+export type MeasurementUnit = 'gram' | 'piece';
+
+// Besin şablonu (100g veya 1 adet bazında)
+export interface FoodTemplate {
+  id: string;
+  name: string;
+  unit: MeasurementUnit; // 'gram' veya 'piece'
+  servingSize?: number; // Adet bazında ise 1 adet kaç gram (örn: 1 yumurta = 50g)
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
 }
 
 // Öğün türleri

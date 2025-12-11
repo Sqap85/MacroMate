@@ -7,15 +7,31 @@ import { StatsCard } from './components/StatsCard';
 import { FoodList } from './components/FoodList';
 import { GoalSettingsModal } from './components/GoalSettingsModal';
 import { HistoryModal } from './components/HistoryModal';
+import { FoodTemplatesModal } from './components/FoodTemplatesModal';
 import { Toast } from './components/Toast';
 import { useFoodTracker } from './hooks/useFoodTracker';
 import type { AlertColor } from '@mui/material';
 import './App.css';
 
 function App() {
-  const { foods, allFoods, dailyGoal, dailyStats, addFood, deleteFood, updateGoal } = useFoodTracker();
+  const { 
+    foods, 
+    allFoods, 
+    dailyGoal, 
+    dailyStats, 
+    addFood, 
+    deleteFood, 
+    editFood,
+    updateGoal,
+    foodTemplates,
+    addFoodTemplate,
+    deleteFoodTemplate,
+    editFoodTemplate,
+    addFoodFromTemplate,
+  } = useFoodTracker();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
     message: '',
@@ -31,6 +47,16 @@ function App() {
     });
   };
 
+  const handleAddFromTemplate = (templateId: string, grams: number, mealType?: string) => {
+    addFoodFromTemplate(templateId, grams, mealType);
+    const template = foodTemplates.find(t => t.id === templateId);
+    setToast({
+      open: true,
+      message: `✅ ${template?.name} (${grams}g) eklendi!`,
+      severity: 'success',
+    });
+  };
+
   const handleDeleteFood = (id: string) => {
     const foodName = foods.find(f => f.id === id)?.name;
     deleteFood(id);
@@ -38,6 +64,15 @@ function App() {
       open: true,
       message: `🗑️ ${foodName} silindi!`,
       severity: 'info',
+    });
+  };
+
+  const handleEditFood = (id: string, updatedFood: any) => {
+    editFood(id, updatedFood);
+    setToast({
+      open: true,
+      message: `✏️ ${updatedFood.name} güncellendi!`,
+      severity: 'success',
     });
   };
 
@@ -87,14 +122,24 @@ function App() {
           {/* Yemek Ekleme Formu */}
           <Fade in timeout={700}>
             <Box>
-              <FoodForm onAddFood={handleAddFood} />
+              <FoodForm 
+                onAddFood={handleAddFood}
+                foodTemplates={foodTemplates}
+                onAddFromTemplate={handleAddFromTemplate}
+                onOpenTemplates={() => setTemplatesOpen(true)}
+              />
             </Box>
           </Fade>
           
           {/* Yemek Listesi */}
           <Fade in timeout={900}>
             <Box>
-              <FoodList foods={foods} onDeleteFood={handleDeleteFood} />
+              <FoodList 
+                foods={foods} 
+                onDeleteFood={handleDeleteFood}
+                onEditFood={handleEditFood}
+                foodTemplates={foodTemplates}
+              />
             </Box>
           </Fade>
         </Stack>
@@ -141,6 +186,15 @@ function App() {
         onClose={() => setHistoryOpen(false)}
         foods={allFoods}
         goal={dailyGoal}
+      />
+
+      <FoodTemplatesModal
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        templates={foodTemplates}
+        onAddTemplate={addFoodTemplate}
+        onDeleteTemplate={deleteFoodTemplate}
+        onEditTemplate={editFoodTemplate}
       />
       
       <Toast
