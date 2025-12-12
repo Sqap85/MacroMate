@@ -79,9 +79,10 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
     
     const oldestDate = new Date(oldestFood.timestamp);
     const today = new Date();
-    const daysDiff = Math.ceil((today.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Gün farkını hesapla - en eskiden bugüne kadar (+ 1 ile bugünü de dahil et)
+    const daysDiff = Math.ceil((today.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
-    return calculateWeeklyStats(foods, Math.max(daysDiff, 1));
+    return calculateWeeklyStats(foods, daysDiff);
   })();
   
   const statsOptions = [weeklyStats, monthlyStats, quarterlyStats, allTimeStats];

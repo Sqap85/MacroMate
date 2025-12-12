@@ -64,6 +64,10 @@ export const calculateWeeklyStats = (foods: Food[], days: number = 7): WeeklySta
   const dateRange = getDateRange(days);
   const dailyStats = dateRange.map(date => calculateDailyStats(foods, date));
   
+  // Sadece yemek olan günleri say (aktif günler)
+  const activeDays = dailyStats.filter(day => day.foods.length > 0);
+  const activeDaysCount = activeDays.length || 1; // 0'a bölme hatası önlemek için
+  
   const totalCalories = dailyStats.reduce((sum, day) => sum + day.totalCalories, 0);
   const totalProtein = dailyStats.reduce((sum, day) => sum + day.totalProtein, 0);
   const totalCarbs = dailyStats.reduce((sum, day) => sum + day.totalCarbs, 0);
@@ -71,10 +75,10 @@ export const calculateWeeklyStats = (foods: Food[], days: number = 7): WeeklySta
   
   return {
     days: dailyStats,
-    averageCalories: Math.round(totalCalories / days),
-    averageProtein: Math.round(totalProtein / days),
-    averageCarbs: Math.round(totalCarbs / days),
-    averageFat: Math.round(totalFat / days),
+    averageCalories: Math.round(totalCalories / activeDaysCount),
+    averageProtein: Math.round(totalProtein / activeDaysCount),
+    averageCarbs: Math.round(totalCarbs / activeDaysCount),
+    averageFat: Math.round(totalFat / activeDaysCount),
     totalDays: days,
   };
 };
