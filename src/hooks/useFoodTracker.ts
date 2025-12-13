@@ -314,7 +314,7 @@ export function useFoodTracker() {
   };
 
   // Şablondan yemek ekle (miktar ile çarparak)
-  const addFoodFromTemplate = async (templateId: string, amount: number, mealType?: string) => {
+  const addFoodFromTemplate = async (templateId: string, amount: number, mealType?: string, customTimestamp?: number) => {
     // currentUser veya isGuest kontrolü
     if (!currentUser && !isGuest) return;
     
@@ -346,7 +346,7 @@ export function useFoodTracker() {
     }
 
     const newFood: Omit<Food, 'id'> = {
-      timestamp: Date.now(),
+      timestamp: customTimestamp || Date.now(),
       name: displayName,
       calories,
       protein,

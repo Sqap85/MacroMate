@@ -526,6 +526,7 @@ function App() {
         onEditFood={handleEditFood}
         onAddFood={handleAddFood}
         foodTemplates={foodTemplates}
+        onOpenTemplates={() => setTemplatesOpen(true)}
       />
 
       <FoodTemplatesModal
