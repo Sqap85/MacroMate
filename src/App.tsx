@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Typography, Box, AppBar, Toolbar, Stack, Link as MuiLink, Fade, IconButton, Tooltip, CircularProgress, Button } from '@mui/material';
+import { Container, Typography, Box, AppBar, Toolbar, Stack, Link as MuiLink, Fade, IconButton, Tooltip, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import HistoryIcon from '@mui/icons-material/History';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -42,6 +42,7 @@ function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
     message: '',
@@ -233,16 +234,33 @@ function App() {
   };
 
   const handleLogout = async () => {
+    setLogoutDialogOpen(false);
     try {
+      // Misafir modundaysa LocalStorage verilerini temizle
+      if (isGuest) {
+        localStorage.removeItem('macromate-foods');
+        localStorage.removeItem('macromate-goal');
+        localStorage.removeItem('macromate-templates');
+        console.log('Misafir mod verileri temizlendi');
+      }
+      
       await logout();
       setToast({
         open: true,
-        message: '👋 Çıkış yapıldı',
+        message: isGuest ? '🗑️ Veriler silindi ve çıkış yapıldı' : '👋 Çıkış yapıldı',
         severity: 'info',
       });
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const handleLogoutClick = () => {
+    setLogoutDialogOpen(true);
+  };
+
+  const handleCancelLogout = () => {
+    setLogoutDialogOpen(false);
   };
 
   // Veri yüklenirken loading göster (sadece kullanıcı giriş yaptıysa, misafir değilse)
@@ -319,7 +337,7 @@ function App() {
                 </Tooltip>
               )}
               <Tooltip title={isGuest ? "Misafir Modundan Çık" : "Çıkış Yap"}>
-                <IconButton color="inherit" onClick={handleLogout}>
+                <IconButton color="inherit" onClick={handleLogoutClick}>
                   <LogoutIcon />
                 </IconButton>
               </Tooltip>
@@ -496,6 +514,44 @@ function App() {
         severity={toast.severity}
         onClose={() => setToast({ ...toast, open: false })}
       />
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={handleCancelLogout}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          {isGuest ? "Misafir Modundan Çık" : "Çıkış Yap"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {isGuest ? (
+              <>
+                Misafir modundan çıkmak istediğinize emin misiniz?
+                <br /><br />
+                <strong>Uyarı:</strong> Tüm verileriniz silinecektir. Verilerinizi kaydetmek için lütfen hesap oluşturun.
+              </>
+            ) : (
+              "Çıkış yapmak istediğinize emin misiniz?"
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelLogout} color="primary">
+            İptal
+          </Button>
+          <Button 
+            onClick={handleLogout} 
+            color={isGuest ? "error" : "primary"}
+            variant="contained"
+            autoFocus
+          >
+            {isGuest ? "Çık ve Verileri Sil" : "Çıkış Yap"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
