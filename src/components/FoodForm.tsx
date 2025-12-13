@@ -22,6 +22,14 @@ import CookieIcon from '@mui/icons-material/Cookie';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import type { FoodFormData, MealType, FoodTemplate } from '../types';
 
+// Öğün renk tanımları - tüm bileşenlerle tutarlı
+const MEAL_COLORS = {
+  breakfast: '#FF6B35', // Turuncu
+  lunch: '#F7931E',     // Altın sarısı
+  dinner: '#9D4EDD',    // Mor
+  snack: '#06A77D',     // Yeşil
+} as const;
+
 interface FoodFormProps {
   onAddFood: (food: {
     name: string;
@@ -211,19 +219,19 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                   size="small"
                 >
                   <ToggleButton value="breakfast">
-                    <LocalCafeIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
                     Kahvaltı
                   </ToggleButton>
                   <ToggleButton value="lunch">
-                    <LunchDiningIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
                     Öğle
                   </ToggleButton>
                   <ToggleButton value="dinner">
-                    <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
                     Akşam
                   </ToggleButton>
                   <ToggleButton value="snack">
-                    <CookieIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
                     Atıştırma
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -370,19 +378,19 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                   size="small"
                 >
                   <ToggleButton value="breakfast">
-                    <LocalCafeIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
                     Kahvaltı
                   </ToggleButton>
                   <ToggleButton value="lunch">
-                    <LunchDiningIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
                     Öğle
                   </ToggleButton>
                   <ToggleButton value="dinner">
-                    <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
                     Akşam
                   </ToggleButton>
                   <ToggleButton value="snack">
-                    <CookieIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
                     Atıştırma
                   </ToggleButton>
                 </ToggleButtonGroup>

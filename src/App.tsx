@@ -98,9 +98,9 @@ function App() {
 
   // Auth modal'ı otomatik açma (kullanıcı butona tıklayarak açacak)
 
-  const handleAddFood = async (food: any) => {
+  const handleAddFood = async (food: any, customTimestamp?: number) => {
     try {
-      await addFood(food);
+      await addFood(food, customTimestamp);
       setToast({
         open: true,
         message: `✅ ${food.name} eklendi!`,
@@ -523,6 +523,10 @@ function App() {
         onClose={() => setHistoryOpen(false)}
         foods={allFoods}
         goal={dailyGoal}
+        onDeleteFood={handleDeleteFood}
+        onEditFood={handleEditFood}
+        onAddFood={handleAddFood}
+        foodTemplates={foodTemplates}
       />
 
       <FoodTemplatesModal

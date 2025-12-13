@@ -32,6 +32,14 @@ import CookieIcon from '@mui/icons-material/Cookie';
 import type { Food, FoodTemplate, MealType } from '../types';
 import { useState } from 'react';
 
+// Öğün renk tanımları - HistoryModal ile aynı
+const MEAL_COLORS = {
+  breakfast: '#FF6B35', // Turuncu
+  lunch: '#F7931E',     // Altın sarısı
+  dinner: '#9D4EDD',    // Mor
+  snack: '#06A77D',     // Yeşil
+} as const;
+
 interface FoodListProps {
   foods: Food[];
   onDeleteFood: (id: string) => void;
@@ -220,13 +228,13 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
   const getMealInfo = (mealType: string) => {
     switch (mealType) {
       case 'breakfast':
-        return { icon: LocalCafeIcon, label: 'Kahvaltı', color: '#FF9800' };
+        return { icon: LocalCafeIcon, label: 'Kahvaltı', color: MEAL_COLORS.breakfast };
       case 'lunch':
-        return { icon: LunchDiningIcon, label: 'Öğle Yemeği', color: '#543f15ff' };
+        return { icon: LunchDiningIcon, label: 'Öğle Yemeği', color: MEAL_COLORS.lunch };
       case 'dinner':
-        return { icon: DinnerDiningIcon, label: 'Akşam Yemeği', color: '#3F51B5' };
+        return { icon: DinnerDiningIcon, label: 'Akşam Yemeği', color: MEAL_COLORS.dinner };
       case 'snack':
-        return { icon: CookieIcon, label: 'Atıştırmalık', color: '#E91E63' };
+        return { icon: CookieIcon, label: 'Atıştırmalık', color: MEAL_COLORS.snack };
       default:
         return { icon: RestaurantIcon, label: 'Diğer', color: '#9E9E9E' };
     }
@@ -522,16 +530,16 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                   size="small"
                 >
                   <ToggleButton value="breakfast">
-                    ☕ Kahvaltı
+                    <LocalCafeIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.breakfast }} /> Kahvaltı
                   </ToggleButton>
                   <ToggleButton value="lunch">
-                    🍽️ Öğle
+                    <LunchDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.lunch }} /> Öğle
                   </ToggleButton>
                   <ToggleButton value="dinner">
-                    🌙 Akşam
+                    <DinnerDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.dinner }} /> Akşam
                   </ToggleButton>
                   <ToggleButton value="snack">
-                    🍎 Atıştırma
+                    <CookieIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.snack }} /> Atıştırma
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>
@@ -546,8 +554,11 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                 inputProps={{ min: 0, step: selectedFood.originalUnit === 'piece' ? 1 : 0.1 }}
                 helperText={
                   selectedFood.originalUnit === 'piece' 
-                    ? `1 adet = ${foodTemplates.find(t => t.id === selectedFood.templateId)?.servingSize}g`
-                    : 'Gram cinsinden giriniz'
+                    ? (() => {
+                        const template = foodTemplates.find(t => t.id === selectedFood.templateId);
+                        return template?.servingSize ? `1 adet = ${template.servingSize}g` : '';
+                      })()
+                    : ''
                 }
                 autoFocus
               />
@@ -569,16 +580,16 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                   size="small"
                 >
                   <ToggleButton value="breakfast">
-                    ☕ Kahvaltı
+                    <LocalCafeIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.breakfast }} /> Kahvaltı
                   </ToggleButton>
                   <ToggleButton value="lunch">
-                    🍽️ Öğle
+                    <LunchDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.lunch }} /> Öğle
                   </ToggleButton>
                   <ToggleButton value="dinner">
-                    🌙 Akşam
+                    <DinnerDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.dinner }} /> Akşam
                   </ToggleButton>
                   <ToggleButton value="snack">
-                    🍎 Atıştırma
+                    <CookieIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.snack }} /> Atıştırma
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>

@@ -151,10 +151,10 @@ export function useFoodTracker() {
   };
 
   // Yeni yemek ekle
-  const addFood = async (food: Omit<Food, 'id' | 'timestamp'>) => {
+  const addFood = async (food: Omit<Food, 'id' | 'timestamp'>, customTimestamp?: number) => {
     const newFood: Omit<Food, 'id'> = {
       ...food,
-      timestamp: Date.now(),
+      timestamp: customTimestamp || Date.now(),
     };
 
     // Misafir modu
