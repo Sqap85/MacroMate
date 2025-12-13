@@ -299,14 +299,28 @@ function App() {
           <Typography variant="h5" component="h1" fontWeight="bold">
             MacroMate
           </Typography>
-          <Typography variant="subtitle1" sx={{ ml: 2, opacity: 0.9 }}>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              ml: 2, 
+              opacity: 0.9,
+              display: { xs: 'none', sm: 'block' } 
+            }}
+          >
             Kalori Takip Uygulaması
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
           
           {currentUser || isGuest ? (
             <>
-              <Typography variant="body2" sx={{ mr: 2, opacity: 0.9 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mr: 2, 
+                  opacity: 0.9,
+                  display: { xs: 'none', sm: 'block' }
+                }}
+              >
                 {isGuest ? (
                   '👤 Misafir'
                 ) : (
