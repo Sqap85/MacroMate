@@ -1058,7 +1058,6 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                                 sx={{ 
                                   py: 0.25, 
                                   fontSize: '0.7rem',
-                                  textTransform: 'none',
                                 }}
                               >
                                 Yemek Ekle

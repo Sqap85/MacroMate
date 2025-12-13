@@ -203,7 +203,6 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           sx={{ 
             mb: 3,
             '& .MuiTab-root': {
-              textTransform: 'none',
               fontSize: '1rem',
               fontWeight: 600,
             }
@@ -331,7 +330,6 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             sx={{ 
               borderRadius: 2,
               py: 1.2,
-              textTransform: 'none',
               borderColor: '#e0e0e0',
               '&:hover': {
                 borderColor: '#b0b0b0',
@@ -352,7 +350,6 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             sx={{ 
               borderRadius: 2,
               py: 1.2,
-              textTransform: 'none',
               borderColor: '#e0e0e0',
               color: 'text.secondary',
               '&:hover': {
@@ -372,7 +369,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               size="small"
               onClick={() => setTabValue(isLogin ? 1 : 0)}
               disabled={loading}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              sx={{ fontWeight: 600 }}
             >
               {isLogin ? 'Kayıt Ol' : 'Giriş Yap'}
             </Button>

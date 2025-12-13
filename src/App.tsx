@@ -462,7 +462,6 @@ function App() {
                 borderRadius: 2,
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 boxShadow: '0 4px 14px rgba(102, 126, 234, 0.4)',
-                textTransform: 'none',
                 transition: 'all 0.2s ease',
                 '&:hover': {
                   background: 'linear-gradient(135deg, #5568d3 0%, #6a4190 100%)',
