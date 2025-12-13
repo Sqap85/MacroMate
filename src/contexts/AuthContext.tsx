@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import {
@@ -9,8 +9,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
+  sendEmailVerification,
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth, emailVerificationSettings } from '../config/firebase';
 
 /**
  * Authentication Context
@@ -27,6 +28,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   continueAsGuest: () => void;
+  resendVerificationEmail: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,6 +69,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await updateProfile(userCredential.user, {
         displayName: displayName,
       });
+      
+      // Email doğrulama gönder
+      await sendEmailVerification(userCredential.user, emailVerificationSettings);
+      
       // State'i güncelle
       setCurrentUser({...userCredential.user, displayName} as User);
     }
@@ -123,6 +130,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLoading(false);
   };
 
+  // Email doğrulama emailini tekrar gönder
+  const resendVerificationEmail = async () => {
+    if (!currentUser) {
+      throw new Error('Giriş yapılmamış');
+    }
+    
+    if (currentUser.emailVerified) {
+      throw new Error('Email zaten doğrulanmış');
+    }
+
+    await sendEmailVerification(currentUser, emailVerificationSettings);
+  };
+
+  // Kullanıcı bilgilerini yenile (email verified kontrolü için)
+  const refreshUser = useCallback(async () => {
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      // Sadece emailVerified değiştiyse state'i güncelle (infinite loop önleme)
+      const wasVerified = currentUser?.emailVerified || false;
+      const isNowVerified = auth.currentUser.emailVerified;
+      
+      if (wasVerified !== isNowVerified) {
+        setCurrentUser({ ...auth.currentUser });
+      }
+    }
+  }, [currentUser?.emailVerified]); // Sadece emailVerified değiştiğinde yeniden oluştur
+
   // Auth state değişikliklerini dinle
   useEffect(() => {
     // Misafir modunu kontrol et
@@ -153,6 +187,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     logout,
     loginWithGoogle,
     continueAsGuest,
+    resendVerificationEmail,
+    refreshUser,
   };
 
   return (

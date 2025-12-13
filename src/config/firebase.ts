@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import type { ActionCodeSettings } from 'firebase/auth';
 
 /**
  * Firebase Configuration
@@ -14,6 +15,17 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+};
+
+/**
+ * Email Verification Action Code Settings
+ * Email doğrulama linki ayarları
+ */
+export const emailVerificationSettings: ActionCodeSettings = {
+  // Doğrulama sonrası yönlendirilecek URL
+  url: window.location.origin,
+  // Web'de handle etmek için
+  handleCodeInApp: false,
 };
 
 // Firebase'i initialize et

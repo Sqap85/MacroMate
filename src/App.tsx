@@ -11,6 +11,7 @@ import { GoalSettingsModal } from './components/GoalSettingsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { FoodTemplatesModal } from './components/FoodTemplatesModal';
 import { AuthModal } from './components/AuthModal';
+import { EmailVerificationScreen } from './components/EmailVerificationScreen';
 import { Toast } from './components/Toast';
 import { useFoodTracker } from './hooks/useFoodTracker';
 import { useAuth } from './contexts/AuthContext';
@@ -261,6 +262,12 @@ function App() {
         </Typography>
       </Box>
     );
+  }
+
+  // Email doğrulanmamış kullanıcılar için EmailVerificationScreen göster
+  // Google ile giriş yapanlar otomatik verified olur
+  if (currentUser && !currentUser.emailVerified && !isGuest) {
+    return <EmailVerificationScreen />;
   }
 
   return (
