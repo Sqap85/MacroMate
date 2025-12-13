@@ -194,6 +194,7 @@ export function FoodTemplatesModal({
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      aria-labelledby="templates-dialog-title"
       PaperProps={{
         sx: {
           borderRadius: 2,
@@ -207,10 +208,14 @@ export function FoodTemplatesModal({
         alignItems: 'center',
         pb: 1
       }}>
-        <Typography variant="h6" component="div">
+        <Typography variant="h6" component="div" id="templates-dialog-title">
           🥗 Besin Şablonlarım
         </Typography>
-        <IconButton onClick={onClose} size="small">
+        <IconButton 
+          onClick={onClose} 
+          size="small"
+          aria-label="Kapat"
+        >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -463,6 +468,7 @@ export function FoodTemplatesModal({
         onClose={() => setDeleteDialogOpen(false)}
         maxWidth="xs"
         fullWidth
+        aria-labelledby="delete-confirm-dialog-title"
         PaperProps={{
           sx: {
             borderRadius: 2,
@@ -470,7 +476,7 @@ export function FoodTemplatesModal({
           }
         }}
       >
-        <DialogTitle>
+        <DialogTitle id="delete-confirm-dialog-title">
           <Typography variant="h6">
             Besini Sil
           </Typography>

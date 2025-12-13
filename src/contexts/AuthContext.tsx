@@ -10,6 +10,9 @@ import {
   signInWithPopup,
   updateProfile,
   sendEmailVerification,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
 import { auth, emailVerificationSettings } from '../config/firebase';
 
@@ -30,6 +33,8 @@ interface AuthContextType {
   continueAsGuest: () => void;
   resendVerificationEmail: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUserProfile: (displayName: string) => Promise<void>;
+  updateUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -145,17 +150,52 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Kullanıcı bilgilerini yenile (email verified kontrolü için)
   const refreshUser = useCallback(async () => {
-    if (auth.currentUser) {
-      await auth.currentUser.reload();
-      // Sadece emailVerified değiştiyse state'i güncelle (infinite loop önleme)
-      const wasVerified = currentUser?.emailVerified || false;
-      const isNowVerified = auth.currentUser.emailVerified;
-      
-      if (wasVerified !== isNowVerified) {
-        setCurrentUser({ ...auth.currentUser });
+    try {
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+        // Sadece emailVerified değiştiyse state'i güncelle (infinite loop önleme)
+        const wasVerified = currentUser?.emailVerified || false;
+        const isNowVerified = auth.currentUser.emailVerified;
+        
+        if (wasVerified !== isNowVerified) {
+          setCurrentUser({ ...auth.currentUser });
+        }
       }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+      // Hata durumunda sessizce devam et
     }
-  }, [currentUser?.emailVerified]); // Sadece emailVerified değiştiğinde yeniden oluştur
+  }, [currentUser?.emailVerified]);
+
+  // Kullanıcı profil güncelleme (display name)
+  const updateUserProfile = async (displayName: string) => {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('Giriş yapılmamış');
+    }
+
+    await updateProfile(user, { displayName });
+    // State'i güncelle
+    setCurrentUser({ ...user, displayName } as User);
+  };
+
+  // Şifre güncelleme
+  const updateUserPassword = async (currentPassword: string, newPassword: string) => {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      throw new Error('Giriş yapılmamış');
+    }
+
+    // Önce kullanıcıyı yeniden doğrula (güvenlik için)
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      currentPassword
+    );
+    await reauthenticateWithCredential(user, credential);
+
+    // Şifreyi güncelle
+    await updatePassword(user, newPassword);
+  };
 
   // Auth state değişikliklerini dinle
   useEffect(() => {
@@ -189,6 +229,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     continueAsGuest,
     resendVerificationEmail,
     refreshUser,
+    updateUserProfile,
+    updateUserPassword,
   };
 
   return (

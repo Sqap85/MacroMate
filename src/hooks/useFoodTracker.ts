@@ -63,13 +63,11 @@ export function useFoodTracker() {
     const checkAllLoaded = () => {
       if (hasLoadedFoods && hasLoadedGoal && hasLoadedTemplates) {
         setLoading(false);
-        console.log('✅ Tüm veriler yüklendi!');
       }
     };
 
     // Foods listener
     const unsubFoods = firestoreService.listenToUserFoods(currentUser.uid, (newFoods) => {
-      console.log('Foods loaded:', newFoods.length, 'items');
       setFoods(newFoods);
       hasLoadedFoods = true;
       checkAllLoaded();
@@ -77,7 +75,6 @@ export function useFoodTracker() {
 
     // Goal listener  
     const unsubGoal = firestoreService.listenToUserGoal(currentUser.uid, (newGoal) => {
-      console.log('Goal loaded:', newGoal);
       if (newGoal) {
         setDailyGoal(newGoal);
       } else {
@@ -89,7 +86,6 @@ export function useFoodTracker() {
 
     // Templates listener
     const unsubTemplates = firestoreService.listenToUserTemplates(currentUser.uid, (newTemplates) => {
-      console.log('Templates loaded:', newTemplates.length, 'items');
       setFoodTemplates(newTemplates);
       hasLoadedTemplates = true;
       checkAllLoaded();
@@ -97,8 +93,10 @@ export function useFoodTracker() {
 
     // Timeout fallback - 10 saniye sonra zorla yükle
     const timeout = setTimeout(() => {
-      console.warn('⚠️ Loading timeout - forcing completion');
-      setLoading(false);
+      if (!hasLoadedFoods || !hasLoadedGoal || !hasLoadedTemplates) {
+        console.warn('⚠️ Loading timeout - forcing completion');
+        setLoading(false);
+      }
     }, 10000);
 
     // Cleanup listeners

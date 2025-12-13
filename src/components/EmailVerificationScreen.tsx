@@ -30,9 +30,17 @@ export function EmailVerificationScreen() {
   const [success, setSuccess] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [verified, setVerified] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState(0);
 
   // Fonksiyonu önce tanımla
   const handleCheckVerification = useCallback(async (silent = false) => {
+    // Rate limiting: Son kontrolden 3 saniye geçmemişse kontrol etme
+    const now = Date.now();
+    if (silent && now - lastCheckTime < 3000) {
+      return;
+    }
+    setLastCheckTime(now);
+    
     if (!silent) setChecking(true);
     setError('');
 
@@ -61,16 +69,16 @@ export function EmailVerificationScreen() {
     } finally {
       if (!silent) setChecking(false);
     }
-  }, [refreshUser]);
+  }, [refreshUser, lastCheckTime]);
 
   // SADECE periyodik kontrol - ilk yüklenme kontrolünü kaldırdık (infinite loop önleme)
 
   // Otomatik kontrol her 10 saniyede bir
   useEffect(() => {
+    if (verified) return; // Zaten doğrulandıysa kontrol etme
+    
     const interval = setInterval(async () => {
-      if (!verified) {
-        await handleCheckVerification(true);
-      }
+      await handleCheckVerification(true);
     }, 10000);
 
     return () => clearInterval(interval);

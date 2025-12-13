@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
 import {
   Dialog,
   TextField,
@@ -35,73 +37,88 @@ interface AuthModalProps {
 export function AuthModal({ open, onClose }: AuthModalProps) {
   const { signup, login, loginWithGoogle, continueAsGuest } = useAuth();
   const [tabValue, setTabValue] = useState(0); // 0: Login, 1: Signup
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const isLogin = tabValue === 0;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validasyon
-    if (!email || !password) {
-      setError('Lütfen tüm alanları doldurun');
-      return;
-    }
+  // Validation schema
+  const validationSchema = Yup.object({
+    email: Yup.string()
+      .email('Geçersiz e-posta adresi')
+      .required('E-posta adresi zorunlu')
+      .matches(
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        'Geçerli bir e-posta adresi girin'
+      ),
+    password: Yup.string()
+      .required('Şifre zorunlu')
+      .min(8, 'Şifre en az 8 karakter olmalı')
+      .max(128, 'Şifre en fazla 128 karakter olabilir')
+      .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
+      .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
+      .matches(/[0-9]/, 'En az bir rakam içermelidir')
+      .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
+    displayName: !isLogin
+      ? Yup.string()
+          .required('İsim zorunlu')
+          .min(2, 'İsim en az 2 karakter olmalı')
+          .max(50, 'İsim en fazla 50 karakter olabilir')
+          .matches(/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/, 'Sadece harf ve boşluk kullanabilirsiniz')
+      : Yup.string(),
+    confirmPassword: !isLogin
+      ? Yup.string()
+          .oneOf([Yup.ref('password')], 'Şifreler eşleşmiyor')
+          .required('Şifre tekrarı zorunlu')
+      : Yup.string(),
+  });
 
-    if (!isLogin) {
-      if (!displayName) {
-        setError('Lütfen adınızı girin');
-        return;
+  const formik = useFormik({
+    initialValues: {
+      email: '',
+      password: '',
+      displayName: '',
+      confirmPassword: '',
+    },
+    validationSchema,
+    validateOnChange: false,
+    validateOnBlur: false,
+    onSubmit: async (values) => {
+      try {
+        setError('');
+        setLoading(true);
+
+        if (isLogin) {
+          await login(values.email, values.password);
+        } else {
+          await signup(values.email, values.password, values.displayName);
+        }
+
+        // Başarılı - Modal'ı kapat
+        onClose();
+        formik.resetForm();
+      } catch (err: any) {
+        console.error('Auth error:', err);
+        
+        // Firebase hata mesajlarını Türkçeleştir
+        const errorMessages: Record<string, string> = {
+          'auth/email-already-in-use': 'Bu e-posta adresi zaten kullanımda',
+          'auth/invalid-email': 'Geçersiz e-posta adresi',
+          'auth/user-not-found': 'Kullanıcı bulunamadı',
+          'auth/wrong-password': 'Hatalı şifre',
+          'auth/weak-password': 'Şifre çok zayıf (en az 6 karakter)',
+          'auth/too-many-requests': 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin',
+          'auth/network-request-failed': 'Bağlantı hatası. İnternet bağlantınızı kontrol edin',
+          'auth/invalid-credential': 'E-posta veya şifre hatalı',
+        };
+
+        setError(errorMessages[err.code] || 'Bir hata oluştu. Lütfen tekrar deneyin.');
+      } finally {
+        setLoading(false);
       }
-      if (password !== confirmPassword) {
-        setError('Şifreler eşleşmiyor');
-        return;
-      }
-      if (password.length < 6) {
-        setError('Şifre en az 6 karakter olmalı');
-        return;
-      }
-    }
-
-    try {
-      setError('');
-      setLoading(true);
-
-      if (isLogin) {
-        await login(email, password);
-      } else {
-        await signup(email, password, displayName);
-      }
-
-      // Başarılı - Modal'ı kapat
-      onClose();
-      resetForm();
-    } catch (err: any) {
-      console.error('Auth error:', err);
-      
-      // Firebase hata mesajlarını Türkçeleştir
-      const errorMessages: Record<string, string> = {
-        'auth/email-already-in-use': 'Bu e-posta adresi zaten kullanımda',
-        'auth/invalid-email': 'Geçersiz e-posta adresi',
-        'auth/user-not-found': 'Kullanıcı bulunamadı',
-        'auth/wrong-password': 'Hatalı şifre',
-        'auth/weak-password': 'Şifre çok zayıf (en az 6 karakter)',
-        'auth/too-many-requests': 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin',
-        'auth/network-request-failed': 'Bağlantı hatası. İnternet bağlantınızı kontrol edin',
-        'auth/invalid-credential': 'E-posta veya şifre hatalı',
-      };
-
-      setError(errorMessages[err.code] || 'Bir hata oluştu. Lütfen tekrar deneyin.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   const handleGoogleLogin = async () => {
     try {
@@ -109,7 +126,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       setLoading(true);
       await loginWithGoogle();
       onClose();
-      resetForm();
+      formik.resetForm();
     } catch (err: any) {
       console.error('Google auth error:', err);
       setError('Google ile giriş başarısız. Lütfen tekrar deneyin.');
@@ -121,20 +138,13 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   const handleGuestLogin = () => {
     continueAsGuest();
     onClose();
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setEmail('');
-    setPassword('');
-    setDisplayName('');
-    setConfirmPassword('');
-    setError('');
-    setShowPassword(false);
+    formik.resetForm();
   };
 
   const handleClose = () => {
-    resetForm();
+    formik.resetForm();
+    setError('');
+    setShowPassword(false);
     onClose();
   };
 
@@ -144,6 +154,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       onClose={handleClose} 
       maxWidth="sm" 
       fullWidth
+      aria-labelledby="auth-dialog-title"
       PaperProps={{
         sx: {
           borderRadius: 3,
@@ -158,11 +169,13 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           <IconButton 
             onClick={handleClose} 
             sx={{ position: 'absolute', right: 16, top: 16 }}
+            aria-label="Kapat"
           >
             <CloseIcon />
           </IconButton>
           
           <Typography 
+            id="auth-dialog-title" 
             variant="h4" 
             fontWeight="bold" 
             sx={{
@@ -207,13 +220,16 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box component="form" onSubmit={formik.handleSubmit}>
           {!isLogin && (
             <TextField
               fullWidth
               label="Adınız"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              name="displayName"
+              value={formik.values.displayName}
+              onChange={formik.handleChange}
+              error={formik.touched.displayName && Boolean(formik.errors.displayName)}
+              helperText={formik.touched.displayName && formik.errors.displayName}
               margin="normal"
               autoFocus={!isLogin}
               disabled={loading}
@@ -225,8 +241,11 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             fullWidth
             label="E-posta"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            name="email"
+            value={formik.values.email}
+            onChange={formik.handleChange}
+            error={formik.touched.email && Boolean(formik.errors.email)}
+            helperText={formik.touched.email && formik.errors.email}
             margin="normal"
             autoFocus={isLogin}
             disabled={loading}
@@ -237,8 +256,11 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             fullWidth
             label="Şifre"
             type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            name="password"
+            value={formik.values.password}
+            onChange={formik.handleChange}
+            error={formik.touched.password && Boolean(formik.errors.password)}
+            helperText={formik.touched.password && formik.errors.password}
             margin="normal"
             disabled={loading}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -261,8 +283,11 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               fullWidth
               label="Şifre Tekrar"
               type={showPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              name="confirmPassword"
+              value={formik.values.confirmPassword}
+              onChange={formik.handleChange}
+              error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
+              helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
               margin="normal"
               disabled={loading}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import type { ActionCodeSettings } from 'firebase/auth';
 
 /**
@@ -34,19 +34,12 @@ const app = initializeApp(firebaseConfig);
 // Authentication servisini al
 export const auth = getAuth(app);
 
-// Firestore servisini al
-export const db = getFirestore(app);
-
-// Offline persistence aktifleştir
-// Kullanıcı offline olduğunda da veri okuyabilir/yazabilir
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    // Birden fazla tab açıksa offline persistence çalışmaz
-    console.warn('Firebase: Multiple tabs open, persistence disabled.');
-  } else if (err.code === 'unimplemented') {
-    // Browser desteklemiyor
-    console.warn('Firebase: Persistence not available in this browser.');
-  }
+// Firestore servisini yeni cache API ile initialize et
+// Offline persistence ve multi-tab desteği
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
 });
 
 export default app;

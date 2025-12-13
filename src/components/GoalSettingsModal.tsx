@@ -44,8 +44,14 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
   const fatPercent = Math.round((goal.fat * 9 / totalMacros) * 100) || 0;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      aria-labelledby="goal-settings-dialog-title"
+    >
+      <DialogTitle id="goal-settings-dialog-title">
         <Box display="flex" alignItems="center" gap={1}>
           <SettingsIcon />
           <Typography variant="h6">Günlük Hedefler</Typography>

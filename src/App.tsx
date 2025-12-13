@@ -4,6 +4,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import HistoryIcon from '@mui/icons-material/History';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { FoodForm } from './components/FoodForm';
 import { StatsCard } from './components/StatsCard';
 import { FoodList } from './components/FoodList';
@@ -12,6 +13,7 @@ import { HistoryModal } from './components/HistoryModal';
 import { FoodTemplatesModal } from './components/FoodTemplatesModal';
 import { AuthModal } from './components/AuthModal';
 import { EmailVerificationScreen } from './components/EmailVerificationScreen';
+import { ProfileModal } from './components/ProfileModal';
 import { Toast } from './components/Toast';
 import { useFoodTracker } from './hooks/useFoodTracker';
 import { useAuth } from './contexts/AuthContext';
@@ -42,6 +44,7 @@ function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
@@ -330,11 +333,20 @@ function App() {
                   </Tooltip>
                 </>
               ) : (
-                <Tooltip title="Geçmiş & İstatistikler">
-                  <IconButton color="inherit" onClick={() => setHistoryOpen(true)}>
-                    <HistoryIcon />
-                  </IconButton>
-                </Tooltip>
+                <>
+                  <Tooltip title="Geçmiş & İstatistikler">
+                    <IconButton color="inherit" onClick={() => setHistoryOpen(true)}>
+                      <HistoryIcon />
+                    </IconButton>
+                  </Tooltip>
+                  {!isGuest && (
+                    <Tooltip title="Profil Ayarları">
+                      <IconButton color="inherit" onClick={() => setProfileOpen(true)}>
+                        <AccountCircleIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </>
               )}
               <Tooltip title={isGuest ? "Misafir Modundan Çık" : "Çıkış Yap"}>
                 <IconButton color="inherit" onClick={handleLogoutClick}>
@@ -521,8 +533,9 @@ function App() {
         onClose={handleCancelLogout}
         maxWidth="xs"
         fullWidth
+        aria-labelledby="logout-dialog-title"
       >
-        <DialogTitle>
+        <DialogTitle id="logout-dialog-title">
           {isGuest ? "Misafir Modundan Çık" : "Çıkış Yap"}
         </DialogTitle>
         <DialogContent>
@@ -552,6 +565,13 @@ function App() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Profil Modal */}
+      <ProfileModal 
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onSuccess={(message) => setToast({ open: true, message, severity: 'success' })}
+      />
     </>
   );
 }

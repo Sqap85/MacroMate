@@ -102,14 +102,24 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="md" 
+      fullWidth
+      aria-labelledby="history-dialog-title"
+    >
+      <DialogTitle id="history-dialog-title">
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box display="flex" alignItems="center" gap={1}>
             <CalendarMonthIcon />
             <Typography variant="h6">Geçmiş & İstatistikler</Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton 
+            onClick={onClose} 
+            size="small"
+            aria-label="Kapat"
+          >
             <CloseIcon />
           </IconButton>
         </Box>
