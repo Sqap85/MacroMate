@@ -89,12 +89,7 @@ export function FoodTemplatesModal({
       return;
     }
 
-    if (formData.unit === 'piece' && !formData.servingSize) {
-      alert('Lütfen 1 adet kaç gram olduğunu giriniz');
-      return;
-    }
-
-    // Adet bazında girildiyse 100g'a çevir
+    // Adet bazında girildiyse adet başına değerleri kaydet
     let caloriesPer100g: number;
     let proteinPer100g: number;
     let carbsPer100g: number;
@@ -107,17 +102,16 @@ export function FoodTemplatesModal({
         return;
       }
       
-      const servingSize = Number(formData.servingSize);
       const caloriesPerPiece = Number(formData.caloriesPerPiece);
       const proteinPerPiece = Number(formData.proteinPerPiece) || 0;
       const carbsPerPiece = Number(formData.carbsPerPiece) || 0;
       const fatPerPiece = Number(formData.fatPerPiece) || 0;
 
-      // 100g'a dönüştür
-      caloriesPer100g = Math.round((caloriesPerPiece / servingSize) * 100);
-      proteinPer100g = Math.round(((proteinPerPiece / servingSize) * 100) * 10) / 10;
-      carbsPer100g = Math.round(((carbsPerPiece / servingSize) * 100) * 10) / 10;
-      fatPer100g = Math.round(((fatPerPiece / servingSize) * 100) * 10) / 10;
+      // Adet bazında değerleri 100g yerine saklayacağız (100 birim = 1 adet kabul ederek)
+      caloriesPer100g = caloriesPerPiece;
+      proteinPer100g = proteinPerPiece;
+      carbsPer100g = carbsPerPiece;
+      fatPer100g = fatPerPiece;
     } else {
       // 100g bazında direkt girildi
       if (!formData.caloriesPer100g) {
@@ -134,7 +128,7 @@ export function FoodTemplatesModal({
     const templateData = {
       name: formData.name,
       unit: formData.unit,
-      servingSize: formData.unit === 'piece' ? Number(formData.servingSize) : undefined,
+      servingSize: undefined,
       caloriesPer100g,
       proteinPer100g,
       carbsPer100g,
@@ -153,20 +147,36 @@ export function FoodTemplatesModal({
   };
 
   const handleEdit = (template: FoodTemplate) => {
-    // 100g bazlı değerleri göster (düzenleme her zaman 100g bazlı)
-    setFormData({
-      name: template.name,
-      unit: template.unit,
-      servingSize: template.servingSize?.toString() || '',
-      caloriesPer100g: template.caloriesPer100g.toString(),
-      proteinPer100g: template.proteinPer100g.toString(),
-      carbsPer100g: template.carbsPer100g.toString(),
-      fatPer100g: template.fatPer100g.toString(),
-      caloriesPerPiece: '',
-      proteinPerPiece: '',
-      carbsPerPiece: '',
-      fatPerPiece: '',
-    });
+    if (template.unit === 'piece') {
+      setFormData({
+        name: template.name,
+        unit: template.unit,
+        servingSize: '',
+        caloriesPer100g: '',
+        proteinPer100g: '',
+        carbsPer100g: '',
+        fatPer100g: '',
+        caloriesPerPiece: template.caloriesPer100g.toString(),
+        proteinPerPiece: template.proteinPer100g.toString(),
+        carbsPerPiece: template.carbsPer100g.toString(),
+        fatPerPiece: template.fatPer100g.toString(),
+      });
+    } else {
+      // Gram bazlı: 100g başına değerler
+      setFormData({
+        name: template.name,
+        unit: template.unit,
+        servingSize: '',
+        caloriesPer100g: template.caloriesPer100g.toString(),
+        proteinPer100g: template.proteinPer100g.toString(),
+        carbsPer100g: template.carbsPer100g.toString(),
+        fatPer100g: template.fatPer100g.toString(),
+        caloriesPerPiece: '',
+        proteinPerPiece: '',
+        carbsPerPiece: '',
+        fatPerPiece: '',
+      });
+    }
     setEditingId(template.id);
   };
 
@@ -275,22 +285,6 @@ export function FoodTemplatesModal({
                     </ToggleButton>
                   </ToggleButtonGroup>
                 </Box>
-
-                {/* Adet bazında ise 1 adet kaç gram */}
-                {formData.unit === 'piece' && (
-                  <TextField
-                    fullWidth
-                    label="1 Adet Kaç Gram?"
-                    type="number"
-                    value={formData.servingSize}
-                    onChange={(e) => setFormData({ ...formData, servingSize: e.target.value })}
-                    placeholder="Örn: 50 (1 yumurta ≈ 50g)"
-                    required
-                    inputProps={{ min: 1, step: 1 }}
-                    size="small"
-                    helperText="1 adet kaç gram olduğunu giriniz"
-                  />
-                )}
 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
                   {formData.unit === 'piece' 
@@ -411,7 +405,7 @@ export function FoodTemplatesModal({
                             {template.name}
                           </Typography>
                           <Chip 
-                            label={template.unit === 'gram' ? 'Gram' : `Adet (${template.servingSize}g)`}
+                            label={template.unit === 'gram' ? 'Gram' : 'Adet'}
                             size="small"
                             color={template.unit === 'gram' ? 'default' : 'primary'}
                             sx={{ height: 20, fontSize: '0.7rem' }}
@@ -420,10 +414,10 @@ export function FoodTemplatesModal({
                       }
                       secondary={
                         <Typography variant="caption" component="div" color="text.secondary">
-                          100g: {template.caloriesPer100g} kcal | 
-                          P: {template.proteinPer100g}g | 
-                          C: {template.carbsPer100g}g | 
-                          F: {template.fatPer100g}g
+                          {template.unit === 'piece'
+                            ? `1 adet: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | C: ${template.carbsPer100g}g | F: ${template.fatPer100g}g`
+                            : `100g: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | C: ${template.carbsPer100g}g | F: ${template.fatPer100g}g`
+                          }
                         </Typography>
                       }
                     />

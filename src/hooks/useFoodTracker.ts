@@ -321,31 +321,37 @@ export function useFoodTracker() {
     const template = foodTemplates.find(t => t.id === templateId);
     if (!template) return;
 
-    // Gram cinsinden hesapla
-    let grams: number;
-    if (template.unit === 'piece') {
-      grams = amount * (template.servingSize || 0);
-    } else {
-      grams = amount;
-    }
-
-    const multiplier = grams / 100;
-    
     // İsim formatı
     let displayName: string;
+    let calories: number;
+    let protein: number;
+    let carbs: number;
+    let fat: number;
+    
     if (template.unit === 'piece') {
+      // Adet bazında: değerler zaten adet başına, direkt çarp
       displayName = `${template.name} (${amount} adet)`;
+      calories = Math.round(template.caloriesPer100g * amount);
+      protein = Math.round(template.proteinPer100g * amount * 10) / 10;
+      carbs = Math.round(template.carbsPer100g * amount * 10) / 10;
+      fat = Math.round(template.fatPer100g * amount * 10) / 10;
     } else {
+      // Gram bazında: 100g'a göre hesapla
       displayName = `${template.name} (${amount}g)`;
+      const multiplier = amount / 100;
+      calories = Math.round(template.caloriesPer100g * multiplier);
+      protein = Math.round(template.proteinPer100g * multiplier * 10) / 10;
+      carbs = Math.round(template.carbsPer100g * multiplier * 10) / 10;
+      fat = Math.round(template.fatPer100g * multiplier * 10) / 10;
     }
 
     const newFood: Omit<Food, 'id'> = {
       timestamp: Date.now(),
       name: displayName,
-      calories: Math.round(template.caloriesPer100g * multiplier),
-      protein: Math.round(template.proteinPer100g * multiplier * 10) / 10,
-      carbs: Math.round(template.carbsPer100g * multiplier * 10) / 10,
-      fat: Math.round(template.fatPer100g * multiplier * 10) / 10,
+      calories,
+      protein,
+      carbs,
+      fat,
       mealType: mealType as any,
       fromTemplate: true,
       templateId: template.id,

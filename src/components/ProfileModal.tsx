@@ -245,7 +245,7 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
           </Box>
 
           {/* Password Update - Only for email/password users */}
-          {isEmailProvider ? (
+          {isEmailProvider && (
             <>
               <Divider />
               <Box component="form" onSubmit={passwordFormik.handleSubmit}>
@@ -307,10 +307,6 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
                 </Button>
               </Box>
             </>
-          ) : (
-            <Alert severity="info">
-              Google ile giriş yaptınız. Şifre değiştiremezsiniz.
-            </Alert>
           )}
         </Stack>
       </DialogContent>

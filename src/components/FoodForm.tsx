@@ -128,24 +128,31 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
   const getPreviewValues = () => {
     if (!selectedTemplate) return null;
     
-    let gramsToCalculate: number;
-    
     if (selectedTemplate.unit === 'piece') {
       if (!pieces) return null;
-      gramsToCalculate = Number(pieces) * (selectedTemplate.servingSize || 0);
+      const numberOfPieces = Number(pieces);
+      
+      // Adet bazında: değerler zaten adet başına kaydedilmiş
+      return {
+        pieces: numberOfPieces,
+        calories: Math.round(selectedTemplate.caloriesPer100g * numberOfPieces),
+        protein: Math.round(selectedTemplate.proteinPer100g * numberOfPieces * 10) / 10,
+        carbs: Math.round(selectedTemplate.carbsPer100g * numberOfPieces * 10) / 10,
+        fat: Math.round(selectedTemplate.fatPer100g * numberOfPieces * 10) / 10,
+      };
     } else {
       if (!grams) return null;
-      gramsToCalculate = Number(grams);
+      const gramsToCalculate = Number(grams);
+      const multiplier = gramsToCalculate / 100;
+      
+      return {
+        grams: gramsToCalculate,
+        calories: Math.round(selectedTemplate.caloriesPer100g * multiplier),
+        protein: Math.round(selectedTemplate.proteinPer100g * multiplier * 10) / 10,
+        carbs: Math.round(selectedTemplate.carbsPer100g * multiplier * 10) / 10,
+        fat: Math.round(selectedTemplate.fatPer100g * multiplier * 10) / 10,
+      };
     }
-    
-    const multiplier = gramsToCalculate / 100;
-    return {
-      grams: gramsToCalculate,
-      calories: Math.round(selectedTemplate.caloriesPer100g * multiplier),
-      protein: Math.round(selectedTemplate.proteinPer100g * multiplier * 10) / 10,
-      carbs: Math.round(selectedTemplate.carbsPer100g * multiplier * 10) / 10,
-      fat: Math.round(selectedTemplate.fatPer100g * multiplier * 10) / 10,
-    };
   };
 
   const previewValues = getPreviewValues();
@@ -245,12 +252,15 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                         <Typography variant="body2">{option.name}</Typography>
                         {option.unit === 'piece' && (
                           <Typography variant="caption" color="primary">
-                            ({option.servingSize}g/adet)
+                            (Adet)
                           </Typography>
                         )}
                       </Box>
                       <Typography variant="caption" color="text.secondary">
-                        100g: {option.caloriesPer100g} kcal | P: {option.proteinPer100g}g
+                        {option.unit === 'piece' 
+                          ? `1 adet: ${option.caloriesPer100g} kcal | P: ${option.proteinPer100g}g`
+                          : `100g: ${option.caloriesPer100g} kcal | P: ${option.proteinPer100g}g`
+                        }
                       </Typography>
                     </Box>
                   </Box>
@@ -281,7 +291,6 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                     value={pieces}
                     onChange={(e) => setPieces(e.target.value)}
                     inputProps={{ min: 0, step: 1 }}
-                    helperText={`1 ${selectedTemplate.name} ≈ ${selectedTemplate.servingSize}g`}
                   />
                 ) : (
                   <TextField
@@ -308,7 +317,7 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                 >
                   <Typography variant="caption" color="text.secondary" display="block" mb={1}>
                     {selectedTemplate?.unit === 'piece' 
-                      ? `Toplam Değerler (${pieces} adet ≈ ${previewValues.grams}g)`
+                      ? `Toplam Değerler (${pieces} adet)`
                       : `Toplam Değerler (${grams}g)`
                     }
                   </Typography>

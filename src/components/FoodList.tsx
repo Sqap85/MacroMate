@@ -120,29 +120,36 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
       if (!template) return;
 
       const newAmount = Number(editFormData.amount);
-      let grams: number;
-      
-      if (template.unit === 'piece') {
-        grams = newAmount * (template.servingSize || 0);
-      } else {
-        grams = newAmount;
-      }
-
-      const multiplier = grams / 100;
       
       let displayName: string;
+      let calories: number;
+      let protein: number;
+      let carbs: number;
+      let fat: number;
+      
       if (template.unit === 'piece') {
+        // Adet bazında: değerler zaten adet başına, direkt çarp
         displayName = `${template.name} (${newAmount} adet)`;
+        calories = Math.round(template.caloriesPer100g * newAmount);
+        protein = Math.round(template.proteinPer100g * newAmount * 10) / 10;
+        carbs = Math.round(template.carbsPer100g * newAmount * 10) / 10;
+        fat = Math.round(template.fatPer100g * newAmount * 10) / 10;
       } else {
+        // Gram bazında: 100g'a göre hesapla
         displayName = `${template.name} (${newAmount}g)`;
+        const multiplier = newAmount / 100;
+        calories = Math.round(template.caloriesPer100g * multiplier);
+        protein = Math.round(template.proteinPer100g * multiplier * 10) / 10;
+        carbs = Math.round(template.carbsPer100g * multiplier * 10) / 10;
+        fat = Math.round(template.fatPer100g * multiplier * 10) / 10;
       }
 
       onEditFood(selectedFood.id, {
         name: displayName,
-        calories: Math.round(template.caloriesPer100g * multiplier),
-        protein: Math.round(template.proteinPer100g * multiplier * 10) / 10,
-        carbs: Math.round(template.carbsPer100g * multiplier * 10) / 10,
-        fat: Math.round(template.fatPer100g * multiplier * 10) / 10,
+        calories,
+        protein,
+        carbs,
+        fat,
         originalAmount: newAmount,
         mealType: editFormData.mealType,
       });
