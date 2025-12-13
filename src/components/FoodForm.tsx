@@ -13,6 +13,7 @@ import {
   Tabs,
   Tab,
   Divider,
+  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LocalCafeIcon from '@mui/icons-material/LocalCafe';
@@ -20,6 +21,7 @@ import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
 import CookieIcon from '@mui/icons-material/Cookie';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
 import type { FoodFormData, MealType, FoodTemplate } from '../types';
 
 // Öğün renk tanımları - tüm bileşenlerle tutarlı
@@ -178,9 +180,12 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
     >
       <CardContent>
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">
-            🍽️ Yemek Ekle
-          </Typography>
+          <Box display="flex" alignItems="center" gap={1}>
+            <RestaurantIcon color="primary" />
+            <Typography variant="h6">
+              Yemek Ekle
+            </Typography>
+          </Box>
           <Button
             size="small"
             variant="outlined"
@@ -330,18 +335,30 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                     }
                   </Typography>
                   <Box display="flex" gap={2} flexWrap="wrap">
-                    <Typography variant="body2">
-                      🔥 {previewValues.calories} kcal
-                    </Typography>
-                    <Typography variant="body2">
-                      🥩 {previewValues.protein}g protein
-                    </Typography>
-                    <Typography variant="body2">
-                      🍚 {previewValues.carbs}g karb.
-                    </Typography>
-                    <Typography variant="body2">
-                      🧈 {previewValues.fat}g yağ
-                    </Typography>
+                    <Chip 
+                      label={`${previewValues.calories} kcal`}
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                    />
+                    <Chip 
+                      label={`${previewValues.protein}g protein`}
+                      size="small"
+                      color="info"
+                      variant="outlined"
+                    />
+                    <Chip 
+                      label={`${previewValues.carbs}g karb.`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                    <Chip 
+                      label={`${previewValues.fat}g yağ`}
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                    />
                   </Box>
                 </Box>
               )}

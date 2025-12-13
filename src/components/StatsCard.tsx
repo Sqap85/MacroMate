@@ -11,6 +11,9 @@ import {
 } from '@mui/material';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import type { DailyStats, DailyGoal } from '../types';
 
 interface StatsCardProps {
@@ -36,6 +39,12 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
   const proteinPercentage = getPercentage(stats.totalProtein, goal.protein);
   const carbsPercentage = getPercentage(stats.totalCarbs, goal.carbs);
   const fatPercentage = getPercentage(stats.totalFat, goal.fat);
+
+  // Kalan/Fazla hesapla
+  const calorieRemaining = Math.round(goal.calories - stats.totalCalories);
+  const proteinRemaining = Math.round(goal.protein - stats.totalProtein);
+  const carbsRemaining = Math.round(goal.carbs - stats.totalCarbs);
+  const fatRemaining = Math.round(goal.fat - stats.totalFat);
 
   return (
     <Card elevation={3}>
@@ -93,6 +102,9 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               color={getColor(proteinPercentage)}
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
+            <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
+              {proteinRemaining > 0 ? `Kalan: ${proteinRemaining}g` : proteinRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${Math.abs(proteinRemaining)}g`}
+            </Typography>
           </Box>
 
           {/* Karbonhidrat */}
@@ -112,6 +124,9 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               color={getColor(carbsPercentage)}
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
+            <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
+              {carbsRemaining > 0 ? `Kalan: ${carbsRemaining}g` : carbsRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${Math.abs(carbsRemaining)}g`}
+            </Typography>
           </Box>
 
           {/* Yağ */}
@@ -131,15 +146,35 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               color={getColor(fatPercentage)}
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
+            <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
+              {fatRemaining > 0 ? `Kalan: ${fatRemaining}g` : fatRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${Math.abs(fatRemaining)}g`}
+            </Typography>
           </Box>
         </Stack>
 
-        {/* Kalan Kalori */}
-        <Box p={1.5} bgcolor="primary.light" borderRadius={2}>
-          <Typography variant="body2" align="center" color="primary.contrastText" fontWeight="600">
-            Kalan: {Math.max(0, goal.calories - stats.totalCalories)} kcal
-          </Typography>
-        </Box>
+        {/* Kalan Kalori veya Hedef Aşıldı */}
+        {calorieRemaining > 0 ? (
+          <Box p={1.5} bgcolor="primary.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
+            <TrendingDownIcon fontSize="small" sx={{ color: 'primary.contrastText' }} />
+            <Typography variant="body2" color="primary.contrastText" fontWeight="600">
+              Kalan: {calorieRemaining} kcal
+            </Typography>
+          </Box>
+        ) : calorieRemaining === 0 ? (
+          <Box p={1.5} bgcolor="success.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
+            <CheckCircleIcon fontSize="small" sx={{ color: 'success.contrastText' }} />
+            <Typography variant="body2" color="success.contrastText" fontWeight="600">
+              Hedef Tamamlandı! 🎉
+            </Typography>
+          </Box>
+        ) : (
+          <Box p={1.5} bgcolor="error.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
+            <TrendingUpIcon fontSize="small" sx={{ color: 'error.contrastText' }} />
+            <Typography variant="body2" color="error.contrastText" fontWeight="600">
+              Hedef Aşıldı: +{Math.abs(calorieRemaining)} kcal
+            </Typography>
+          </Box>
+        )}
       </CardContent>
     </Card>
   );

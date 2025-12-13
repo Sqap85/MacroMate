@@ -11,6 +11,7 @@ import {
   Slider,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
+import SaveIcon from '@mui/icons-material/Save';
 import type { DailyGoal } from '../types';
 
 interface GoalSettingsModalProps {
@@ -25,8 +26,8 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
 
   const handleSave = () => {
     // Validasyon
-    if (goal.calories < 500 || goal.calories > 5000) {
-      alert('Kalori hedefi 500-5000 arasında olmalıdır');
+    if (goal.calories < 500 || goal.calories > 10000) {
+      alert('Kalori hedefi 500-10000 arasında olmalıdır');
       return;
     }
     onSave(goal);
@@ -69,13 +70,14 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
               value={goal.calories}
               onChange={(_, value) => handleChange('calories', value as number)}
               min={500}
-              max={5000}
+              max={10000}
               step={50}
               marks={[
-                { value: 1000, label: '1000' },
-                { value: 2000, label: '2000' },
-                { value: 3000, label: '3000' },
-                { value: 4000, label: '4000' },
+                { value: 1000, label: '1k' },
+                { value: 2500, label: '2.5k' },
+                { value: 5000, label: '5k' },
+                { value: 7500, label: '7.5k' },
+                { value: 10000, label: '10k' },
               ]}
               color="error"
             />
@@ -129,9 +131,11 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
         </Stack>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>İptal</Button>
-        <Button onClick={handleSave} variant="contained">
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} variant="outlined">
+          İptal
+        </Button>
+        <Button onClick={handleSave} color="primary" variant="contained" startIcon={<SaveIcon />}>
           Kaydet
         </Button>
       </DialogActions>

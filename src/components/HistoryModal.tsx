@@ -37,6 +37,10 @@ import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
 import CookieIcon from '@mui/icons-material/Cookie';
 import AddIcon from '@mui/icons-material/Add';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { useState } from 'react';
 import type { Food, DailyGoal, MealType, FoodTemplate } from '../types';
 import { calculateWeeklyStats, formatDate, getDayName } from '../utils/dateUtils';
@@ -65,6 +69,8 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [editingFood, setEditingFood] = useState<Food | null>(null);
   const [addingToDate, setAddingToDate] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [foodToDelete, setFoodToDelete] = useState<Food | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: '',
     calories: '',
@@ -174,9 +180,16 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   };
 
   // Yemek sil
-  const handleDeleteFood = (id: string, foodName: string) => {
-    if (confirm(`"${foodName}" geçmişten silinsin mi?`)) {
-      onDeleteFood(id);
+  const handleDeleteFood = (food: Food) => {
+    setFoodToDelete(food);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (foodToDelete) {
+      onDeleteFood(foodToDelete.id);
+      setDeleteDialogOpen(false);
+      setFoodToDelete(null);
     }
   };
 
@@ -284,6 +297,57 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   const activeDays = currentStats.days.filter(d => d.foods.length > 0).length;
   const hasAnyData = activeDays > 0;
 
+  // En iyi ve en kötü günleri bul
+  const getBestAndWorstDays = () => {
+    const activeDaysData = currentStats.days.filter(d => d.foods.length > 0);
+    if (activeDaysData.length === 0) return null;
+
+    let bestDay = activeDaysData[0];
+    let worstDay = activeDaysData[0];
+
+    activeDaysData.forEach(day => {
+      // Hedefe yakınlık hesapla
+      const dayScore = Math.abs(day.totalCalories - goal.calories);
+      const bestScore = Math.abs(bestDay.totalCalories - goal.calories);
+      const worstScore = Math.abs(worstDay.totalCalories - goal.calories);
+
+      if (dayScore < bestScore) bestDay = day;
+      if (dayScore > worstScore) worstDay = day;
+    });
+
+    return { bestDay, worstDay };
+  };
+
+  const bestWorst = getBestAndWorstDays();
+
+  // Trend hesaplama (önceki döneme göre değişim)
+  const calculateTrend = () => {
+    if (tabValue === 3 || activeDays < 3) return null; // Tüm zamanlar için trend gösterme
+    
+    const periodDays = [7, 30, 90][tabValue];
+    const currentPeriodDays = currentStats.days.slice(-periodDays);
+    const previousPeriodStart = Math.max(0, currentStats.days.length - (periodDays * 2));
+    const previousPeriodEnd = currentStats.days.length - periodDays;
+    const previousPeriodDays = currentStats.days.slice(previousPeriodStart, previousPeriodEnd);
+    
+    const currentActiveDays = currentPeriodDays.filter(d => d.foods.length > 0);
+    const previousActiveDays = previousPeriodDays.filter(d => d.foods.length > 0);
+    
+    if (currentActiveDays.length === 0 || previousActiveDays.length === 0) return null;
+    
+    const currentAvg = currentActiveDays.reduce((sum, d) => sum + d.totalCalories, 0) / currentActiveDays.length;
+    const previousAvg = previousActiveDays.reduce((sum, d) => sum + d.totalCalories, 0) / previousActiveDays.length;
+    
+    const change = ((currentAvg - previousAvg) / previousAvg) * 100;
+    
+    return {
+      change: Math.round(change),
+      improving: Math.abs(currentAvg - goal.calories) < Math.abs(previousAvg - goal.calories)
+    };
+  };
+
+  const trend = calculateTrend();
+
   const getPercentage = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100);
   };
@@ -359,7 +423,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
           {hasAnyData ? (
             <>
               {/* Özet İstatistikler */}
-              <Card sx={{ mb: isMobile ? 2 : 3, bgcolor: 'primary.light' }}>
+              <Card sx={{ mb: isMobile ? 2 : 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
                   <Box 
                     display="flex" 
@@ -370,72 +434,310 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                     gap={1}
                   >
                     <Box display="flex" alignItems="center" gap={1}>
-                      <TrendingUpIcon sx={{ fontSize: isMobile ? 20 : 24 }} />
-                      <Typography variant={isMobile ? 'subtitle2' : 'h6'}>
+                      <TrendingUpIcon color="primary" sx={{ fontSize: isMobile ? 20 : 24 }} />
+                      <Typography variant={isMobile ? 'subtitle2' : 'h6'} fontWeight="bold">
                         {tabValue === 3 ? 'Genel İstatistikler' : isMobile ? 'Ortalama' : 'Ortalama Günlük Değerler'}
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                       <Chip 
+                        icon={<LocalFireDepartmentIcon />}
                         label={`${activeDays} aktif gün`}
                         size="small"
                         color="primary"
+                        variant="filled"
                       />
-                      {tabValue === 3 && foods.length > 0 && (
+                      {foods.length > 0 && activeDays >= 3 && (() => {
+                        // Hedefe uygun günleri hesapla (hedefin ±10% içinde)
+                        const targetMin = goal.calories * 0.9;
+                        const targetMax = goal.calories * 1.1;
+                        const daysWithinTarget = currentStats.days.filter(d => 
+                          d.foods.length > 0 && 
+                          d.totalCalories >= targetMin && 
+                          d.totalCalories <= targetMax
+                        ).length;
+                        const consistencyPercentage = Math.round((daysWithinTarget / activeDays) * 100);
+                        
+                        return (
+                          <Tooltip title={`${daysWithinTarget}/${activeDays} gün hedefe uygun (±10%)`}>
+                            <Chip 
+                              icon={<CheckCircleIcon />}
+                              label={`%${consistencyPercentage} tutarlılık`}
+                              size="small"
+                              sx={{
+                                bgcolor: consistencyPercentage >= 80 ? 'success.main' : 
+                                        consistencyPercentage >= 50 ? 'warning.main' : 'error.main',
+                                color: 'white',
+                                '& .MuiChip-icon': {
+                                  color: 'white'
+                                }
+                              }}
+                            />
+                          </Tooltip>
+                        );
+                      })()}
+                      {activeDays > 0 && (
                         <Chip 
-                          label={`${Math.round((activeDays / currentStats.totalDays) * 100)}% tutarlılık`}
+                          label={`${currentStats.averageCalories} kcal/gün ort.`}
                           size="small"
-                          color="success"
                           variant="outlined"
+                          color="secondary"
                         />
+                      )}
+                      {trend && (
+                        <Tooltip title={trend.improving ? 'Hedefe yaklaşıyorsun!' : 'Hedeften uzaklaşıyorsun'}>
+                          <Chip 
+                            icon={trend.improving ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                            label={`${trend.change > 0 ? '+' : ''}${trend.change}%`}
+                            size="small"
+                            sx={{
+                              bgcolor: trend.improving ? 'success.main' : 'warning.main',
+                              color: 'white',
+                              '& .MuiChip-icon': {
+                                color: 'white'
+                              }
+                            }}
+                          />
+                        </Tooltip>
                       )}
                     </Stack>
                   </Box>
+
+                  {/* İstatistik Özet Grid */}
+                  <Stack direction="row" spacing={isMobile ? 1 : 1.5} mb={isMobile ? 1.5 : 2} flexWrap="wrap" useFlexGap>
+                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
+                      <Paper sx={{ 
+                        p: 1, 
+                        textAlign: 'center', 
+                        bgcolor: 'error.light',
+                        border: '2px solid',
+                        borderColor: 'error.main'
+                      }}>
+                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#b71c1c' }}>
+                          Ort. Kalori
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
+                          {currentStats.averageCalories}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
+                          / {goal.calories} kcal
+                        </Typography>
+                      </Paper>
+                    </Box>
+                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
+                      <Paper sx={{ 
+                        p: 1, 
+                        textAlign: 'center', 
+                        bgcolor: 'info.light',
+                        border: '2px solid',
+                        borderColor: 'info.main'
+                      }}>
+                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#01579b' }}>
+                          Ort. Protein
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
+                          {currentStats.averageProtein}g
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
+                          / {goal.protein}g
+                        </Typography>
+                      </Paper>
+                    </Box>
+                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
+                      <Paper sx={{ 
+                        p: 1, 
+                        textAlign: 'center', 
+                        bgcolor: 'success.light',
+                        border: '2px solid',
+                        borderColor: 'success.main'
+                      }}>
+                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#1b5e20' }}>
+                          Ort. Karb
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
+                          {currentStats.averageCarbs}g
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
+                          / {goal.carbs}g
+                        </Typography>
+                      </Paper>
+                    </Box>
+                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
+                      <Paper sx={{ 
+                        p: 1, 
+                        textAlign: 'center', 
+                        bgcolor: 'warning.light',
+                        border: '2px solid',
+                        borderColor: 'warning.main'
+                      }}>
+                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#e65100' }}>
+                          Ort. Yağ
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
+                          {currentStats.averageFat}g
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
+                          / {goal.fat}g
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  </Stack>
+
+                  {/* En İyi ve En Kötü Günler */}
+                  {bestWorst && activeDays > 2 && (
+                    <Stack direction="row" spacing={isMobile ? 1 : 1.5} mt={isMobile ? 1.5 : 2} flexWrap="wrap" useFlexGap>
+                      <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 6px)' }, minWidth: 0 }}>
+                        <Paper sx={{ 
+                          p: 1, 
+                          bgcolor: 'success.light',
+                          border: '1px solid',
+                          borderColor: 'success.main'
+                        }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
+                            <EmojiEventsIcon sx={{ fontSize: 16, color: 'success.dark' }} />
+                            <Typography variant="caption" color="success.dark" fontWeight="600" fontSize={isMobile ? '0.65rem' : '0.75rem'}>
+                              En İyi Gün
+                            </Typography>
+                          </Stack>
+                          <Typography variant="body2" fontWeight="bold" fontSize={isMobile ? '0.75rem' : '0.85rem'}>
+                            {formatDate(bestWorst.bestDay.date)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
+                            {bestWorst.bestDay.totalCalories} kcal (hedef: {goal.calories})
+                          </Typography>
+                        </Paper>
+                      </Box>
+                      <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 6px)' }, minWidth: 0 }}>
+                        <Paper sx={{ 
+                          p: 1, 
+                          bgcolor: 'error.light',
+                          border: '1px solid',
+                          borderColor: 'error.main'
+                        }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
+                            <TrendingDownIcon sx={{ fontSize: 16, color: 'error.dark' }} />
+                            <Typography variant="caption" color="error.dark" fontWeight="600" fontSize={isMobile ? '0.65rem' : '0.75rem'}>
+                              En Uzak Gün
+                            </Typography>
+                          </Stack>
+                          <Typography variant="body2" fontWeight="bold" fontSize={isMobile ? '0.75rem' : '0.85rem'}>
+                            {formatDate(bestWorst.worstDay.date)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
+                            {bestWorst.worstDay.totalCalories} kcal (hedef: {goal.calories})
+                          </Typography>
+                        </Paper>
+                      </Box>
+                    </Stack>
+                  )}
               
-                  <Stack spacing={isMobile ? 1.5 : 2}>
-                    {/* Kalori */}
+                  <Stack spacing={isMobile ? 1.5 : 2} mt={isMobile ? 2 : 3}>
+                    {/* Kalori İlerleme */}
                     <Box>
                       <Box display="flex" justifyContent="space-between" mb={1}>
                         <Typography variant="body2" fontWeight="bold" fontSize={isMobile ? '0.8rem' : undefined}>
-                          Kalori
+                          Toplam Kalori Hedefi
                         </Typography>
                         <Typography variant="body2" fontSize={isMobile ? '0.8rem' : undefined}>
-                          {currentStats.averageCalories} / {goal.calories} kcal
+                          {(() => {
+                            const totalCalories = currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0);
+                            const totalGoal = goal.calories * currentStats.totalDays;
+                            const percentage = Math.round(getPercentage(totalCalories, totalGoal));
+                            return `${percentage}% tamamlandı`;
+                          })()}
+                        </Typography>
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.7rem' : '0.75rem'}>
+                          {currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0).toLocaleString()} kcal
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.7rem' : '0.75rem'}>
+                          Hedef: {(goal.calories * currentStats.totalDays).toLocaleString()} kcal
                         </Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
-                        value={getPercentage(currentStats.averageCalories, goal.calories)}
-                        color={getColor(getPercentage(currentStats.averageCalories, goal.calories))}
+                        value={(() => {
+                          const totalCalories = currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0);
+                          const totalGoal = goal.calories * currentStats.totalDays;
+                          return getPercentage(totalCalories, totalGoal);
+                        })()}
+                        color={(() => {
+                          const totalCalories = currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0);
+                          const totalGoal = goal.calories * currentStats.totalDays;
+                          return getColor(getPercentage(totalCalories, totalGoal));
+                        })()}
                         sx={{ height: isMobile ? 6 : 8, borderRadius: 4 }}
                       />
                     </Box>
 
-                    {/* Makrolar */}
+                    {/* Makro Progress */}
                     <Stack direction="row" spacing={isMobile ? 1 : 2}>
                       <Box flex={1}>
-                        <Chip 
-                          label={isMobile ? `P: ${currentStats.averageProtein}g` : `Protein: ${currentStats.averageProtein}g`}
-                          color="info" 
-                          size="small" 
-                          sx={{ width: '100%', fontSize: isMobile ? '0.7rem' : undefined }}
+                        <Typography variant="caption" display="block" textAlign="center" mb={0.5} fontSize={isMobile ? '0.65rem' : '0.75rem'}>
+                          Protein
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={(() => {
+                            const totalProtein = currentStats.days.reduce((sum, d) => sum + d.totalProtein, 0);
+                            const totalGoal = goal.protein * currentStats.totalDays;
+                            return getPercentage(totalProtein, totalGoal);
+                          })()}
+                          color="info"
+                          sx={{ height: 6, borderRadius: 3 }}
                         />
+                        <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">
+                          {(() => {
+                            const totalProtein = currentStats.days.reduce((sum, d) => sum + d.totalProtein, 0);
+                            const totalGoal = goal.protein * currentStats.totalDays;
+                            return `${Math.round(totalProtein)}g / ${Math.round(totalGoal)}g`;
+                          })()}
+                        </Typography>
                       </Box>
                       <Box flex={1}>
-                        <Chip 
-                          label={isMobile ? `K: ${currentStats.averageCarbs}g` : `Karb: ${currentStats.averageCarbs}g`}
-                          color="success" 
-                          size="small" 
-                          sx={{ width: '100%', fontSize: isMobile ? '0.7rem' : undefined }}
+                        <Typography variant="caption" display="block" textAlign="center" mb={0.5} fontSize={isMobile ? '0.65rem' : '0.75rem'}>
+                          Karbonhidrat
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={(() => {
+                            const totalCarbs = currentStats.days.reduce((sum, d) => sum + d.totalCarbs, 0);
+                            const totalGoal = goal.carbs * currentStats.totalDays;
+                            return getPercentage(totalCarbs, totalGoal);
+                          })()}
+                          color="success"
+                          sx={{ height: 6, borderRadius: 3 }}
                         />
+                        <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">
+                          {(() => {
+                            const totalCarbs = currentStats.days.reduce((sum, d) => sum + d.totalCarbs, 0);
+                            const totalGoal = goal.carbs * currentStats.totalDays;
+                            return `${Math.round(totalCarbs)}g / ${Math.round(totalGoal)}g`;
+                          })()}
+                        </Typography>
                       </Box>
                       <Box flex={1}>
-                        <Chip 
-                          label={isMobile ? `Y: ${currentStats.averageFat}g` : `Yağ: ${currentStats.averageFat}g`}
-                          color="warning" 
-                          size="small" 
-                          sx={{ width: '100%', fontSize: isMobile ? '0.7rem' : undefined }}
+                        <Typography variant="caption" display="block" textAlign="center" mb={0.5} fontSize={isMobile ? '0.65rem' : '0.75rem'}>
+                          Yağ
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={(() => {
+                            const totalFat = currentStats.days.reduce((sum, d) => sum + d.totalFat, 0);
+                            const totalGoal = goal.fat * currentStats.totalDays;
+                            return getPercentage(totalFat, totalGoal);
+                          })()}
+                          color="warning"
+                          sx={{ height: 6, borderRadius: 3 }}
                         />
+                        <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">
+                          {(() => {
+                            const totalFat = currentStats.days.reduce((sum, d) => sum + d.totalFat, 0);
+                            const totalGoal = goal.fat * currentStats.totalDays;
+                            return `${Math.round(totalFat)}g / ${Math.round(totalGoal)}g`;
+                          })()}
+                        </Typography>
                       </Box>
                     </Stack>
                   </Stack>
@@ -475,19 +777,11 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                         borderLeft: 3,
                         borderLeftColor: hasData ? 'primary.main' : 'grey.400',
                         overflow: 'visible',
-                        ...(!hasData && { minHeight: isMobile ? 110 : 120 }),
                       }}
                     >
                       <CardContent sx={{ 
                         p: isMobile ? 1 : 1.25, 
                         '&:last-child': { pb: isMobile ? 1 : 1.25 },
-                        ...((!hasData) && { 
-                          p: isMobile ? 0.75 : 1, 
-                          '&:last-child': { pb: isMobile ? 0.75 : 1 },
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column'
-                        })
                       }}>
                         {/* Başlık */}
                         <Box 
@@ -563,7 +857,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
 
                         {/* İçerik */}
                         {hasData ? (
-                          <>
+                          <Box sx={{ minHeight: isMobile ? 60 : 70 }}>
                             {/* Progress bar */}
                             <Box mb={isMobile ? 0.75 : 1}>
                               <LinearProgress
@@ -722,7 +1016,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                                                 <IconButton
                                                   size="small"
                                                   color="error"
-                                                  onClick={() => handleDeleteFood(food.id, food.name)}
+                                                  onClick={() => handleDeleteFood(food)}
                                                   sx={{ padding: 0.25 }}
                                                 >
                                                   <DeleteIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
@@ -737,15 +1031,15 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                                 })}
                               </Stack>
                             </Collapse>
-                          </>
+                          </Box>
                         ) : (
                           <Box sx={{ 
                             display: 'flex', 
                             flexDirection: 'column', 
                             alignItems: 'center', 
-                            justifyContent: 'center',
-                            flex: 1,
                             gap: 0.5,
+                            pt: 0.5,
+                            minHeight: isMobile ? 60 : 70,
                           }}>
                             <Typography
                               variant="caption" 
@@ -790,6 +1084,65 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Silme Onay Dialogu */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            m: 2,
+          }
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h6">
+            Yemeği Sil
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Bu yemeği geçmişten silmek istediğinizden emin misiniz?
+          </Typography>
+          
+          {foodToDelete && (
+            <Box sx={{ 
+              mt: 2,
+              p: 1.5,
+              bgcolor: 'error.50',
+              borderRadius: 1,
+              borderLeft: 3,
+              borderColor: 'error.main'
+            }}>
+              <Typography variant="body2" fontWeight="medium">
+                {foodToDelete.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {foodToDelete.calories} kcal • {new Date(foodToDelete.timestamp).toLocaleDateString('tr-TR')}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            variant="outlined"
+          >
+            İptal
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+          >
+            Sil
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Düzenleme Dialog'u */}
@@ -912,9 +1265,13 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
             </Box>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditingFood(null)}>İptal</Button>
-          <Button onClick={handleEditSave} variant="contained">Kaydet</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditingFood(null)} variant="outlined">
+            İptal
+          </Button>
+          <Button onClick={handleEditSave} color="primary" variant="contained" startIcon={<EditIcon />}>
+            Kaydet
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -1017,9 +1374,13 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
             </Box>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddingToDate(null)}>İptal</Button>
-          <Button onClick={handleAddToDateSave} variant="contained">Ekle</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setAddingToDate(null)} variant="outlined">
+            İptal
+          </Button>
+          <Button onClick={handleAddToDateSave} color="primary" variant="contained" startIcon={<AddIcon />}>
+            Ekle
+          </Button>
         </DialogActions>
       </Dialog>
     </>

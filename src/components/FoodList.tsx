@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import TodayIcon from '@mui/icons-material/Today';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -29,6 +30,7 @@ import LocalCafeIcon from '@mui/icons-material/LocalCafe';
 import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
 import CookieIcon from '@mui/icons-material/Cookie';
+import ScaleIcon from '@mui/icons-material/Scale';
 import type { Food, FoodTemplate, MealType } from '../types';
 import { useState } from 'react';
 
@@ -259,9 +261,12 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
       }}
     >
       <CardContent>
-        <Typography variant="h6" gutterBottom>
-          📝 Bugünün Yemekleri ({foods.length})
-        </Typography>
+        <Box display="flex" alignItems="center" gap={1} mb={1}>
+          <TodayIcon color="primary" />
+          <Typography variant="h6">
+            Bugünün Yemekleri ({foods.length})
+          </Typography>
+        </Box>
         
         <Stack spacing={2} mt={2}>
           {Object.entries(groupedFoods).map(([mealType, mealFoods]) => {
@@ -473,7 +478,6 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
           <Button 
             onClick={() => setDeleteDialogOpen(false)}
             variant="outlined"
-            color="inherit"
           >
             İptal
           </Button>
@@ -503,13 +507,19 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
       >
         <DialogTitle sx={{ pb: 3 }}>
           {selectedFood?.fromTemplate ? (
-            <Typography variant="h6">
-              📊 Miktar Düzenle - {foodTemplates.find(t => t.id === selectedFood.templateId)?.name}
-            </Typography>
+            <Box display="flex" alignItems="center" gap={1}>
+              <ScaleIcon color="primary" />
+              <Typography variant="h6">
+                Miktar Düzenle - {foodTemplates.find(t => t.id === selectedFood.templateId)?.name}
+              </Typography>
+            </Box>
           ) : (
-            <Typography variant="h6">
-              ✏️ Yemek Düzenle
-            </Typography>
+            <Box display="flex" alignItems="center" gap={1}>
+              <EditIcon color="primary" />
+              <Typography variant="h6">
+                Yemek Düzenle
+              </Typography>
+            </Box>
           )}
         </DialogTitle>
         <DialogContent sx={{ pt: 3, pb: 1, px: { xs: 2, sm: 3 }, overflow: 'visible' }}>

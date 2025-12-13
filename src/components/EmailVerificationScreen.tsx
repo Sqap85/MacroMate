@@ -103,7 +103,7 @@ export function EmailVerificationScreen() {
 
     try {
       await resendVerificationEmail();
-      setSuccess('📧 Doğrulama emaili tekrar gönderildi!');
+      setSuccess('Doğrulama emaili tekrar gönderildi!');
       setCountdown(60); // 60 saniye cooldown
     } catch (err: any) {
       console.error('Resend email error:', err);
@@ -208,7 +208,7 @@ export function EmailVerificationScreen() {
             <EmailIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
             
             <Typography variant="h5" fontWeight="bold" gutterBottom>
-              📧 Email Adresinizi Doğrulayın
+              Email Adresinizi Doğrulayın
             </Typography>
             
             <Typography variant="body1" color="text.secondary" sx={{ mt: 2, mb: 3 }}>

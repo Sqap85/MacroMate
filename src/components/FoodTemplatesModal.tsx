@@ -26,6 +26,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import ScaleIcon from '@mui/icons-material/Scale';
 import EggIcon from '@mui/icons-material/Egg';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import type { FoodTemplate, MeasurementUnit } from '../types';
 
 interface FoodTemplatesModalProps {
@@ -60,9 +61,22 @@ export function FoodTemplatesModal({
     fatPerPiece: '',
   });
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<FoodTemplate | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<FoodTemplate | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    unit: 'gram' as MeasurementUnit,
+    servingSize: '',
+    caloriesPer100g: '',
+    proteinPer100g: '',
+    carbsPer100g: '',
+    fatPer100g: '',
+    caloriesPerPiece: '',
+    proteinPerPiece: '',
+    carbsPerPiece: '',
+    fatPerPiece: '',
+  });
 
   // Form sıfırlama yardımcı fonksiyonu
   const resetForm = () => {
@@ -135,20 +149,16 @@ export function FoodTemplatesModal({
       fatPer100g,
     };
 
-    if (editingId) {
-      onEditTemplate(editingId, templateData);
-      setEditingId(null);
-    } else {
-      onAddTemplate(templateData);
-    }
+    onAddTemplate(templateData);
 
     // Formu temizle
     resetForm();
   };
 
   const handleEdit = (template: FoodTemplate) => {
+    setEditingTemplate(template);
     if (template.unit === 'piece') {
-      setFormData({
+      setEditFormData({
         name: template.name,
         unit: template.unit,
         servingSize: '',
@@ -162,8 +172,7 @@ export function FoodTemplatesModal({
         fatPerPiece: template.fatPer100g.toString(),
       });
     } else {
-      // Gram bazlı: 100g başına değerler
-      setFormData({
+      setEditFormData({
         name: template.name,
         unit: template.unit,
         servingSize: '',
@@ -177,12 +186,55 @@ export function FoodTemplatesModal({
         fatPerPiece: '',
       });
     }
-    setEditingId(template.id);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    resetForm();
+  const handleEditSave = () => {
+    if (!editingTemplate) return;
+
+    if (!editFormData.name) {
+      alert('Lütfen besin adı giriniz');
+      return;
+    }
+
+    let caloriesPer100g: number;
+    let proteinPer100g: number;
+    let carbsPer100g: number;
+    let fatPer100g: number;
+
+    if (editFormData.unit === 'piece') {
+      if (!editFormData.caloriesPerPiece) {
+        alert('Lütfen adet başına kalori giriniz');
+        return;
+      }
+      
+      caloriesPer100g = Number(editFormData.caloriesPerPiece);
+      proteinPer100g = Number(editFormData.proteinPerPiece) || 0;
+      carbsPer100g = Number(editFormData.carbsPerPiece) || 0;
+      fatPer100g = Number(editFormData.fatPerPiece) || 0;
+    } else {
+      if (!editFormData.caloriesPer100g) {
+        alert('Lütfen 100g başına kalori giriniz');
+        return;
+      }
+      
+      caloriesPer100g = Number(editFormData.caloriesPer100g);
+      proteinPer100g = Number(editFormData.proteinPer100g) || 0;
+      carbsPer100g = Number(editFormData.carbsPer100g) || 0;
+      fatPer100g = Number(editFormData.fatPer100g) || 0;
+    }
+
+    const templateData = {
+      name: editFormData.name,
+      unit: editFormData.unit,
+      servingSize: undefined,
+      caloriesPer100g,
+      proteinPer100g,
+      carbsPer100g,
+      fatPer100g,
+    };
+
+    onEditTemplate(editingTemplate.id, templateData);
+    setEditingTemplate(null);
   };
 
   const handleDeleteClick = (template: FoodTemplate) => {
@@ -218,9 +270,12 @@ export function FoodTemplatesModal({
         alignItems: 'center',
         pb: 1
       }}>
-        <Typography variant="h6" component="div" id="templates-dialog-title">
-          🥗 Besin Şablonlarım
-        </Typography>
+        <Box display="flex" alignItems="center" gap={1}>
+          <RestaurantMenuIcon color="primary" />
+          <Typography variant="h6" component="div" id="templates-dialog-title">
+            Besin Şablonlarım
+          </Typography>
+        </Box>
         <IconButton 
           onClick={onClose} 
           size="small"
@@ -238,18 +293,8 @@ export function FoodTemplatesModal({
           <Paper elevation={3} sx={{ p: 2, bgcolor: 'background.default' }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="subtitle1" fontWeight="600">
-                {editingId ? 'Besin Düzenle' : 'Yeni Besin Ekle'}
+                Yeni Besin Ekle
               </Typography>
-              {editingId && (
-                <Button 
-                  size="small" 
-                  onClick={handleCancelEdit}
-                  variant="outlined"
-                  color="secondary"
-                >
-                  İptal
-                </Button>
-              )}
             </Box>
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={2}>
@@ -360,9 +405,9 @@ export function FoodTemplatesModal({
                   variant="contained"
                   color="primary"
                   type="submit"
-                  startIcon={editingId ? <EditIcon /> : <AddIcon />}
+                  startIcon={<AddIcon />}
                 >
-                  {editingId ? 'Değişiklikleri Kaydet' : 'Şablon Ekle'}
+                  Şablon Ekle
                 </Button>
               </Stack>
             </Box>
@@ -456,6 +501,151 @@ export function FoodTemplatesModal({
         </Button>
       </DialogActions>
 
+      {/* Besin Düzenleme Dialogu */}
+      <Dialog
+        open={!!editingTemplate}
+        onClose={() => setEditingTemplate(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            m: 2,
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 3 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <EditIcon color="primary" />
+            <Typography variant="h6">
+              Besin Düzenle
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 1, px: { xs: 2, sm: 3 }, overflow: 'visible' }}>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              fullWidth
+              label="Besin Adı"
+              value={editFormData.name}
+              onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+              placeholder="Örn: Tavuk Göğsü, Yumurta, Elma"
+              required
+              size="small"
+              autoFocus
+            />
+
+            {/* Ölçü Birimi Seçimi */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                Ölçü Birimi
+              </Typography>
+              <ToggleButtonGroup
+                value={editFormData.unit}
+                exclusive
+                onChange={(_, value) => value && setEditFormData({ ...editFormData, unit: value as MeasurementUnit })}
+                fullWidth
+                size="small"
+              >
+                <ToggleButton value="gram">
+                  <ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />
+                  Gram
+                </ToggleButton>
+                <ToggleButton value="piece">
+                  <EggIcon fontSize="small" sx={{ mr: 0.5 }} />
+                  Adet
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+              {editFormData.unit === 'piece' 
+                ? '1 adet için besin değerlerini giriniz' 
+                : '100 gram için besin değerlerini giriniz'}
+            </Typography>
+            
+            <Box display="flex" gap={2}>
+              <TextField
+                fullWidth
+                label={editFormData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
+                type="number"
+                value={editFormData.unit === 'piece' ? editFormData.caloriesPerPiece : editFormData.caloriesPer100g}
+                onChange={(e) => setEditFormData({ 
+                  ...editFormData, 
+                  ...(editFormData.unit === 'piece' 
+                    ? { caloriesPerPiece: e.target.value }
+                    : { caloriesPer100g: e.target.value })
+                })}
+                required
+                inputProps={{ min: 0, step: 1 }}
+                size="small"
+              />
+              <TextField
+                fullWidth
+                label={editFormData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
+                type="number"
+                value={editFormData.unit === 'piece' ? editFormData.proteinPerPiece : editFormData.proteinPer100g}
+                onChange={(e) => setEditFormData({ 
+                  ...editFormData, 
+                  ...(editFormData.unit === 'piece' 
+                    ? { proteinPerPiece: e.target.value }
+                    : { proteinPer100g: e.target.value })
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Box>
+            
+            <Box display="flex" gap={2}>
+              <TextField
+                fullWidth
+                label={editFormData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
+                type="number"
+                value={editFormData.unit === 'piece' ? editFormData.carbsPerPiece : editFormData.carbsPer100g}
+                onChange={(e) => setEditFormData({ 
+                  ...editFormData, 
+                  ...(editFormData.unit === 'piece' 
+                    ? { carbsPerPiece: e.target.value }
+                    : { carbsPer100g: e.target.value })
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+              <TextField
+                fullWidth
+                label={editFormData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
+                type="number"
+                value={editFormData.unit === 'piece' ? editFormData.fatPerPiece : editFormData.fatPer100g}
+                onChange={(e) => setEditFormData({ 
+                  ...editFormData, 
+                  ...(editFormData.unit === 'piece' 
+                    ? { fatPerPiece: e.target.value }
+                    : { fatPer100g: e.target.value })
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setEditingTemplate(null)}
+            variant="outlined"
+          >
+            İptal
+          </Button>
+          <Button 
+            onClick={handleEditSave} 
+            color="primary"
+            variant="contained"
+            startIcon={<EditIcon />}
+          >
+            Kaydet
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Silme Onay Dialogu */}
       <Dialog
         open={deleteDialogOpen}
@@ -502,7 +692,6 @@ export function FoodTemplatesModal({
           <Button 
             onClick={() => setDeleteDialogOpen(false)}
             variant="outlined"
-            color="inherit"
           >
             İptal
           </Button>
