@@ -77,10 +77,15 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
       food.timestamp < oldest.timestamp ? food : oldest
     );
     
+    // Sadece tarih kısmını al (saat bilgisini göz ardı et)
     const oldestDate = new Date(oldestFood.timestamp);
+    oldestDate.setHours(0, 0, 0, 0);
+    
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     // Gün farkını hesapla - en eskiden bugüne kadar (+ 1 ile bugünü de dahil et)
-    const daysDiff = Math.ceil((today.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const daysDiff = Math.round((today.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
     return calculateWeeklyStats(foods, daysDiff);
   })();
@@ -248,9 +253,9 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
                 key={day.date} 
                 variant="outlined"
                 sx={{
-                  opacity: hasData ? 1 : 0.6,
-                  borderLeft: hasData ? 3 : 0,
-                  borderLeftColor: hasData ? 'primary.main' : 'transparent',
+                  opacity: hasData ? 1 : 0.7,
+                  borderLeft: 3,
+                  borderLeftColor: hasData ? 'primary.main' : 'grey.400',
                   overflow: 'visible',
                 }}
               >
@@ -284,6 +289,7 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
                           label="Veri yok"
                           size="small"
                           variant="outlined"
+                          color="default"
                         />
                       )}
                     </Box>
@@ -292,7 +298,7 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
                   {/* İçerik */}
                   {hasData ? (
                     <>
-                      {/* Progress bar */}
+                    {/* Progress bar */}
                       <Box mb={1.5}>
                         <LinearProgress
                           variant="determinate"
@@ -417,14 +423,13 @@ export function HistoryModal({ open, onClose, foods, goal }: HistoryModalProps) 
                       </Box>
                     </>
                   ) : (
-                    <Box sx={{ py: 2 }}>
+                    <Box sx={{ py: 3, textAlign: 'center' }}>
                       <Typography 
                         variant="body2" 
                         color="text.secondary" 
                         fontStyle="italic"
-                        textAlign="center"
                       >
-                        Bu gün için henüz yemek kaydı eklenmedi
+                        Bu gün için veri eklemediniz
                       </Typography>
                     </Box>
                   )}

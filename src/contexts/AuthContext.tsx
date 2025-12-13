@@ -98,19 +98,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Google ile giriş
   const loginWithGoogle = async () => {
-    // Misafir modundan çıkış
-    if (isGuest) {
-      setIsGuest(false);
-      localStorage.removeItem('guestMode');
-      // Migration flag'ini set et
-      sessionStorage.setItem('migrateFromGuest', 'true');
+    try {
+      // Misafir modundan çıkış
+      if (isGuest) {
+        setIsGuest(false);
+        localStorage.removeItem('guestMode');
+        // Migration flag'ini set et
+        sessionStorage.setItem('migrateFromGuest', 'true');
+      }
+      
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error('Google giriş hatası:', error);
+      console.error('Hata kodu:', error.code);
+      console.error('Hata mesajı:', error.message);
+      throw error;
     }
-    
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-    await signInWithPopup(auth, provider);
   };
 
   // Çıkış
