@@ -91,17 +91,7 @@ function App() {
     }
   }, [currentUser]);
 
-  // Kullanıcı giriş yapmadıysa ve misafir değilse modal aç (sadece ilk yüklemede)
-  useEffect(() => {
-    if (!currentUser && !isGuest && !authOpen) {
-      // İlk yüklemede otomatik aç
-      const hasSeenWelcome = sessionStorage.getItem('hasSeenWelcome');
-      if (!hasSeenWelcome) {
-        setAuthOpen(true);
-        sessionStorage.setItem('hasSeenWelcome', 'true');
-      }
-    }
-  }, [currentUser, isGuest, authOpen]);
+  // Auth modal'ı otomatik açma (kullanıcı butona tıklayarak açacak)
 
   const handleAddFood = async (food: any) => {
     try {
@@ -327,16 +317,7 @@ function App() {
                 </IconButton>
               </Tooltip>
             </>
-          ) : (
-            <Button 
-              color="inherit" 
-              variant="outlined"
-              onClick={() => setAuthOpen(true)}
-              sx={{ borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
-            >
-              Giriş Yap / Kayıt Ol
-            </Button>
-          )}
+          ) : null}
         </Toolbar>
       </AppBar>
 
