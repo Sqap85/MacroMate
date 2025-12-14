@@ -44,7 +44,7 @@ export function EmailVerificationScreen() {
       
       if (isVerified) {
         setVerified(true);
-        setSuccess('✅ Email adresiniz başarıyla doğrulandı!');
+        setSuccess('Email adresiniz başarıyla doğrulandı!');
         
         // 2 saniye sonra sayfayı yenile (ana uygulamaya geçiş)
         setTimeout(() => {

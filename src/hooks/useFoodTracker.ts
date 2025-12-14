@@ -94,7 +94,7 @@ export function useFoodTracker() {
     // Timeout fallback - 10 saniye sonra zorla yükle
     const timeout = setTimeout(() => {
       if (!hasLoadedFoods || !hasLoadedGoal || !hasLoadedTemplates) {
-        console.warn('⚠️ Loading timeout - forcing completion');
+        console.warn('[Loading] Timeout - forcing completion');
         setLoading(false);
       }
     }, 10000);

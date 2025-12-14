@@ -89,7 +89,7 @@ export const listenToUserFoods = (
       console.error('Error listening to foods:', error);
       // Index eksikse boş array döndür
       if (error.code === 'failed-precondition') {
-        console.warn('⚠️ Firestore index gerekli. Boş veri dönüyorum.');
+        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
         callback([]);
       } else {
         callback([]);
@@ -243,7 +243,7 @@ export const listenToUserTemplates = (
       console.error('Error listening to templates:', error);
       // Index eksikse boş array döndür
       if (error.code === 'failed-precondition') {
-        console.warn('⚠️ Firestore index gerekli. Boş veri dönüyorum.');
+        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
         callback([]);
       } else {
         callback([]);
@@ -346,7 +346,7 @@ export const migrateFromLocalStorage = async (userId: string): Promise<void> => 
     localStorage.removeItem('macromate-goal');
     localStorage.removeItem('macromate-templates');
     
-    console.log('✅ LocalStorage veriler Firestore\'a taşındı!');
+    console.log('[Migration] LocalStorage veriler Firestore\'a taşındı!');
   } catch (error) {
     console.error('Migration hatası:', error);
     throw error;

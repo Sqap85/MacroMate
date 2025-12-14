@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import WarningIcon from '@mui/icons-material/Warning';
 import { useAuth } from '../contexts/AuthContext';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -59,7 +61,7 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
         setLoading(false);
         
         if (onSuccess) {
-          onSuccess('✅ İsim başarıyla güncellendi!');
+          onSuccess('İsim başarıyla güncellendi!');
         }
         
         setIsClosing(true);
@@ -108,7 +110,7 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
         setLoading(false);
         
         if (onSuccess) {
-          onSuccess('✅ Şifre başarıyla güncellendi!');
+          onSuccess('Şifre başarıyla güncellendi!');
         }
         
         passwordFormik.resetForm();
@@ -127,13 +129,13 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
         } else if (err.code === 'auth/weak-password') {
           passwordFormik.setFieldError('newPassword', 'Yeni şifre çok zayıf. En az 6 karakter kullanın.');
         } else if (err.code === 'auth/requires-recent-login') {
-          setError('⚠️ Güvenlik nedeniyle çıkış yapıp tekrar giriş yapmanız gerekiyor.');
+          setError('Güvenlik nedeniyle çıkış yapıp tekrar giriş yapmanız gerekiyor.');
         } else if (err.code === 'auth/too-many-requests') {
-          setError('⏱️ Çok fazla deneme. Lütfen birkaç dakika sonra tekrar deneyin.');
+          setError('Çok fazla deneme. Lütfen birkaç dakika sonra tekrar deneyin.');
         } else if (err.code === 'auth/network-request-failed') {
-          setError('🌐 Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
+          setError('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
         } else {
-          setError('❌ Şifre güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
+          setError('Şifre güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
         }
         
         setLoading(false);
@@ -209,8 +211,22 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
               <Typography variant="body1" fontWeight="medium">
                 {currentUser?.email}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {currentUser?.emailVerified ? '✅ Email doğrulandı' : '⚠️ Email doğrulanmamış'}
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+              >
+                {currentUser?.emailVerified ? (
+                  <>
+                    <CheckCircleIcon fontSize="inherit" color="success" />
+                    Email doğrulandı
+                  </>
+                ) : (
+                  <>
+                    <WarningIcon fontSize="inherit" color="warning" />
+                    Email doğrulanmamış
+                  </>
+                )}
               </Typography>
             </Box>
           </Box>

@@ -69,7 +69,7 @@ function App() {
             .then(() => {
               setToast({
                 open: true,
-                message: '✅ Verileriniz başarıyla hesabınıza aktarıldı!',
+                message: 'Verileriniz başarıyla hesabınıza aktarıldı!',
                 severity: 'success',
               });
               // Migration sonrası LocalStorage'ı temizle
@@ -81,7 +81,7 @@ function App() {
               console.error('Migration error:', error);
               setToast({
                 open: true,
-                message: '⚠️ Veriler aktarılırken bir sorun oluştu',
+                message: 'Veriler aktarılırken bir sorun oluştu',
                 severity: 'warning',
               });
             })
@@ -103,13 +103,13 @@ function App() {
       await addFood(food, customTimestamp);
       setToast({
         open: true,
-        message: `✅ ${food.name} eklendi!`,
+        message: `${food.name} eklendi!`,
         severity: 'success',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Yemek eklenirken hata oluştu',
+        message: error.message || 'Yemek eklenirken hata oluştu',
         severity: 'error',
       });
     }
@@ -121,13 +121,13 @@ function App() {
       const template = foodTemplates.find(t => t.id === templateId);
       setToast({
         open: true,
-        message: `✅ ${template?.name} (${grams}g) eklendi!`,
+        message: `${template?.name} (${grams}g) eklendi!`,
         severity: 'success',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Şablondan yemek eklenirken hata oluştu',
+        message: error.message || 'Şablondan yemek eklenirken hata oluştu',
         severity: 'error',
       });
     }
@@ -139,13 +139,13 @@ function App() {
       await deleteFood(id);
       setToast({
         open: true,
-        message: `🗑️ ${foodName} silindi!`,
+        message: `${foodName} silindi!`,
         severity: 'info',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Yemek silinirken hata oluştu',
+        message: error.message || 'Yemek silinirken hata oluştu',
         severity: 'error',
       });
     }
@@ -156,13 +156,13 @@ function App() {
       await editFood(id, updatedFood);
       setToast({
         open: true,
-        message: `✏️ ${updatedFood.name} güncellendi!`,
+        message: `${updatedFood.name} güncellendi!`,
         severity: 'success',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Yemek güncellenirken hata oluştu',
+        message: error.message || 'Yemek güncellenirken hata oluştu',
         severity: 'error',
       });
     }
@@ -173,13 +173,13 @@ function App() {
       await updateGoal(goal);
       setToast({
         open: true,
-        message: '🎯 Hedefler güncellendi!',
+        message: 'Hedefler güncellendi!',
         severity: 'success',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Hedefler güncellenirken hata oluştu',
+        message: error.message || 'Hedefler güncellenirken hata oluştu',
         severity: 'error',
       });
     }
@@ -190,13 +190,13 @@ function App() {
       await addFoodTemplate(template);
       setToast({
         open: true,
-        message: `✅ ${template.name} şablonu eklendi!`,
+        message: `${template.name} şablonu eklendi!`,
         severity: 'success',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Şablon eklenirken hata oluştu',
+        message: error.message || 'Şablon eklenirken hata oluştu',
         severity: 'error',
       });
     }
@@ -207,13 +207,13 @@ function App() {
       await deleteFoodTemplate(id);
       setToast({
         open: true,
-        message: '🗑️ Şablon silindi!',
+        message: 'Şablon silindi!',
         severity: 'info',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Şablon silinirken hata oluştu',
+        message: error.message || 'Şablon silinirken hata oluştu',
         severity: 'error',
       });
     }
@@ -224,13 +224,13 @@ function App() {
       await editFoodTemplate(id, template);
       setToast({
         open: true,
-        message: `✏️ ${template.name} güncellendi!`,
+        message: `${template.name} güncellendi!`,
         severity: 'success',
       });
     } catch (error: any) {
       setToast({
         open: true,
-        message: error.message || '❌ Şablon güncellenirken hata oluştu',
+        message: error.message || 'Şablon güncellenirken hata oluştu',
         severity: 'error',
       });
     }
@@ -250,7 +250,7 @@ function App() {
       await logout();
       setToast({
         open: true,
-        message: isGuest ? '🗑️ Veriler silindi ve çıkış yapıldı' : '👋 Çıkış yapıldı',
+        message: isGuest ? 'Veriler silindi ve çıkış yapıldı' : 'Çıkış yapıldı',
         severity: 'info',
       });
     } catch (error) {
