@@ -67,10 +67,6 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
           onSuccess('İsim başarıyla güncellendi!');
         }
         
-        setIsClosing(true);
-        setTimeout(() => {
-          onClose();
-        }, 500);
       } catch (err: any) {
         console.error('Profile update error:', err);
         setError(err.message || 'Profil güncellenirken hata oluştu');
@@ -117,10 +113,6 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
         }
         
         passwordFormik.resetForm();
-        setIsClosing(true);
-        setTimeout(() => {
-          onClose();
-        }, 500);
       } catch (err: any) {
         console.error('Password update error:', err);
         
@@ -181,10 +173,6 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
         
         addPasswordFormik.resetForm();
         setShowAddPassword(false);
-        setIsClosing(true);
-        setTimeout(() => {
-          onClose();
-        }, 500);
       } catch (err: any) {
         console.error('Add password error:', err);
         
