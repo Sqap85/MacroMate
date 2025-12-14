@@ -50,8 +50,7 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
     validationSchema: Yup.object({
       displayName: Yup.string()
         .required('İsim boş olamaz')
-        .trim()
-        .min(1, 'İsim en az 1 karakter olmalı'),
+        .max(30, 'İsim en fazla 30 karakter olabilir'),
     }),
     enableReinitialize: true,
     validateOnChange: false,

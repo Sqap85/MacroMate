@@ -70,10 +70,8 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
     displayName: !isLogin
       ? Yup.string()
-          .required('İsim zorunlu')
-          .min(2, 'İsim en az 2 karakter olmalı')
-          .max(50, 'İsim en fazla 50 karakter olabilir')
-          .matches(/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/, 'Sadece harf ve boşluk kullanabilirsiniz')
+          .required('İsim boş olamaz')
+          .max(30, 'İsim en fazla 30 karakter olabilir')
       : Yup.string(),
     confirmPassword: !isLogin
       ? Yup.string()
