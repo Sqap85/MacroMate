@@ -39,7 +39,6 @@ import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
 import CookieIcon from '@mui/icons-material/Cookie';
 import AddIcon from '@mui/icons-material/Add';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
@@ -543,35 +542,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                         color="primary"
                         variant="filled"
                       />
-                      {foods.length > 0 && activeDays >= 3 && (() => {
-                        // Hedefe uygun günleri hesapla (hedefin ±10% içinde)
-                        const targetMin = goal.calories * 0.9;
-                        const targetMax = goal.calories * 1.1;
-                        const daysWithinTarget = currentStats.days.filter(d => 
-                          d.foods.length > 0 && 
-                          d.totalCalories >= targetMin && 
-                          d.totalCalories <= targetMax
-                        ).length;
-                        const consistencyPercentage = Math.round((daysWithinTarget / activeDays) * 100);
-                        
-                        return (
-                          <Tooltip title={`${daysWithinTarget}/${activeDays} gün hedefe uygun (±10%)`}>
-                            <Chip 
-                              icon={<CheckCircleIcon />}
-                              label={`%${consistencyPercentage} tutarlılık`}
-                              size="small"
-                              sx={{
-                                bgcolor: consistencyPercentage >= 80 ? 'success.main' : 
-                                        consistencyPercentage >= 50 ? 'warning.main' : 'error.main',
-                                color: 'white',
-                                '& .MuiChip-icon': {
-                                  color: 'white'
-                                }
-                              }}
-                            />
-                          </Tooltip>
-                        );
-                      })()}
+
                       {activeDays > 0 && (
                         <Chip 
                           label={`${currentStats.averageCalories} kcal/gün ort.`}
