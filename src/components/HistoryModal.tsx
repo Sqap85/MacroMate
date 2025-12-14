@@ -231,40 +231,43 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
 
     const customTimestamp = targetDate.getTime();
 
+    let hasError = false;
+    let errorMessage = '';
     if (addFoodTabValue === 0) {
       // Template modunda
       if (!selectedTemplate) {
-        alert('Lütfen bir besin seçiniz');
+        hasError = true;
+        errorMessage = 'Lütfen bir besin seçiniz';
+      } else if (!templateAmount) {
+        hasError = true;
+        errorMessage = selectedTemplate.unit === 'piece' ? 'Lütfen kaç adet yediğinizi giriniz' : 'Lütfen kaç gram yediğinizi giriniz';
+      }
+      if (hasError) {
+        setAddFoodError(errorMessage);
         return;
       }
-
-      if (!templateAmount) {
-        alert(selectedTemplate.unit === 'piece' ? 'Lütfen kaç adet yediğinizi giriniz' : 'Lütfen kaç gram yediğinizi giriniz');
-        return;
-      }
-
+      setAddFoodError('');
+      // Buradan sonra selectedTemplate kesinlikle null değil!
       const amount = Number(templateAmount);
       let calories: number;
       let protein: number;
       let carbs: number;
       let fat: number;
       let displayName: string;
-
-      if (selectedTemplate.unit === 'piece') {
-        displayName = `${selectedTemplate.name} (${amount} adet)`;
-        calories = Math.round(selectedTemplate.caloriesPer100g * amount);
-        protein = Math.round(selectedTemplate.proteinPer100g * amount * 10) / 10;
-        carbs = Math.round(selectedTemplate.carbsPer100g * amount * 10) / 10;
-        fat = Math.round(selectedTemplate.fatPer100g * amount * 10) / 10;
+      if (selectedTemplate!.unit === 'piece') {
+        displayName = `${selectedTemplate!.name} (${amount} adet)`;
+        calories = Math.round(selectedTemplate!.caloriesPer100g * amount);
+        protein = Math.round(selectedTemplate!.proteinPer100g * amount * 10) / 10;
+        carbs = Math.round(selectedTemplate!.carbsPer100g * amount * 10) / 10;
+        fat = Math.round(selectedTemplate!.fatPer100g * amount * 10) / 10;
       } else {
-        displayName = `${selectedTemplate.name} (${amount}g)`;
+        displayName = `${selectedTemplate!.name} (${amount}g)`;
         const multiplier = amount / 100;
-        calories = Math.round(selectedTemplate.caloriesPer100g * multiplier);
-        protein = Math.round(selectedTemplate.proteinPer100g * multiplier * 10) / 10;
-        carbs = Math.round(selectedTemplate.carbsPer100g * multiplier * 10) / 10;
-        fat = Math.round(selectedTemplate.fatPer100g * multiplier * 10) / 10;
+        calories = Math.round(selectedTemplate!.caloriesPer100g * multiplier);
+        protein = Math.round(selectedTemplate!.proteinPer100g * multiplier * 10) / 10;
+        carbs = Math.round(selectedTemplate!.carbsPer100g * multiplier * 10) / 10;
+        fat = Math.round(selectedTemplate!.fatPer100g * multiplier * 10) / 10;
       }
-
       const newFood = {
         name: displayName,
         calories,
@@ -273,18 +276,17 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         fat,
         mealType: editFormData.mealType,
         fromTemplate: true,
-        templateId: selectedTemplate.id,
+        templateId: selectedTemplate!.id,
         originalAmount: amount,
       };
-
       onAddFood(newFood, customTimestamp);
     } else {
       // Manuel modunda
       if (!editFormData.name || !editFormData.calories) {
-        alert('Lütfen en az yemek adı ve kalori giriniz');
+        setAddFoodError('Lütfen en az yemek adı ve kalori giriniz');
         return;
       }
-
+      setAddFoodError('');
       const newFood = {
         name: editFormData.name,
         calories: Number(editFormData.calories),
@@ -293,15 +295,15 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         fat: Number(editFormData.fat),
         mealType: editFormData.mealType,
       };
-
       onAddFood(newFood, customTimestamp);
     }
-
     setAddingToDate(null);
     setSelectedTemplate(null);
     setTemplateAmount('');
   };
   
+  // Hata mesajı için state
+  const [addFoodError, setAddFoodError] = useState<string>('');
   // Template önizleme değerlerini hesapla
   const getTemplatePreviewValues = () => {
     if (!selectedTemplate || !templateAmount) return null;
@@ -1344,7 +1346,10 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
       {/* Geçmiş Güne Yemek Ekleme Dialog'u */}
       <Dialog 
         open={!!addingToDate} 
-        onClose={() => setAddingToDate(null)}
+        onClose={() => {
+          setAddingToDate(null);
+          setAddFoodError('');
+        }}
         maxWidth="sm"
         fullWidth
       >
@@ -1375,7 +1380,10 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         <DialogContent>
           <Tabs 
             value={addFoodTabValue} 
-            onChange={(_, newValue) => setAddFoodTabValue(newValue)}
+            onChange={(_, newValue) => {
+              setAddFoodTabValue(newValue);
+              setAddFoodError('');
+            }}
             sx={{ mb: 2, mt: 1 }}
           >
             <Tab label="Kayıtlı Besinler" />
@@ -1612,9 +1620,18 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
               </Stack>
             </Stack>
           )}
+        {/* Hata mesajı */}
+        {addFoodError && (
+          <Box sx={{ color: 'error.main', mt: 1, mb: 1, textAlign: 'center' }}>
+            {addFoodError}
+          </Box>
+        )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setAddingToDate(null)} variant="outlined">
+          <Button onClick={() => {
+            setAddingToDate(null);
+            setAddFoodError('');
+          }} variant="outlined">
             İptal
           </Button>
           <Button onClick={handleAddToDateSave} color="primary" variant="contained" startIcon={<AddIcon />}>
