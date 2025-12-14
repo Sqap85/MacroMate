@@ -135,7 +135,7 @@ function App() {
 
   const handleDeleteFood = async (id: string) => {
     try {
-      const foodName = foods.find(f => f.id === id)?.name;
+      const foodName = allFoods.find(f => f.id === id)?.name;
       await deleteFood(id);
       setToast({
         open: true,
