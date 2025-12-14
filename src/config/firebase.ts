@@ -28,6 +28,17 @@ export const emailVerificationSettings: ActionCodeSettings = {
   handleCodeInApp: false,
 };
 
+/**
+ * Password Reset Action Code Settings
+ * Şifre sıfırlama linki ayarları
+ */
+export const passwordResetSettings: ActionCodeSettings = {
+  // Sıfırlama sonrası yönlendirilecek URL
+  url: window.location.origin,
+  // Web'de handle etmek için
+  handleCodeInApp: false,
+};
+
 // Firebase'i initialize et
 const app = initializeApp(firebaseConfig);
 

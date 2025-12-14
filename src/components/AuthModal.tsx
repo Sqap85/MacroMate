@@ -16,6 +16,9 @@ import {
   Paper,
   Stack,
   Chip,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -35,11 +38,14 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onClose }: AuthModalProps) {
-  const { signup, login, loginWithGoogle, continueAsGuest } = useAuth();
+  const { signup, login, loginWithGoogle, continueAsGuest, resetPassword } = useAuth();
   const [tabValue, setTabValue] = useState(0); // 0: Login, 1: Signup
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
 
   const isLogin = tabValue === 0;
 
@@ -52,14 +58,16 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
         'Geçerli bir e-posta adresi girin'
       ),
-    password: Yup.string()
-      .required('Şifre zorunlu')
-      .min(8, 'Şifre en az 8 karakter olmalı')
-      .max(128, 'Şifre en fazla 128 karakter olabilir')
-      .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
-      .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-      .matches(/[0-9]/, 'En az bir rakam içermelidir')
-      .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
+    password: isLogin
+      ? Yup.string().required('Şifre zorunlu') // Login: sadece boş olmasın
+      : Yup.string() // Signup: güçlü şifre kuralları
+          .required('Şifre zorunlu')
+          .min(8, 'Şifre en az 8 karakter olmalı')
+          .max(128, 'Şifre en fazla 128 karakter olabilir')
+          .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
+          .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
+          .matches(/[0-9]/, 'En az bir rakam içermelidir')
+          .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
     displayName: !isLogin
       ? Yup.string()
           .required('İsim zorunlu')
@@ -88,31 +96,32 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       try {
         setError('');
         setLoading(true);
-
         if (isLogin) {
           await login(values.email, values.password);
         } else {
           await signup(values.email, values.password, values.displayName);
         }
-
-        // Başarılı - Modal'ı kapat
         onClose();
         formik.resetForm();
       } catch (err: any) {
         console.error('Auth error:', err);
-        
-        // Firebase hata mesajlarını Türkçeleştir
+        // Wrong password için özel mesaj
+        if (isLogin && err.code === 'auth/wrong-password') {
+          setError('Hatalı şifre. Lütfen tekrar deneyin veya "Şifremi Unuttum" linkini kullanın.');
+          setLoading(false);
+          return;
+        }
+        // Firebase hata mesajlarını Türkçeleştir (üstte handle edilmediyse)
         const errorMessages: Record<string, string> = {
           'auth/email-already-in-use': 'Bu e-posta adresi zaten kullanımda',
           'auth/invalid-email': 'Geçersiz e-posta adresi',
-          'auth/user-not-found': 'Kullanıcı bulunamadı',
-          'auth/wrong-password': 'Hatalı şifre',
+          'auth/user-not-found': 'Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı. Lütfen kayıt olun.',
+          'auth/wrong-password': 'Hatalı şifre. "Şifremi Unuttum" linkini kullanabilirsiniz.',
           'auth/weak-password': 'Şifre çok zayıf (en az 6 karakter)',
-          'auth/too-many-requests': 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin',
-          'auth/network-request-failed': 'Bağlantı hatası. İnternet bağlantınızı kontrol edin',
-          'auth/invalid-credential': 'E-posta veya şifre hatalı',
+          'auth/too-many-requests': 'Çok fazla deneme. Lütfen birkaç dakika sonra tekrar deneyin.',
+          'auth/network-request-failed': 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.',
+          'auth/invalid-credential': 'E-posta veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.',
         };
-
         setError(errorMessages[err.code] || 'Bir hata oluştu. Lütfen tekrar deneyin.');
       } finally {
         setLoading(false);
@@ -142,13 +151,57 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   };
 
   const handleClose = () => {
-    formik.resetForm();
+  formik.resetForm();
+  setError('');
+  setShowPassword(false);
+  setForgotPasswordOpen(false);
+  setForgotPasswordEmail('');
+  setForgotPasswordSuccess(false);
+  onClose();
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      setError('Lütfen e-posta adresinizi girin');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(forgotPasswordEmail)) {
+      setError('Geçerli bir e-posta adresi girin');
+      return;
+    }
+
+    try {
+      setError('');
+      setLoading(true);
+      await resetPassword(forgotPasswordEmail);
+      setForgotPasswordSuccess(true);
+    } catch (err: any) {
+      console.error('Password reset error:', err);
+      
+      const errorMessages: Record<string, string> = {
+        'auth/user-not-found': 'Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı',
+        'auth/invalid-email': 'Geçersiz e-posta adresi',
+        'auth/too-many-requests': 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin',
+      };
+      
+      setError(errorMessages[err.code] || 'Şifre sıfırlama emaili gönderilemedi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseForgotPassword = () => {
+    setForgotPasswordOpen(false);
+    setForgotPasswordEmail('');
+    setForgotPasswordSuccess(false);
     setError('');
-    setShowPassword(false);
-    onClose();
   };
 
   return (
+    <>
     <Dialog 
       open={open} 
       onClose={handleClose} 
@@ -219,6 +272,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           </Alert>
         )}
 
+
         <Box component="form" onSubmit={formik.handleSubmit}>
           {!isLogin && (
             <TextField
@@ -263,19 +317,41 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             margin="normal"
             disabled={loading}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
             }}
           />
+
+          {isLogin && (
+            <Box textAlign="right" mt={1}>
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => {
+                  setForgotPasswordOpen(true);
+                  setForgotPasswordEmail(formik.values.email);
+                }}
+                sx={{ 
+                  textTransform: 'none',
+                  fontSize: '0.875rem',
+                  p: 0.5,
+                }}
+              >
+                Şifremi unuttum?
+              </Button>
+            </Box>
+          )}
 
           {!isLogin && (
             <TextField
@@ -377,5 +453,64 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         </Box>
       </Paper>
     </Dialog>
+
+    {/* Forgot Password Dialog */}
+    <Dialog
+      open={forgotPasswordOpen}
+      onClose={handleCloseForgotPassword}
+      maxWidth="xs"
+      fullWidth
+    >
+      <DialogTitle>Şifremi Unuttum</DialogTitle>
+      <DialogContent>
+        {forgotPasswordSuccess ? (
+          <Alert severity="success" sx={{ mt: 1 }}>
+            Şifre sıfırlama linki e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.
+          </Alert>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 1 }}>
+              E-posta adresinizi girin, size şifre sıfırlama linki gönderelim.
+            </Typography>
+            <TextField
+              fullWidth
+              label="E-posta"
+              type="email"
+              value={forgotPasswordEmail}
+              onChange={(e) => setForgotPasswordEmail(e.target.value)}
+              disabled={loading}
+              autoFocus
+              sx={{ mb: 2 }}
+            />
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        {forgotPasswordSuccess ? (
+          <Button onClick={handleCloseForgotPassword} variant="contained">
+            Tamam
+          </Button>
+        ) : (
+          <>
+            <Button onClick={handleCloseForgotPassword} disabled={loading}>
+              İptal
+            </Button>
+            <Button 
+              onClick={handleForgotPassword} 
+              variant="contained"
+              disabled={loading || !forgotPasswordEmail}
+            >
+              {loading ? 'Gönderiliyor...' : 'Gönder'}
+            </Button>
+          </>
+        )}
+      </DialogActions>
+    </Dialog>
+  </>
   );
 }

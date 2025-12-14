@@ -12,11 +12,14 @@ import {
   Divider,
   Typography,
   Avatar,
+  Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
+import GoogleIcon from '@mui/icons-material/Google';
+import EmailIcon from '@mui/icons-material/Email';
 import { useAuth } from '../contexts/AuthContext';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -33,10 +36,11 @@ interface ProfileModalProps {
 }
 
 export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
-  const { currentUser, updateUserProfile, updateUserPassword } = useAuth();
+  const { currentUser, updateUserProfile, updateUserPassword, addPasswordToAccount } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
+  const [showAddPassword, setShowAddPassword] = useState(false);
 
   // Formik for display name
   const profileFormik = useFormik({
@@ -143,14 +147,71 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
     },
   });
 
+  // Formik for adding password (for Google users)
+  const addPasswordFormik = useFormik({
+    initialValues: {
+      newPassword: '',
+      confirmPassword: '',
+    },
+    validationSchema: Yup.object({
+      newPassword: Yup.string()
+        .required('Şifre zorunlu')
+        .min(8, 'Şifre en az 8 karakter olmalı')
+        .max(128, 'Şifre en fazla 128 karakter olabilir')
+        .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
+        .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
+        .matches(/[0-9]/, 'En az bir rakam içermelidir')
+        .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
+      confirmPassword: Yup.string()
+        .required('Şifre tekrarı zorunlu')
+        .oneOf([Yup.ref('newPassword')], 'Şifreler eşleşmiyor'),
+    }),
+    validateOnChange: false,
+    validateOnBlur: false,
+    onSubmit: async (values) => {
+      setLoading(true);
+      setError('');
+
+      try {
+        await addPasswordToAccount(values.newPassword);
+        setLoading(false);
+        
+        if (onSuccess) {
+          onSuccess('Şifre başarıyla eklendi! Artık e-posta ve şifre ile de giriş yapabilirsiniz.');
+        }
+        
+        addPasswordFormik.resetForm();
+        setShowAddPassword(false);
+        setIsClosing(true);
+        setTimeout(() => {
+          onClose();
+        }, 500);
+      } catch (err: any) {
+        console.error('Add password error:', err);
+        
+        if (err.code === 'auth/requires-recent-login') {
+          setError('Güvenlik nedeniyle çıkış yapıp tekrar giriş yapmanız gerekiyor.');
+        } else if (err.code === 'auth/provider-already-linked') {
+          setError('Bu hesaba zaten şifre eklenmiş.');
+        } else {
+          setError('Şifre eklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+        }
+        
+        setLoading(false);
+      }
+    },
+  });
+
   // Modal açıldığında state'leri reset et
   useEffect(() => {
     if (open) {
       profileFormik.resetForm();
       passwordFormik.resetForm();
+      addPasswordFormik.resetForm();
       setError('');
       setLoading(false);
       setIsClosing(false);
+      setShowAddPassword(false);
     }
   }, [open]);
 
@@ -158,7 +219,9 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
     if (isClosing) return;
     profileFormik.resetForm();
     passwordFormik.resetForm();
+    addPasswordFormik.resetForm();
     setError('');
+    setShowAddPassword(false);
     onClose();
   };
 
@@ -166,6 +229,9 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
   const isEmailProvider = currentUser?.providerData.some(
     (provider) => provider.providerId === 'password'
   );
+
+  // Provider bilgilerini al
+  const providersList = currentUser?.providerData.map(p => p.providerId) || [];
 
   return (
     <Dialog 
@@ -230,6 +296,92 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
               </Typography>
             </Box>
           </Box>
+
+          <Divider />
+
+          {/* Login Methods / Providers */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom fontWeight="medium">
+              Giriş Metodları
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+              {providersList.includes('google.com') && (
+                <Chip
+                  icon={<GoogleIcon />}
+                  label="Google"
+                  color="primary"
+                  variant="outlined"
+                />
+              )}
+              {providersList.includes('password') && (
+                <Chip
+                  icon={<EmailIcon />}
+                  label="E-posta & Şifre"
+                  color="success"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
+            
+            {/* Google kullanıcısı ve şifresi yoksa, şifre ekle seçeneği göster */}
+            {!isEmailProvider && providersList.length > 0 && (
+              <Box mt={2}>
+                <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                  E-posta ve şifre ile de giriş yapabilmek için hesabınıza şifre ekleyebilirsiniz.
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setShowAddPassword(!showAddPassword)}
+                  disabled={loading}
+                >
+                  {showAddPassword ? 'İptal' : '+ Şifre Ekle'}
+                </Button>
+              </Box>
+            )}
+          </Box>
+
+          {/* Add Password Form (for Google users) */}
+          {showAddPassword && !isEmailProvider && (
+            <Box component="form" onSubmit={addPasswordFormik.handleSubmit}>
+              <Typography variant="subtitle2" gutterBottom fontWeight="medium" color="primary">
+                Hesaba Şifre Ekle
+              </Typography>
+              <TextField
+                fullWidth
+                type="password"
+                label="Yeni Şifre"
+                name="newPassword"
+                value={addPasswordFormik.values.newPassword}
+                onChange={addPasswordFormik.handleChange}
+                error={addPasswordFormik.touched.newPassword && Boolean(addPasswordFormik.errors.newPassword)}
+                helperText={addPasswordFormik.touched.newPassword && addPasswordFormik.errors.newPassword}
+                disabled={loading}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                type="password"
+                label="Şifre Tekrar"
+                name="confirmPassword"
+                value={addPasswordFormik.values.confirmPassword}
+                onChange={addPasswordFormik.handleChange}
+                error={addPasswordFormik.touched.confirmPassword && Boolean(addPasswordFormik.errors.confirmPassword)}
+                helperText={addPasswordFormik.touched.confirmPassword && addPasswordFormik.errors.confirmPassword}
+                disabled={loading}
+                margin="normal"
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading || !addPasswordFormik.values.newPassword || !addPasswordFormik.values.confirmPassword}
+                fullWidth
+                sx={{ mt: 1 }}
+              >
+                Şifre Ekle
+              </Button>
+            </Box>
+          )}
 
           <Divider />
 

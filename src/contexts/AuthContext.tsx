@@ -13,8 +13,11 @@ import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
+  sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
 } from 'firebase/auth';
-import { auth, emailVerificationSettings } from '../config/firebase';
+import { auth, emailVerificationSettings, passwordResetSettings } from '../config/firebase';
 
 /**
  * Authentication Context
@@ -35,6 +38,9 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   updateUserProfile: (displayName: string) => Promise<void>;
   updateUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  checkSignInMethods: (email: string) => Promise<string[]>;
+  addPasswordToAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -204,6 +210,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await updatePassword(user, newPassword);
   };
 
+  // Şifre sıfırlama emaili gönder
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email, passwordResetSettings);
+  };
+
+  // Email ile kayıtlı giriş metodlarını kontrol et
+  const checkSignInMethods = async (email: string): Promise<string[]> => {
+    try {
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      return methods;
+    } catch (error) {
+      console.error('Error checking sign-in methods:', error);
+      return [];
+    }
+  };
+
+  // Google kullanıcısına şifre ekle (Account Linking)
+  const addPasswordToAccount = async (password: string) => {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      throw new Error('Giriş yapılmamış');
+    }
+
+    // Email/password credential oluştur
+    const credential = EmailAuthProvider.credential(user.email, password);
+    
+    // Mevcut hesaba link et
+    await linkWithCredential(user, credential);
+    
+    // User state'ini güncelle
+    await user.reload();
+    setCurrentUser({ ...auth.currentUser } as User);
+  };
+
   // Auth state değişikliklerini dinle
   useEffect(() => {
     // Misafir modunu kontrol et
@@ -238,6 +278,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     refreshUser,
     updateUserProfile,
     updateUserPassword,
+    resetPassword,
+    checkSignInMethods,
+    addPasswordToAccount,
   };
 
   return (
