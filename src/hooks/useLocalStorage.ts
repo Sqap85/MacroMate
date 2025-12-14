@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 
-/**
- * LocalStorage ile senkronize çalışan generic hook
- * TypeScript generic kullanımını öğrenmek için mükemmel örnek!
- */
+ // LocalStorage ile senkronize çalışan generic hook
+ 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   // State'i localStorage'dan initialize et
   const [storedValue, setStoredValue] = useState<T>(() => {
