@@ -51,6 +51,8 @@ function App() {
     message: '',
     severity: 'success',
   });
+  // Şifre ekleme işlemi başlatıldı mı?
+  const [pendingPasswordAdd, setPendingPasswordAdd] = useState(false);
 
   // Kullanıcı giriş yaptığında LocalStorage'dan migrate et (sadece misafir modundan gelenler için)
   useEffect(() => {
@@ -285,11 +287,21 @@ function App() {
     );
   }
 
-  // Email doğrulanmamış kullanıcılar için EmailVerificationScreen göster
-  // Google ile giriş yapanlar otomatik verified olur
-  if (currentUser && !currentUser.emailVerified && !isGuest) {
-    return <EmailVerificationScreen />;
-  }
+  // Sadece email/password ile giriş yapan ve emaili doğrulanmamış kullanıcılar için EmailVerificationScreen göster
+    const showEmailVerification = (
+      currentUser &&
+      !currentUser.emailVerified &&
+      !isGuest &&
+      currentUser.providerData.some(p => p.providerId === 'password')
+      && pendingPasswordAdd // sadece şifre ekleme başlatıldıysa göster
+    );
+
+    if (showEmailVerification) {
+      return <EmailVerificationScreen onCancelPasswordAdd={() => {
+        setPendingPasswordAdd(false);
+        setProfileOpen(false);
+      }} />;
+    }
 
   return (
     <>
@@ -584,12 +596,32 @@ function App() {
         </DialogActions>
       </Dialog>
 
-      {/* Profil Modal */}
+    {/* Profil Modal - EmailVerificationScreen açıksa DOM'dan kaldır */}
+  {!showEmailVerification && (
       <ProfileModal 
         open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        onSuccess={(message) => setToast({ open: true, message, severity: 'success' })}
+        onClose={() => {
+          setProfileOpen(false);
+          setPendingPasswordAdd(false);
+        }}
+        onSuccess={(message) => {
+          if (message === 'Şifre başarıyla güncellendi!') {
+            setToast({ open: true, message, severity: 'success' });
+          } else if (pendingPasswordAdd) {
+            setToast({ open: true, message, severity: 'success' });
+            setPendingPasswordAdd(false);
+          }
+        }}
+        onStartPasswordAdd={() => setPendingPasswordAdd(true)}
       />
+    )}
+    {/* EmailVerificationScreen'e iptal callback'i ilet */}
+      {showEmailVerification && (
+        <EmailVerificationScreen onCancelPasswordAdd={() => {
+          setPendingPasswordAdd(false);
+          setProfileOpen(false);
+        }} />
+      )}
     </>
   );
 }

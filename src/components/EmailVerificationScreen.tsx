@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Button,
@@ -16,20 +16,71 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../config/firebase';
+import { unlink } from 'firebase/auth';
 
 /**
  * Email Verification Screen
  * Landing page tarzı modern email doğrulama ekranı
  */
 
-export function EmailVerificationScreen() {
-  const { currentUser, logout, resendVerificationEmail, refreshUser } = useAuth();
+export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPasswordAdd?: () => void }) {
+  const { currentUser, logout, resendVerificationEmail, refreshUser, loading, emailVerificationDismissed, setEmailVerificationDismissed } = useAuth();
+  // Kullanıcı ve loading kontrolü en başta yapılmalı
+  if (loading) {
+    return null;
+  }
+  if (!currentUser) {
+    return null;
+  }
+  if (emailVerificationDismissed) {
+    return null;
+  }
+  // Sadece email ile giriş yapan ve emaili doğrulanmamış kullanıcılar için göster
+  const isEmailProvider = currentUser.providerData.some(p => p.providerId === 'password');
+  if (!isEmailProvider || currentUser.emailVerified) {
+    return null;
+  }
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [verified, setVerified] = useState(false);
+
+  // Otomatik gönderim sadece bir kez tetiklensin diye ref kullan
+  const initialMailSentRef = useRef(false);
+
+  // Kullanıcı ve loading kontrolü en başta yapılmalı
+  if (loading) {
+    return null;
+  }
+  if (!currentUser) {
+    return null;
+  }
+
+  useEffect(() => {
+    if (loading) return;
+    if (!currentUser) return;
+    if (currentUser.emailVerified) return;
+    if (initialMailSentRef.current) return;
+    if (countdown > 0) return;
+
+    initialMailSentRef.current = true;
+    const sendVerification = async () => {
+      setResending(true);
+      try {
+        await refreshUser();
+        await resendVerificationEmail();
+        setSuccess('Doğrulama emaili gönderildi!');
+        setCountdown(60);
+      } catch {
+        initialMailSentRef.current = false;
+      } finally {
+        setResending(false);
+      }
+    };
+    sendVerification();
+  }, [currentUser, resendVerificationEmail, countdown, loading, refreshUser]);
 
   // Fonksiyonu önce tanımla
   const handleCheckVerification = useCallback(async (silent = false) => {
@@ -102,18 +153,17 @@ export function EmailVerificationScreen() {
     setSuccess('');
 
     try {
+      await refreshUser();
       await resendVerificationEmail();
       setSuccess('Doğrulama emaili tekrar gönderildi!');
       setCountdown(60); // 60 saniye cooldown
     } catch (err: any) {
       console.error('Resend email error:', err);
-      
       const errorMessages: Record<string, string> = {
         'Email zaten doğrulanmış': 'Email adresiniz zaten doğrulanmış!',
         'Giriş yapılmamış': 'Lütfen tekrar giriş yapın.',
         'auth/too-many-requests': 'Çok fazla deneme. Lütfen birkaç dakika bekleyin.',
       };
-
       setError(errorMessages[err.message] || 'Email gönderilemedi. Lütfen tekrar deneyin.');
     } finally {
       setResending(false);
@@ -122,6 +172,22 @@ export function EmailVerificationScreen() {
 
   const handleLogout = async () => {
     try {
+      // Eğer kullanıcıda hem Google hem de email/password provider varsa ve email doğrulanmamışsa, email/password provider'ı kaldır
+      const user = auth.currentUser;
+      let didUnlink = false;
+      if (
+        user &&
+        !user.emailVerified &&
+        user.providerData.some(p => p.providerId === 'google.com') &&
+        user.providerData.some(p => p.providerId === 'password')
+      ) {
+        // email/password provider'ı kaldır
+        await unlink(user, 'password');
+        await user.reload();
+        didUnlink = true;
+      }
+      setEmailVerificationDismissed(true);
+      if (didUnlink && onCancelPasswordAdd) onCancelPasswordAdd();
       await logout();
     } catch (err) {
       console.error('Logout error:', err);

@@ -41,6 +41,8 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   checkSignInMethods: (email: string) => Promise<string[]>;
   addPasswordToAccount: (password: string) => Promise<void>;
+  emailVerificationDismissed: boolean;
+  setEmailVerificationDismissed: (dismissed: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,9 +61,16 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [emailVerificationDismissed, setEmailVerificationDismissed] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  // currentUser değiştiğinde emailVerificationDismissed sıfırlansın
+  useEffect(() => {
+    if (currentUser) {
+      setEmailVerificationDismissed(false);
+    }
+  }, [currentUser]);
 
   // Email/Password ile kayıt
   const signup = async (email: string, password: string, displayName: string) => {
@@ -129,13 +138,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Çıkış
   const logout = async () => {
     setIsGuest(false);
+    setEmailVerificationDismissed(true); // Çıkışta email ekranı bir daha gösterilmesin
     localStorage.removeItem('guestMode');
-    
     // Eğer Firebase kullanıcısı varsa çıkış yap
     if (currentUser) {
       await signOut(auth);
     } else {
-      // Misafir modundan çıkış - state'i temizle
       setCurrentUser(null);
       setLoading(false);
     }
@@ -150,15 +158,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Email doğrulama emailini tekrar gönder
   const resendVerificationEmail = async () => {
-    if (!currentUser) {
+    // Daima güncel user'ı kullan
+    const user = auth.currentUser;
+    if (!user) {
       throw new Error('Giriş yapılmamış');
     }
-    
-    if (currentUser.emailVerified) {
+    if (user.emailVerified) {
       throw new Error('Email zaten doğrulanmış');
     }
-
-    await sendEmailVerification(currentUser, emailVerificationSettings);
+    await sendEmailVerification(user, emailVerificationSettings);
   };
 
   // Kullanıcı bilgilerini yenile (email verified kontrolü için)
@@ -281,6 +289,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     resetPassword,
     checkSignInMethods,
     addPasswordToAccount,
+    emailVerificationDismissed,
+    setEmailVerificationDismissed,
   };
 
   return (

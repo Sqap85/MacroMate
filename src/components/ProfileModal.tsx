@@ -21,6 +21,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import GoogleIcon from '@mui/icons-material/Google';
 import EmailIcon from '@mui/icons-material/Email';
 import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../config/firebase';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 
@@ -33,9 +34,10 @@ interface ProfileModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: (message: string) => void;
+  onStartPasswordAdd?: () => void;
 }
 
-export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
+export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: ProfileModalProps) {
   const { currentUser, updateUserProfile, updateUserPassword, addPasswordToAccount } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -163,19 +165,34 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
       setLoading(true);
       setError('');
 
+      // Kullanıcı çıkış yaptıysa işlemi iptal et
+      if (!currentUser) {
+        setLoading(false);
+        setShowAddPassword(false);
+        addPasswordFormik.resetForm();
+        return;
+      }
+
       try {
         await addPasswordToAccount(values.newPassword);
+        await new Promise(r => setTimeout(r, 300)); // state güncellensin
+  // Kullanıcıyı tekrar çek (güncel state)
+  const user = auth.currentUser || currentUser;
+  if (user && !user.emailVerified) {
+          setError('Şifre eklendi, ancak giriş yapabilmek için önce emailinizi doğrulamanız gerekir. Lütfen emailinizi kontrol edin.');
+          setLoading(false);
+          addPasswordFormik.resetForm();
+          setShowAddPassword(false);
+          return;
+        }
         setLoading(false);
-        
         if (onSuccess) {
           onSuccess('Şifre başarıyla eklendi! Artık e-posta ve şifre ile de giriş yapabilirsiniz.');
         }
-        
         addPasswordFormik.resetForm();
         setShowAddPassword(false);
       } catch (err: any) {
         console.error('Add password error:', err);
-        
         if (err.code === 'auth/requires-recent-login') {
           setError('Güvenlik nedeniyle çıkış yapıp tekrar giriş yapmanız gerekiyor.');
         } else if (err.code === 'auth/provider-already-linked') {
@@ -183,7 +200,6 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
         } else {
           setError('Şifre eklenirken bir hata oluştu. Lütfen tekrar deneyin.');
         }
-        
         setLoading(false);
       }
     },
@@ -319,7 +335,10 @@ export function ProfileModal({ open, onClose, onSuccess }: ProfileModalProps) {
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={() => setShowAddPassword(!showAddPassword)}
+                  onClick={() => {
+                    if (!showAddPassword && onStartPasswordAdd) onStartPasswordAdd();
+                    setShowAddPassword(!showAddPassword);
+                  }}
                   disabled={loading}
                 >
                   {showAddPassword ? 'İptal' : '+ Şifre Ekle'}
