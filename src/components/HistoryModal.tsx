@@ -493,27 +493,45 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
           <Tabs
             value={tabValue}
             onChange={(_, newValue) => setTabValue(newValue)}
-            sx={{ mb: isMobile ? 2 : 3 }}
-            variant={isMobile ? 'scrollable' : 'fullWidth'}
-            scrollButtons={isMobile ? 'auto' : false}
-            allowScrollButtonsMobile
+            sx={{
+              mb: isMobile ? 2 : 3,
+              px: isMobile ? 0.5 : 0,
+              minHeight: isMobile ? 36 : undefined,
+              width: '100%',
+              justifyContent: 'center',
+            }}
+            variant="fullWidth"
           >
-            <Tab label={isMobile ? '7 Gün' : 'Son 7 Gün'} />
-            <Tab label={isMobile ? '30 Gün' : 'Son 30 Gün'} />
-            <Tab label={isMobile ? '90 Gün' : 'Son 90 Gün'} />
-            <Tab 
+            <Tab
+              label={isMobile ? '7 Gün' : 'Son 7 Gün'}
+              disableRipple
+              sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
+            />
+            <Tab
+              label={isMobile ? '30 Gün' : 'Son 30 Gün'}
+              disableRipple
+              sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
+            />
+            <Tab
+              label={isMobile ? '90 Gün' : 'Son 90 Gün'}
+              disableRipple
+              sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
+            />
+            <Tab
               label={
                 <Box>
-                  <Typography variant="caption" display="block">
+                  <Typography variant="caption" display="block" sx={isMobile ? { fontSize: '0.85rem' } : {}}>
                     {isMobile ? 'Tümü' : 'Tüm Geçmiş'}
                   </Typography>
                   {foods.length > 0 && (
-                    <Typography variant="caption" fontSize="0.65rem" color="text.secondary">
+                    <Typography variant="caption" fontSize={isMobile ? '0.65rem' : '0.75rem'} color="text.secondary">
                       {allTimeStats.totalDays} gün
                     </Typography>
                   )}
                 </Box>
               }
+              disableRipple
+              sx={{ flexGrow: 1, textAlign: 'center' }}
             />
           </Tabs>
 
