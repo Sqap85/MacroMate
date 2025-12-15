@@ -27,13 +27,15 @@ import CloseIcon from '@mui/icons-material/Close';
 import ScaleIcon from '@mui/icons-material/Scale';
 import EggIcon from '@mui/icons-material/Egg';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 import type { FoodTemplate, MeasurementUnit } from '../types';
 
 interface FoodTemplatesModalProps {
   open: boolean;
   onClose: () => void;
   templates: FoodTemplate[];
-  onAddTemplate: (template: Omit<FoodTemplate, 'id'>) => void;
+  onAddTemplate: (template: Omit<FoodTemplate, 'id'>, suppressToast?: boolean) => void;
   onDeleteTemplate: (id: string) => void;
   onEditTemplate: (id: string, template: Omit<FoodTemplate, 'id'>) => void;
 }
@@ -78,6 +80,19 @@ export function FoodTemplatesModal({
     fatPerPiece: '',
   });
 
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({ open: false, message: '', severity: 'success' });
+
+  // Centralized toast helper to prevent overlap and support all severities
+  const showToast = (toastObj: { open: boolean; message: string; severity: 'success' | 'error' | 'warning' }) => {
+    setToast(t => {
+      if (t.open) return { ...t, open: false };
+      return t;
+    });
+    setTimeout(() => {
+      setToast(toastObj);
+    }, 100);
+  };
+
   // Form sıfırlama yardımcı fonksiyonu
   const resetForm = () => {
     setFormData({
@@ -97,48 +112,43 @@ export function FoodTemplatesModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.name) {
       alert('Lütfen besin adı giriniz');
       return;
     }
-
+    const exists = templates.some(t => t.name.trim().toLowerCase() === formData.name.trim().toLowerCase());
+    if (exists) {
+      showToast({ open: true, message: 'Bu isimde bir besin zaten var.', severity: 'error' });
+      return;
+    }
     // Adet bazında girildiyse adet başına değerleri kaydet
     let caloriesPer100g: number;
     let proteinPer100g: number;
     let carbsPer100g: number;
     let fatPer100g: number;
-
     if (formData.unit === 'piece') {
-      // Adet bazında değerler girildiyse
       if (!formData.caloriesPerPiece) {
         alert('Lütfen adet başına kalori giriniz');
         return;
       }
-      
       const caloriesPerPiece = Number(formData.caloriesPerPiece);
       const proteinPerPiece = Number(formData.proteinPerPiece) || 0;
       const carbsPerPiece = Number(formData.carbsPerPiece) || 0;
       const fatPerPiece = Number(formData.fatPerPiece) || 0;
-
-      // Adet bazında değerleri 100g yerine saklayacağız (100 birim = 1 adet kabul ederek)
       caloriesPer100g = caloriesPerPiece;
       proteinPer100g = proteinPerPiece;
       carbsPer100g = carbsPerPiece;
       fatPer100g = fatPerPiece;
     } else {
-      // 100g bazında direkt girildi
       if (!formData.caloriesPer100g) {
         alert('Lütfen 100g başına kalori giriniz');
         return;
       }
-      
       caloriesPer100g = Number(formData.caloriesPer100g);
       proteinPer100g = Number(formData.proteinPer100g) || 0;
       carbsPer100g = Number(formData.carbsPer100g) || 0;
       fatPer100g = Number(formData.fatPer100g) || 0;
     }
-
     const templateData = {
       name: formData.name,
       unit: formData.unit,
@@ -148,10 +158,7 @@ export function FoodTemplatesModal({
       carbsPer100g,
       fatPer100g,
     };
-
     onAddTemplate(templateData);
-
-    // Formu temizle
     resetForm();
   };
 
@@ -250,6 +257,102 @@ export function FoodTemplatesModal({
     }
   };
 
+  // Export templates as CSV
+  const handleExportCSV = () => {
+    if (!templates || templates.length === 0) {
+      showToast({ open: true, message: 'İndirilecek şablon yok.', severity: 'error' });
+      return;
+    }
+    const header = [
+      'name',
+      'unit',
+      'caloriesPer100g',
+      'proteinPer100g',
+      'carbsPer100g',
+      'fatPer100g'
+    ];
+    const rows = templates.map(t => [
+      t.name,
+      t.unit,
+      t.caloriesPer100g,
+      t.proteinPer100g,
+      t.carbsPer100g,
+      t.fatPer100g
+    ]);
+    const csv = [header, ...rows]
+      .map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'food_templates.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import templates from CSV
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) {
+        showToast({ open: true, message: 'Dosya okunamadı.', severity: 'error' });
+        return;
+      }
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) {
+        showToast({ open: true, message: 'Geçersiz veya boş CSV dosyası.', severity: 'error' });
+        return;
+      }
+      const header = lines[0].split(',').map(h => h.replace(/\"/g, '').trim());
+      const nameIdx = header.indexOf('name');
+      const unitIdx = header.indexOf('unit');
+      const calIdx = header.indexOf('caloriesPer100g');
+      const proIdx = header.indexOf('proteinPer100g');
+      const carbIdx = header.indexOf('carbsPer100g');
+      const fatIdx = header.indexOf('fatPer100g');
+      let added = 0;
+      const skipped: string[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
+        if (row.length < 6) continue;
+        const template = {
+          name: row[nameIdx] || '',
+          unit: (row[unitIdx] === 'piece' ? 'piece' : 'gram') as MeasurementUnit,
+          servingSize: undefined,
+          caloriesPer100g: Number(row[calIdx]) || 0,
+          proteinPer100g: Number(row[proIdx]) || 0,
+          carbsPer100g: Number(row[carbIdx]) || 0,
+          fatPer100g: Number(row[fatIdx]) || 0,
+        };
+        const exists = templates.some(t => t.name.trim().toLowerCase() === template.name.trim().toLowerCase());
+        if (template.name && template.caloriesPer100g && !exists) {
+          onAddTemplate(template, true); // suppressToast = true for CSV import
+          added++;
+        } else if (template.name && exists) {
+          skipped.push(template.name);
+        }
+      }
+      if (added > 0 && skipped.length === 0) {
+        showToast({ open: true, message: `${added} şablon başarıyla eklendi.`, severity: 'success' });
+      } else if (added > 0 && skipped.length > 0) {
+        showToast({ open: true, message: `${added} yeni şablon eklendi. Eklenemeyenler: ${skipped.join(', ')} (isim zaten var)`, severity: 'warning' });
+      } else if (added === 0 && skipped.length > 0) {
+        showToast({ open: true, message: `Hiçbir şablon eklenmedi. Eklenemeyenler: ${skipped.join(', ')} (isim zaten var)`, severity: 'error' });
+      } else {
+        showToast({ open: true, message: 'Uygun veri bulunamadı.', severity: 'error' });
+      }
+    };
+    reader.readAsText(file);
+    // Clear input value so same file can be uploaded again if needed
+    e.target.value = '';
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -264,22 +367,47 @@ export function FoodTemplatesModal({
         }
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        pb: 1
-      }}>
+      <DialogTitle
+        sx={{
+          position: 'relative',
+          display: 'flex',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          pb: 1,
+          flexWrap: 'wrap',
+          gap: 1,
+        }}
+      >
         <Box display="flex" alignItems="center" gap={1}>
           <RestaurantMenuIcon color="primary" />
-          <Typography variant="h6" component="div" id="templates-dialog-title">
+          <Typography
+            variant="h6"
+            component="div"
+            id="templates-dialog-title"
+            sx={{ mr: 1 }}
+          >
             Besin Şablonlarım
           </Typography>
         </Box>
-        <IconButton 
-          onClick={onClose} 
+        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+          <Button variant="outlined" size="small" component="label" sx={{ minWidth: 0, px: 1 }}>
+            CSV Yükle
+            <input type="file" accept=".csv" hidden onChange={handleImportCSV} />
+          </Button>
+          <Button variant="outlined" size="small" onClick={handleExportCSV} sx={{ minWidth: 0, px: 1 }}>
+            CSV İndir
+          </Button>
+        </Box>
+        <IconButton
+          onClick={onClose}
           size="small"
           aria-label="Kapat"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            minWidth: 0,
+          }}
         >
           <CloseIcon />
         </IconButton>
@@ -705,6 +833,13 @@ export function FoodTemplatesModal({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Toast (Snackbar) Bildirimi */}
+      <Snackbar open={toast.open} autoHideDuration={6000} onClose={() => setToast({ ...toast, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <MuiAlert elevation={6} variant="filled" onClose={() => setToast({ ...toast, open: false })} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.message}
+        </MuiAlert>
+      </Snackbar>
     </Dialog>
   );
 }

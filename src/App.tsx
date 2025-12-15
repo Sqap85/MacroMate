@@ -187,14 +187,16 @@ function App() {
     }
   };
 
-  const handleAddTemplate = async (template: Omit<any, 'id'>) => {
+  const handleAddTemplate = async (template: Omit<any, 'id'>, suppressToast?: boolean) => {
     try {
       await addFoodTemplate(template);
-      setToast({
-        open: true,
-        message: `${template.name} şablonu eklendi!`,
-        severity: 'success',
-      });
+      if (!suppressToast) {
+        setToast({
+          open: true,
+          message: `${template.name} şablonu eklendi!`,
+          severity: 'success',
+        });
+      }
     } catch (error: any) {
       setToast({
         open: true,
