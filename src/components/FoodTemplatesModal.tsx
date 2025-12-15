@@ -460,8 +460,8 @@ export function FoodTemplatesModal({
                       secondary={
                         <Typography variant="caption" component="div" color="text.secondary">
                           {template.unit === 'piece'
-                            ? `1 adet: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | C: ${template.carbsPer100g}g | F: ${template.fatPer100g}g`
-                            : `100g: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | C: ${template.carbsPer100g}g | F: ${template.fatPer100g}g`
+                            ? `1 adet: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
+                            : `100g: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
                           }
                         </Typography>
                       }
