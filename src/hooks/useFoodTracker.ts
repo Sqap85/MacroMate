@@ -10,6 +10,22 @@ import * as firestoreService from '../services/firestoreService';
  * - Misafir kullanıcılar: LocalStorage kullanır
  */
 export function useFoodTracker() {
+    // Besin şablonlarını toplu sil
+    const deleteFoodTemplatesBulk = async (ids: string[]) => {
+      if (isGuest) {
+        const updated = localTemplates.filter(t => !ids.includes(t.id));
+        setLocalTemplates(updated);
+        setFoodTemplates(updated);
+        return;
+      }
+      if (!currentUser) throw new Error('Lütfen önce giriş yapın');
+      try {
+        await firestoreService.deleteTemplatesBulk(ids);
+      } catch (error) {
+        console.error('Toplu şablon silme hatası:', error);
+        throw error;
+      }
+    };
   const { currentUser, isGuest } = useAuth();
   
   // Misafir kullanıcılar için LocalStorage
@@ -387,5 +403,6 @@ export function useFoodTracker() {
     deleteFoodTemplate,
     editFoodTemplate,
     addFoodFromTemplate,
+    deleteFoodTemplatesBulk,
   };
 }

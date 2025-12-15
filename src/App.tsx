@@ -38,7 +38,25 @@ function App() {
     deleteFoodTemplate,
     editFoodTemplate,
     addFoodFromTemplate,
+    deleteFoodTemplatesBulk,
   } = useFoodTracker();
+    // Toplu silme fonksiyonu
+    const handleBulkDeleteTemplates = async (ids: string[]) => {
+      try {
+        await deleteFoodTemplatesBulk(ids);
+        setToast({
+          open: true,
+          message: `${ids.length} besin silindi!`,
+          severity: 'info',
+        });
+      } catch (error: any) {
+        setToast({
+          open: true,
+          message: error.message || 'Toplu silme sırasında hata oluştu',
+          severity: 'error',
+        });
+      }
+    };
   
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -550,6 +568,7 @@ function App() {
         onAddTemplate={handleAddTemplate}
         onDeleteTemplate={handleDeleteTemplate}
         onEditTemplate={handleEditTemplate}
+        onBulkDelete={handleBulkDeleteTemplates}
       />
       
       <Toast

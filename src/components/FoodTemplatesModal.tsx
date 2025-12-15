@@ -38,6 +38,7 @@ interface FoodTemplatesModalProps {
   onAddTemplate: (template: Omit<FoodTemplate, 'id'>, suppressToast?: boolean) => void;
   onDeleteTemplate: (id: string) => void;
   onEditTemplate: (id: string, template: Omit<FoodTemplate, 'id'>) => void;
+  onBulkDelete?: (ids: string[]) => void;
 }
 
 export function FoodTemplatesModal({
@@ -47,7 +48,50 @@ export function FoodTemplatesModal({
   onAddTemplate,
   onDeleteTemplate,
   onEditTemplate,
+  onBulkDelete,
 }: FoodTemplatesModalProps) {
+  // Toplu seçim için state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const allSelected = templates.length > 0 && selectedIds.length === templates.length;
+
+  // Toplu seçim checkbox değişimi
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(templates.map(t => t.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  // Tekli seçim değişimi
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id));
+    }
+  };
+
+  // Toplu silme dialog state
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+  const handleBulkDeleteConfirm = () => {
+    if (onBulkDelete) {
+      onBulkDelete(selectedIds);
+    } else {
+      selectedIds.forEach(id => onDeleteTemplate(id));
+      showToast({ open: true, message: `${selectedIds.length} besin silindi!`, severity: 'success' });
+    }
+    setSelectedIds([]);
+    setBulkDeleteDialogOpen(false);
+  };
+  const handleBulkDeleteCancel = () => {
+    setBulkDeleteDialogOpen(false);
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     unit: 'gram' as MeasurementUnit,
@@ -543,9 +587,79 @@ export function FoodTemplatesModal({
 
           {/* Kayıtlı Şablonlar Listesi */}
           <Box>
-            <Typography variant="subtitle2" gutterBottom color="text.secondary">
-              Kayıtlı Besinler ({templates.length})
-            </Typography>
+            <Box mb={1}>
+              <Typography
+                variant="subtitle2"
+                gutterBottom
+                color="text.secondary"
+                sx={{ textAlign: { xs: 'left', sm: 'center' }, flex: 1 }}
+              >
+                Kayıtlı Besinler ({templates.length})
+              </Typography>
+              {templates.length > 0 && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  justifyContent="flex-start"
+                  flexWrap="wrap"
+                  sx={{ width: '100%' }}
+                >
+                  <Button
+                    variant={allSelected ? 'contained' : 'outlined'}
+                    color={allSelected ? 'primary' : 'inherit'}
+                    size="small"
+                    onClick={() => handleSelectAll(!allSelected)}
+                    sx={{ minWidth: 90, px: 1.5, py: 0.7, fontSize: { xs: '0.85rem', sm: '0.95rem' } }}
+                  >
+                    {allSelected ? 'Tümünü Bırak' : 'Tümünü Seç'}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    size="small"
+                    disabled={selectedIds.length === 0}
+                    onClick={handleBulkDelete}
+                    sx={{ minWidth: 120, px: 1.5, py: 0.7, fontSize: { xs: '0.85rem', sm: '0.95rem' } }}
+                  >
+                    Seçili Besinleri Sil
+                  </Button>
+                </Stack>
+              )}
+            </Box>
+                  {/* Toplu silme onay dialogu */}
+                  <Dialog
+                    open={bulkDeleteDialogOpen}
+                    onClose={handleBulkDeleteCancel}
+                    maxWidth="xs"
+                    fullWidth
+                    aria-labelledby="bulk-delete-dialog-title"
+                    PaperProps={{ sx: { borderRadius: 2, m: 2 } }}
+                  >
+                    <DialogTitle id="bulk-delete-dialog-title">
+                      <Typography variant="h6">
+                        Seçili Besinleri Sil
+                      </Typography>
+                    </DialogTitle>
+                    <DialogContent sx={{ pt: 2 }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {selectedIds.length} besini silmek istediğinizden emin misiniz?
+                      </Typography>
+                      <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
+                        <Typography variant="body2" fontWeight="medium">
+                          {templates.filter(t => selectedIds.includes(t.id)).map(t => t.name).join(', ')}
+                        </Typography>
+                      </Box>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2 }}>
+                      <Button onClick={handleBulkDeleteCancel} variant="outlined">
+                        İptal
+                      </Button>
+                      <Button onClick={handleBulkDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>
+                        Sil
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
             {templates.length === 0 ? (
               <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
                 <Typography color="text.secondary">
@@ -571,6 +685,13 @@ export function FoodTemplatesModal({
                       }
                     }}
                   >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(template.id)}
+                      onChange={e => handleSelectOne(template.id, e.target.checked)}
+                      style={{ marginRight: 12 }}
+                      title="Seç"
+                    />
                     <ListItemText
                       primary={
                         <Box display="flex" alignItems="center" gap={1}>
