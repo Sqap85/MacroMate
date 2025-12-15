@@ -95,16 +95,10 @@ export function FoodTemplatesModal({
   const [formData, setFormData] = useState({
     name: '',
     unit: 'gram' as MeasurementUnit,
-    servingSize: '',
-    caloriesPer100g: '',
-    proteinPer100g: '',
-    carbsPer100g: '',
-    fatPer100g: '',
-    // Adet bazında değerler
-    caloriesPerPiece: '',
-    proteinPerPiece: '',
-    carbsPerPiece: '',
-    fatPerPiece: '',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fat: '',
   });
 
   const [editingTemplate, setEditingTemplate] = useState<FoodTemplate | null>(null);
@@ -113,15 +107,10 @@ export function FoodTemplatesModal({
   const [editFormData, setEditFormData] = useState({
     name: '',
     unit: 'gram' as MeasurementUnit,
-    servingSize: '',
-    caloriesPer100g: '',
-    proteinPer100g: '',
-    carbsPer100g: '',
-    fatPer100g: '',
-    caloriesPerPiece: '',
-    proteinPerPiece: '',
-    carbsPerPiece: '',
-    fatPerPiece: '',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fat: '',
   });
 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({ open: false, message: '', severity: 'success' });
@@ -142,15 +131,10 @@ export function FoodTemplatesModal({
     setFormData({
       name: '',
       unit: 'gram',
-      servingSize: '',
-      caloriesPer100g: '',
-      proteinPer100g: '',
-      carbsPer100g: '',
-      fatPer100g: '',
-      caloriesPerPiece: '',
-      proteinPerPiece: '',
-      carbsPerPiece: '',
-      fatPerPiece: '',
+      calories: '',
+      protein: '',
+      carbs: '',
+      fat: '',
     });
   };
 
@@ -165,42 +149,18 @@ export function FoodTemplatesModal({
       showToast({ open: true, message: 'Bu isimde bir besin zaten var.', severity: 'error' });
       return;
     }
-    // Adet bazında girildiyse adet başına değerleri kaydet
-    let caloriesPer100g: number;
-    let proteinPer100g: number;
-    let carbsPer100g: number;
-    let fatPer100g: number;
-    if (formData.unit === 'piece') {
-      if (!formData.caloriesPerPiece) {
-        alert('Lütfen adet başına kalori giriniz');
-        return;
-      }
-      const caloriesPerPiece = Number(formData.caloriesPerPiece);
-      const proteinPerPiece = Number(formData.proteinPerPiece) || 0;
-      const carbsPerPiece = Number(formData.carbsPerPiece) || 0;
-      const fatPerPiece = Number(formData.fatPerPiece) || 0;
-      caloriesPer100g = caloriesPerPiece;
-      proteinPer100g = proteinPerPiece;
-      carbsPer100g = carbsPerPiece;
-      fatPer100g = fatPerPiece;
-    } else {
-      if (!formData.caloriesPer100g) {
-        alert('Lütfen 100g başına kalori giriniz');
-        return;
-      }
-      caloriesPer100g = Number(formData.caloriesPer100g);
-      proteinPer100g = Number(formData.proteinPer100g) || 0;
-      carbsPer100g = Number(formData.carbsPer100g) || 0;
-      fatPer100g = Number(formData.fatPer100g) || 0;
+    // Tekil değerler ile kaydet
+    if (!formData.calories) {
+      alert('Lütfen kalori bilgisini giriniz');
+      return;
     }
     const templateData = {
       name: formData.name,
       unit: formData.unit,
-      servingSize: undefined,
-      caloriesPer100g,
-      proteinPer100g,
-      carbsPer100g,
-      fatPer100g,
+      calories: Number(formData.calories),
+      protein: Number(formData.protein) || 0,
+      carbs: Number(formData.carbs) || 0,
+      fat: Number(formData.fat) || 0,
     };
     onAddTemplate(templateData);
     resetForm();
@@ -208,35 +168,14 @@ export function FoodTemplatesModal({
 
   const handleEdit = (template: FoodTemplate) => {
     setEditingTemplate(template);
-    if (template.unit === 'piece') {
-      setEditFormData({
-        name: template.name,
-        unit: template.unit,
-        servingSize: '',
-        caloriesPer100g: '',
-        proteinPer100g: '',
-        carbsPer100g: '',
-        fatPer100g: '',
-        caloriesPerPiece: template.caloriesPer100g.toString(),
-        proteinPerPiece: template.proteinPer100g.toString(),
-        carbsPerPiece: template.carbsPer100g.toString(),
-        fatPerPiece: template.fatPer100g.toString(),
-      });
-    } else {
-      setEditFormData({
-        name: template.name,
-        unit: template.unit,
-        servingSize: '',
-        caloriesPer100g: template.caloriesPer100g.toString(),
-        proteinPer100g: template.proteinPer100g.toString(),
-        carbsPer100g: template.carbsPer100g.toString(),
-        fatPer100g: template.fatPer100g.toString(),
-        caloriesPerPiece: '',
-        proteinPerPiece: '',
-        carbsPerPiece: '',
-        fatPerPiece: '',
-      });
-    }
+    setEditFormData({
+      name: template.name,
+      unit: template.unit,
+      calories: template.calories.toString(),
+      protein: template.protein.toString(),
+      carbs: template.carbs.toString(),
+      fat: template.fat.toString(),
+    });
   };
 
   const handleEditSave = () => {
@@ -247,43 +186,18 @@ export function FoodTemplatesModal({
       return;
     }
 
-    let caloriesPer100g: number;
-    let proteinPer100g: number;
-    let carbsPer100g: number;
-    let fatPer100g: number;
-
-    if (editFormData.unit === 'piece') {
-      if (!editFormData.caloriesPerPiece) {
-        alert('Lütfen adet başına kalori giriniz');
-        return;
-      }
-      
-      caloriesPer100g = Number(editFormData.caloriesPerPiece);
-      proteinPer100g = Number(editFormData.proteinPerPiece) || 0;
-      carbsPer100g = Number(editFormData.carbsPerPiece) || 0;
-      fatPer100g = Number(editFormData.fatPerPiece) || 0;
-    } else {
-      if (!editFormData.caloriesPer100g) {
-        alert('Lütfen 100g başına kalori giriniz');
-        return;
-      }
-      
-      caloriesPer100g = Number(editFormData.caloriesPer100g);
-      proteinPer100g = Number(editFormData.proteinPer100g) || 0;
-      carbsPer100g = Number(editFormData.carbsPer100g) || 0;
-      fatPer100g = Number(editFormData.fatPer100g) || 0;
+    if (!editFormData.calories) {
+      alert('Lütfen kalori bilgisini giriniz');
+      return;
     }
-
     const templateData = {
       name: editFormData.name,
       unit: editFormData.unit,
-      servingSize: undefined,
-      caloriesPer100g,
-      proteinPer100g,
-      carbsPer100g,
-      fatPer100g,
+      calories: Number(editFormData.calories),
+      protein: Number(editFormData.protein) || 0,
+      carbs: Number(editFormData.carbs) || 0,
+      fat: Number(editFormData.fat) || 0,
     };
-
     onEditTemplate(editingTemplate.id, templateData);
     setEditingTemplate(null);
   };
@@ -310,18 +224,18 @@ export function FoodTemplatesModal({
     const header = [
       'name',
       'unit',
-      'caloriesPer100g',
-      'proteinPer100g',
-      'carbsPer100g',
-      'fatPer100g'
+      'calories',
+      'protein',
+      'carbs',
+      'fat'
     ];
     const rows = templates.map(t => [
       t.name,
       t.unit,
-      t.caloriesPer100g,
-      t.proteinPer100g,
-      t.carbsPer100g,
-      t.fatPer100g
+      t.calories,
+      t.protein,
+      t.carbs,
+      t.fat
     ]);
     const csv = [header, ...rows]
       .map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
@@ -356,10 +270,10 @@ export function FoodTemplatesModal({
       const header = lines[0].split(',').map(h => h.replace(/\"/g, '').trim());
       const nameIdx = header.indexOf('name');
       const unitIdx = header.indexOf('unit');
-      const calIdx = header.indexOf('caloriesPer100g');
-      const proIdx = header.indexOf('proteinPer100g');
-      const carbIdx = header.indexOf('carbsPer100g');
-      const fatIdx = header.indexOf('fatPer100g');
+      const calIdx = header.indexOf('calories');
+      const proIdx = header.indexOf('protein');
+      const carbIdx = header.indexOf('carbs');
+      const fatIdx = header.indexOf('fat');
       let added = 0;
       const skipped: string[] = [];
       for (let i = 1; i < lines.length; i++) {
@@ -368,14 +282,13 @@ export function FoodTemplatesModal({
         const template = {
           name: row[nameIdx] || '',
           unit: (row[unitIdx] === 'piece' ? 'piece' : 'gram') as MeasurementUnit,
-          servingSize: undefined,
-          caloriesPer100g: Number(row[calIdx]) || 0,
-          proteinPer100g: Number(row[proIdx]) || 0,
-          carbsPer100g: Number(row[carbIdx]) || 0,
-          fatPer100g: Number(row[fatIdx]) || 0,
+          calories: Number(row[calIdx]) || 0,
+          protein: Number(row[proIdx]) || 0,
+          carbs: Number(row[carbIdx]) || 0,
+          fat: Number(row[fatIdx]) || 0,
         };
         const exists = templates.some(t => t.name.trim().toLowerCase() === template.name.trim().toLowerCase());
-        if (template.name && template.caloriesPer100g && !exists) {
+        if (template.name && template.calories && !exists) {
           onAddTemplate(template, true); // suppressToast = true for CSV import
           added++;
         } else if (template.name && exists) {
@@ -514,13 +427,8 @@ export function FoodTemplatesModal({
                     fullWidth
                     label={formData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
                     type="number"
-                    value={formData.unit === 'piece' ? formData.caloriesPerPiece : formData.caloriesPer100g}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      ...(formData.unit === 'piece' 
-                        ? { caloriesPerPiece: e.target.value }
-                        : { caloriesPer100g: e.target.value })
-                    })}
+                    value={formData.calories}
+                    onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
                     required
                     inputProps={{ min: 0, step: 1 }}
                     size="small"
@@ -529,13 +437,8 @@ export function FoodTemplatesModal({
                     fullWidth
                     label={formData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
                     type="number"
-                    value={formData.unit === 'piece' ? formData.proteinPerPiece : formData.proteinPer100g}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      ...(formData.unit === 'piece' 
-                        ? { proteinPerPiece: e.target.value }
-                        : { proteinPer100g: e.target.value })
-                    })}
+                    value={formData.protein}
+                    onChange={(e) => setFormData({ ...formData, protein: e.target.value })}
                     inputProps={{ min: 0, step: 0.1 }}
                     size="small"
                   />
@@ -546,13 +449,8 @@ export function FoodTemplatesModal({
                     fullWidth
                     label={formData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
                     type="number"
-                    value={formData.unit === 'piece' ? formData.carbsPerPiece : formData.carbsPer100g}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      ...(formData.unit === 'piece' 
-                        ? { carbsPerPiece: e.target.value }
-                        : { carbsPer100g: e.target.value })
-                    })}
+                    value={formData.carbs}
+                    onChange={(e) => setFormData({ ...formData, carbs: e.target.value })}
                     inputProps={{ min: 0, step: 0.1 }}
                     size="small"
                   />
@@ -560,13 +458,8 @@ export function FoodTemplatesModal({
                     fullWidth
                     label={formData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
                     type="number"
-                    value={formData.unit === 'piece' ? formData.fatPerPiece : formData.fatPer100g}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      ...(formData.unit === 'piece' 
-                        ? { fatPerPiece: e.target.value }
-                        : { fatPer100g: e.target.value })
-                    })}
+                    value={formData.fat}
+                    onChange={(e) => setFormData({ ...formData, fat: e.target.value })}
                     inputProps={{ min: 0, step: 0.1 }}
                     size="small"
                   />
@@ -720,8 +613,8 @@ export function FoodTemplatesModal({
                             }}
                           >
                             {template.unit === 'piece'
-                              ? `1 adet: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
-                              : `100g: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
+                              ? `1 adet: ${template.calories} kcal | P: ${template.protein}g | K: ${template.carbs}g | Y: ${template.fat}g`
+                              : `100g: ${template.calories} kcal | P: ${template.protein}g | K: ${template.carbs}g | Y: ${template.fat}g`
                             }
                           </Typography>
                         </Box>
@@ -830,13 +723,8 @@ export function FoodTemplatesModal({
                 fullWidth
                 label={editFormData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
                 type="number"
-                value={editFormData.unit === 'piece' ? editFormData.caloriesPerPiece : editFormData.caloriesPer100g}
-                onChange={(e) => setEditFormData({ 
-                  ...editFormData, 
-                  ...(editFormData.unit === 'piece' 
-                    ? { caloriesPerPiece: e.target.value }
-                    : { caloriesPer100g: e.target.value })
-                })}
+                value={editFormData.calories}
+                onChange={(e) => setEditFormData({ ...editFormData, calories: e.target.value })}
                 required
                 inputProps={{ min: 0, step: 1 }}
                 size="small"
@@ -845,13 +733,8 @@ export function FoodTemplatesModal({
                 fullWidth
                 label={editFormData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
                 type="number"
-                value={editFormData.unit === 'piece' ? editFormData.proteinPerPiece : editFormData.proteinPer100g}
-                onChange={(e) => setEditFormData({ 
-                  ...editFormData, 
-                  ...(editFormData.unit === 'piece' 
-                    ? { proteinPerPiece: e.target.value }
-                    : { proteinPer100g: e.target.value })
-                })}
+                value={editFormData.protein}
+                onChange={(e) => setEditFormData({ ...editFormData, protein: e.target.value })}
                 inputProps={{ min: 0, step: 0.1 }}
                 size="small"
               />
@@ -862,13 +745,8 @@ export function FoodTemplatesModal({
                 fullWidth
                 label={editFormData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
                 type="number"
-                value={editFormData.unit === 'piece' ? editFormData.carbsPerPiece : editFormData.carbsPer100g}
-                onChange={(e) => setEditFormData({ 
-                  ...editFormData, 
-                  ...(editFormData.unit === 'piece' 
-                    ? { carbsPerPiece: e.target.value }
-                    : { carbsPer100g: e.target.value })
-                })}
+                value={editFormData.carbs}
+                onChange={(e) => setEditFormData({ ...editFormData, carbs: e.target.value })}
                 inputProps={{ min: 0, step: 0.1 }}
                 size="small"
               />
@@ -876,13 +754,8 @@ export function FoodTemplatesModal({
                 fullWidth
                 label={editFormData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
                 type="number"
-                value={editFormData.unit === 'piece' ? editFormData.fatPerPiece : editFormData.fatPer100g}
-                onChange={(e) => setEditFormData({ 
-                  ...editFormData, 
-                  ...(editFormData.unit === 'piece' 
-                    ? { fatPerPiece: e.target.value }
-                    : { fatPer100g: e.target.value })
-                })}
+                value={editFormData.fat}
+                onChange={(e) => setEditFormData({ ...editFormData, fat: e.target.value })}
                 inputProps={{ min: 0, step: 0.1 }}
                 size="small"
               />
@@ -944,7 +817,7 @@ export function FoodTemplatesModal({
                 {templateToDelete.name}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {templateToDelete.caloriesPer100g} kcal / 100g
+                {templateToDelete.calories} kcal
               </Typography>
             </Box>
           )}

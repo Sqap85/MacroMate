@@ -139,9 +139,13 @@ function App() {
     try {
       await addFoodFromTemplate(templateId, grams, mealType);
       const template = foodTemplates.find(t => t.id === templateId);
+      let miktarBirim = 'g';
+      if (template?.unit === 'piece') {
+        miktarBirim = 'adet';
+      }
       setToast({
         open: true,
-        message: `${template?.name} (${grams}g) eklendi!`,
+        message: `${template?.name} (${grams} ${miktarBirim}) eklendi!`,
         severity: 'success',
       });
     } catch (error: any) {

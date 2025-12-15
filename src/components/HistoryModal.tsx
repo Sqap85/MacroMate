@@ -148,17 +148,17 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
       
       if (template.unit === 'piece') {
         displayName = `${template.name} (${newAmount} adet)`;
-        calories = Math.round(template.caloriesPer100g * newAmount);
-        protein = Math.round(template.proteinPer100g * newAmount * 10) / 10;
-        carbs = Math.round(template.carbsPer100g * newAmount * 10) / 10;
-        fat = Math.round(template.fatPer100g * newAmount * 10) / 10;
+        calories = Math.round(template.calories * newAmount);
+        protein = Math.round(template.protein * newAmount * 10) / 10;
+        carbs = Math.round(template.carbs * newAmount * 10) / 10;
+        fat = Math.round(template.fat * newAmount * 10) / 10;
       } else {
         displayName = `${template.name} (${newAmount}g)`;
         const multiplier = newAmount / 100;
-        calories = Math.round(template.caloriesPer100g * multiplier);
-        protein = Math.round(template.proteinPer100g * multiplier * 10) / 10;
-        carbs = Math.round(template.carbsPer100g * multiplier * 10) / 10;
-        fat = Math.round(template.fatPer100g * multiplier * 10) / 10;
+        calories = Math.round(template.calories * multiplier);
+        protein = Math.round(template.protein * multiplier * 10) / 10;
+        carbs = Math.round(template.carbs * multiplier * 10) / 10;
+        fat = Math.round(template.fat * multiplier * 10) / 10;
       }
 
       onEditFood(editingFood.id, {
@@ -256,17 +256,17 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
       let displayName: string;
       if (selectedTemplate!.unit === 'piece') {
         displayName = `${selectedTemplate!.name} (${amount} adet)`;
-        calories = Math.round(selectedTemplate!.caloriesPer100g * amount);
-        protein = Math.round(selectedTemplate!.proteinPer100g * amount * 10) / 10;
-        carbs = Math.round(selectedTemplate!.carbsPer100g * amount * 10) / 10;
-        fat = Math.round(selectedTemplate!.fatPer100g * amount * 10) / 10;
+        calories = Math.round(selectedTemplate!.calories * amount);
+        protein = Math.round(selectedTemplate!.protein * amount * 10) / 10;
+        carbs = Math.round(selectedTemplate!.carbs * amount * 10) / 10;
+        fat = Math.round(selectedTemplate!.fat * amount * 10) / 10;
       } else {
         displayName = `${selectedTemplate!.name} (${amount}g)`;
         const multiplier = amount / 100;
-        calories = Math.round(selectedTemplate!.caloriesPer100g * multiplier);
-        protein = Math.round(selectedTemplate!.proteinPer100g * multiplier * 10) / 10;
-        carbs = Math.round(selectedTemplate!.carbsPer100g * multiplier * 10) / 10;
-        fat = Math.round(selectedTemplate!.fatPer100g * multiplier * 10) / 10;
+        calories = Math.round(selectedTemplate!.calories * multiplier);
+        protein = Math.round(selectedTemplate!.protein * multiplier * 10) / 10;
+        carbs = Math.round(selectedTemplate!.carbs * multiplier * 10) / 10;
+        fat = Math.round(selectedTemplate!.fat * multiplier * 10) / 10;
       }
       const newFood = {
         name: displayName,
@@ -307,27 +307,25 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   // Template önizleme değerlerini hesapla
   const getTemplatePreviewValues = () => {
     if (!selectedTemplate || !templateAmount) return null;
-    
     const amount = Number(templateAmount);
-    
     if (selectedTemplate.unit === 'piece') {
       return {
         amount,
         unit: 'adet',
-        calories: Math.round(selectedTemplate.caloriesPer100g * amount),
-        protein: Math.round(selectedTemplate.proteinPer100g * amount * 10) / 10,
-        carbs: Math.round(selectedTemplate.carbsPer100g * amount * 10) / 10,
-        fat: Math.round(selectedTemplate.fatPer100g * amount * 10) / 10,
+        calories: Math.round(selectedTemplate.calories * amount),
+        protein: Math.round(selectedTemplate.protein * amount * 10) / 10,
+        carbs: Math.round(selectedTemplate.carbs * amount * 10) / 10,
+        fat: Math.round(selectedTemplate.fat * amount * 10) / 10,
       };
     } else {
       const multiplier = amount / 100;
       return {
         amount,
         unit: 'g',
-        calories: Math.round(selectedTemplate.caloriesPer100g * multiplier),
-        protein: Math.round(selectedTemplate.proteinPer100g * multiplier * 10) / 10,
-        carbs: Math.round(selectedTemplate.carbsPer100g * multiplier * 10) / 10,
-        fat: Math.round(selectedTemplate.fatPer100g * multiplier * 10) / 10,
+        calories: Math.round(selectedTemplate.calories * multiplier),
+        protein: Math.round(selectedTemplate.protein * multiplier * 10) / 10,
+        carbs: Math.round(selectedTemplate.carbs * multiplier * 10) / 10,
+        fat: Math.round(selectedTemplate.fat * multiplier * 10) / 10,
       };
     }
   };
@@ -1257,8 +1255,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                     const template = foodTemplates.find(t => t.id === editingFood.templateId);
                     if (!template) return 'Miktar';
                     if (template.unit === 'piece') {
-                      const servingInfo = template.servingSize ? ` (1 adet = ${template.servingSize}g)` : '';
-                      return `Adet${servingInfo}`;
+                      return 'Adet';
                     }
                     return 'Gram';
                   })()}
@@ -1475,8 +1472,8 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                       </Box>
                       <Typography variant="caption" color="text.secondary">
                         {option.unit === 'piece' 
-                          ? `1 adet: ${option.caloriesPer100g} kcal | P: ${option.proteinPer100g}g`
-                          : `100g: ${option.caloriesPer100g} kcal | P: ${option.proteinPer100g}g`
+                          ? `1 adet: ${option.calories} kcal | P: ${option.protein}g`
+                          : `100g: ${option.calories} kcal | P: ${option.protein}g`
                         }
                       </Typography>
                     </Box>

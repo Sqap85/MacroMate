@@ -137,30 +137,26 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
   // Seçili şablonun önizleme değerlerini hesapla
   const getPreviewValues = () => {
     if (!selectedTemplate) return null;
-    
     if (selectedTemplate.unit === 'piece') {
       if (!pieces) return null;
       const numberOfPieces = Number(pieces);
-      
-      // Adet bazında: değerler zaten adet başına kaydedilmiş
       return {
         pieces: numberOfPieces,
-        calories: Math.round(selectedTemplate.caloriesPer100g * numberOfPieces),
-        protein: Math.round(selectedTemplate.proteinPer100g * numberOfPieces * 10) / 10,
-        carbs: Math.round(selectedTemplate.carbsPer100g * numberOfPieces * 10) / 10,
-        fat: Math.round(selectedTemplate.fatPer100g * numberOfPieces * 10) / 10,
+        calories: Math.round(selectedTemplate.calories * numberOfPieces),
+        protein: Math.round(selectedTemplate.protein * numberOfPieces * 10) / 10,
+        carbs: Math.round(selectedTemplate.carbs * numberOfPieces * 10) / 10,
+        fat: Math.round(selectedTemplate.fat * numberOfPieces * 10) / 10,
       };
     } else {
       if (!grams) return null;
       const gramsToCalculate = Number(grams);
       const multiplier = gramsToCalculate / 100;
-      
       return {
         grams: gramsToCalculate,
-        calories: Math.round(selectedTemplate.caloriesPer100g * multiplier),
-        protein: Math.round(selectedTemplate.proteinPer100g * multiplier * 10) / 10,
-        carbs: Math.round(selectedTemplate.carbsPer100g * multiplier * 10) / 10,
-        fat: Math.round(selectedTemplate.fatPer100g * multiplier * 10) / 10,
+        calories: Math.round(selectedTemplate.calories * multiplier),
+        protein: Math.round(selectedTemplate.protein * multiplier * 10) / 10,
+        carbs: Math.round(selectedTemplate.carbs * multiplier * 10) / 10,
+        fat: Math.round(selectedTemplate.fat * multiplier * 10) / 10,
       };
     }
   };
@@ -271,8 +267,8 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                       </Box>
                       <Typography variant="caption" color="text.secondary">
                         {option.unit === 'piece' 
-                          ? `1 adet: ${option.caloriesPer100g} kcal | P: ${option.proteinPer100g}g`
-                          : `100g: ${option.caloriesPer100g} kcal | P: ${option.proteinPer100g}g`
+                          ? `1 adet: ${option.calories} kcal | P: ${option.protein}g`
+                          : `100g: ${option.calories} kcal | P: ${option.protein}g`
                         }
                       </Typography>
                     </Box>

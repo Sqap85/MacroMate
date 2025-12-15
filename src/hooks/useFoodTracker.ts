@@ -347,18 +347,18 @@ export function useFoodTracker() {
     if (template.unit === 'piece') {
       // Adet bazında: değerler zaten adet başına, direkt çarp
       displayName = `${template.name} (${amount} adet)`;
-      calories = Math.round(template.caloriesPer100g * amount);
-      protein = Math.round(template.proteinPer100g * amount * 10) / 10;
-      carbs = Math.round(template.carbsPer100g * amount * 10) / 10;
-      fat = Math.round(template.fatPer100g * amount * 10) / 10;
+      calories = Math.round(template.calories * amount);
+      protein = Math.round(template.protein * amount * 10) / 10;
+      carbs = Math.round(template.carbs * amount * 10) / 10;
+      fat = Math.round(template.fat * amount * 10) / 10;
     } else {
       // Gram bazında: 100g'a göre hesapla
       displayName = `${template.name} (${amount}g)`;
       const multiplier = amount / 100;
-      calories = Math.round(template.caloriesPer100g * multiplier);
-      protein = Math.round(template.proteinPer100g * multiplier * 10) / 10;
-      carbs = Math.round(template.carbsPer100g * multiplier * 10) / 10;
-      fat = Math.round(template.fatPer100g * multiplier * 10) / 10;
+      calories = Math.round(template.calories * multiplier);
+      protein = Math.round(template.protein * multiplier * 10) / 10;
+      carbs = Math.round(template.carbs * multiplier * 10) / 10;
+      fat = Math.round(template.fat * multiplier * 10) / 10;
     }
 
     const newFood: Omit<Food, 'id'> = {

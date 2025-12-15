@@ -140,18 +140,18 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
       if (template.unit === 'piece') {
         // Adet bazında: değerler zaten adet başına, direkt çarp
         displayName = `${template.name} (${newAmount} adet)`;
-        calories = Math.round(template.caloriesPer100g * newAmount);
-        protein = Math.round(template.proteinPer100g * newAmount * 10) / 10;
-        carbs = Math.round(template.carbsPer100g * newAmount * 10) / 10;
-        fat = Math.round(template.fatPer100g * newAmount * 10) / 10;
+        calories = Math.round(template.calories * newAmount);
+        protein = Math.round(template.protein * newAmount * 10) / 10;
+        carbs = Math.round(template.carbs * newAmount * 10) / 10;
+        fat = Math.round(template.fat * newAmount * 10) / 10;
       } else {
         // Gram bazında: 100g'a göre hesapla
         displayName = `${template.name} (${newAmount}g)`;
         const multiplier = newAmount / 100;
-        calories = Math.round(template.caloriesPer100g * multiplier);
-        protein = Math.round(template.proteinPer100g * multiplier * 10) / 10;
-        carbs = Math.round(template.carbsPer100g * multiplier * 10) / 10;
-        fat = Math.round(template.fatPer100g * multiplier * 10) / 10;
+        calories = Math.round(template.calories * multiplier);
+        protein = Math.round(template.protein * multiplier * 10) / 10;
+        carbs = Math.round(template.carbs * multiplier * 10) / 10;
+        fat = Math.round(template.fat * multiplier * 10) / 10;
       }
 
       onEditFood(selectedFood.id, {
@@ -565,8 +565,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                 helperText={
                   selectedFood.originalUnit === 'piece' 
                     ? (() => {
-                        const template = foodTemplates.find(t => t.id === selectedFood.templateId);
-                        return template?.servingSize ? `1 adet = ${template.servingSize}g` : '';
+                        return '';
                       })()
                     : ''
                 }

@@ -22,11 +22,10 @@ export interface FoodTemplate {
   id: string;
   name: string;
   unit: MeasurementUnit; // 'gram' veya 'piece'
-  servingSize?: number; // Adet bazında ise 1 adet kaç gram (örn: 1 yumurta = 50g)
-  caloriesPer100g: number;
-  proteinPer100g: number;
-  carbsPer100g: number;
-  fatPer100g: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 }
 
 // Öğün türleri
