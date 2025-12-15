@@ -610,6 +610,8 @@ function App() {
           } else if (pendingPasswordAdd) {
             setToast({ open: true, message, severity: 'success' });
             setPendingPasswordAdd(false);
+          } else if (message === 'İsim başarıyla güncellendi!') {
+            setToast({ open: true, message, severity: 'success' });
           }
         }}
         onStartPasswordAdd={() => setPendingPasswordAdd(true)}
