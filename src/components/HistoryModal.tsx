@@ -1506,7 +1506,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   type="number"
                   value={templateAmount}
                   onChange={(e) => setTemplateAmount(e.target.value)}
-                  inputProps={{ min: 0, step: selectedTemplate.unit === 'piece' ? 1 : 1 }}
+                  inputProps={{ min: 0, step: selectedTemplate.unit === 'piece' ? 0.01 : 1 }}
                   size="small"
                 />
               )}

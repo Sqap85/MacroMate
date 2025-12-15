@@ -303,7 +303,7 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                     type="number"
                     value={pieces}
                     onChange={(e) => setPieces(e.target.value)}
-                    inputProps={{ min: 0, step: 1 }}
+                    inputProps={{ min: 0, step: 0.01 }}
                   />
                 ) : (
                   <TextField
