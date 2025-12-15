@@ -586,12 +586,24 @@ export function FoodTemplatesModal({
                         </Box>
                       }
                       secondary={
-                        <Typography variant="caption" component="div" color="text.secondary">
-                          {template.unit === 'piece'
-                            ? `1 adet: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
-                            : `100g: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
-                          }
-                        </Typography>
+                        <Box sx={{ maxWidth: { xs: 180, sm: 320 }, width: '100%' }}>
+                          <Typography
+                            variant="caption"
+                            component="div"
+                            color="text.secondary"
+                            noWrap
+                            sx={{
+                              textOverflow: 'ellipsis',
+                              overflow: 'hidden',
+                              width: '100%'
+                            }}
+                          >
+                            {template.unit === 'piece'
+                              ? `1 adet: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
+                              : `100g: ${template.caloriesPer100g} kcal | P: ${template.proteinPer100g}g | K: ${template.carbsPer100g}g | Y: ${template.fatPer100g}g`
+                            }
+                          </Typography>
+                        </Box>
                       }
                     />
                     <ListItemSecondaryAction>
