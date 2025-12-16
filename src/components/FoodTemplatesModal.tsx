@@ -253,8 +253,17 @@ export function FoodTemplatesModal({
 
   // Import templates from CSV
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Toplam şablon limiti
+      const MAX_TOTAL = 1000;
     const file = e.target.files?.[0];
     if (!file) return;
+    // Dosya boyutu limiti (2MB)
+    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    if (file.size > MAX_SIZE) {
+      showToast({ open: true, message: 'Dosya çok büyük (maksimum 2MB).', severity: 'error' });
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -263,8 +272,20 @@ export function FoodTemplatesModal({
         return;
       }
       const lines = text.split(/\r?\n/).filter(Boolean);
+      // Satır limiti (1000 satırdan fazla ise iptal)
+      const MAX_ROWS = 1000;
+      if (lines.length - 1 > MAX_ROWS) {
+        showToast({ open: true, message: `Çok fazla satır var (maksimum ${MAX_ROWS} şablon).`, severity: 'error' });
+        return;
+      }
       if (lines.length < 2) {
         showToast({ open: true, message: 'Geçersiz veya boş CSV dosyası.', severity: 'error' });
+        return;
+      }
+      // Başlık satırı tam ve sıralı olmalı
+      const expectedHeader = '"name","unit","calories","protein","carbs","fat"';
+      if (lines[0].trim() !== expectedHeader) {
+        showToast({ open: true, message: 'CSV başlıkları hatalı. Doğru format: "name","unit","calories","protein","carbs","fat"', severity: 'error' });
         return;
       }
       const header = lines[0].split(',').map(h => h.replace(/\"/g, '').trim());
@@ -274,18 +295,72 @@ export function FoodTemplatesModal({
       const proIdx = header.indexOf('protein');
       const carbIdx = header.indexOf('carbs');
       const fatIdx = header.indexOf('fat');
+
+        // --- Toplam şablon limiti kontrolü ---
+        // Geçerli ve yeni eklenecek şablonları say
+        let validNewCount = 0;
+        const dangerous = (val: string) => /^[=+\-@]/.test(val);
+        for (let i = 1; i < lines.length; i++) {
+          const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
+          if (row.length < 6) continue;
+          const name = row[nameIdx]?.trim() || '';
+          const unit = row[unitIdx]?.trim();
+          const calories = Number(row[calIdx]);
+          const protein = Number(row[proIdx]);
+          const carbs = Number(row[carbIdx]);
+          const fat = Number(row[fatIdx]);
+          if (
+            !name || name.length > 50 || dangerous(name) ||
+            !['piece', 'gram'].includes(unit) ||
+            isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
+            calories <= 0 || calories > 5000 ||
+            protein < 0 || protein > 500 ||
+            carbs < 0 || carbs > 1000 ||
+            fat < 0 || fat > 500 ||
+            dangerous(unit) || dangerous(String(calories)) || dangerous(String(protein)) || dangerous(String(carbs)) || dangerous(String(fat))
+          ) {
+            continue;
+          }
+          const exists = templates.some(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());
+          if (!exists) validNewCount++;
+        }
+        if (templates.length + validNewCount > MAX_TOTAL) {
+          showToast({ open: true, message: `Toplam şablon limiti aşıldı (maksimum ${MAX_TOTAL}). Lütfen bazı şablonları silin.`, severity: 'error' });
+          return;
+        }
       let added = 0;
       const skipped: string[] = [];
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
         if (row.length < 6) continue;
+        const name = row[nameIdx]?.trim() || '';
+        const unit = row[unitIdx]?.trim();
+        const calories = Number(row[calIdx]);
+        const protein = Number(row[proIdx]);
+        const carbs = Number(row[carbIdx]);
+        const fat = Number(row[fatIdx]);
+
+        // Zararlı karakter/formül kontrolü (Excel injection, XSS)
+        const dangerous = (val: string) => /^[=+\-@]/.test(val);
+        if (
+          !name || name.length > 50 || dangerous(name) ||
+          !['piece', 'gram'].includes(unit) ||
+          isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
+          calories <= 0 || calories > 5000 ||
+          protein < 0 || protein > 500 ||
+          carbs < 0 || carbs > 1000 ||
+          fat < 0 || fat > 500 ||
+          dangerous(unit) || dangerous(String(calories)) || dangerous(String(protein)) || dangerous(String(carbs)) || dangerous(String(fat))
+        ) {
+          continue; 
+        }
         const template = {
-          name: row[nameIdx] || '',
-          unit: (row[unitIdx] === 'piece' ? 'piece' : 'gram') as MeasurementUnit,
-          calories: Number(row[calIdx]) || 0,
-          protein: Number(row[proIdx]) || 0,
-          carbs: Number(row[carbIdx]) || 0,
-          fat: Number(row[fatIdx]) || 0,
+          name,
+          unit: unit as MeasurementUnit,
+          calories,
+          protein,
+          carbs,
+          fat,
         };
         const exists = templates.some(t => t.name.trim().toLowerCase() === template.name.trim().toLowerCase());
         if (template.name && template.calories && !exists) {
