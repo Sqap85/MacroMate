@@ -66,9 +66,8 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Form validasyonu
+    // Form validasyonu - tarayıcının native validasyonunu kullan
     if (!formData.name || !formData.calories) {
-      alert('Lütfen en az yemek adı ve kalori giriniz');
       return;
     }
 
@@ -102,8 +101,8 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
   const handleTemplateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Form validasyonu - tarayıcının native validasyonunu kullan
     if (!selectedTemplate) {
-      alert('Lütfen bir besin seçiniz');
       return;
     }
 
@@ -111,14 +110,12 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
     
     if (selectedTemplate.unit === 'piece') {
       if (!pieces) {
-        alert('Lütfen kaç adet yediğinizi giriniz');
         return;
       }
       // Adet bazında: direk adet sayısını gönder
       amountToAdd = Number(pieces);
     } else {
       if (!grams) {
-        alert('Lütfen kaç gram yediğinizi giriniz');
         return;
       }
       // Gram bazında: gram miktarını gönder

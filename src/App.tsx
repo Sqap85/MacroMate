@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Typography, Box, AppBar, Toolbar, Stack, Link as MuiLink, Fade, IconButton, Tooltip, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import GitHubIcon from '@mui/icons-material/GitHub';
-import HistoryIcon from '@mui/icons-material/History';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -365,10 +365,10 @@ function App() {
               </Typography>
               {isGuest ? (
                 <>
-                  <Tooltip title="Geçmiş sadece kayıtlı kullanıcılar için">
+                  <Tooltip title="Kayıtlar & Planlama sadece kayıtlı kullanıcılar için">
                     <span>
                       <IconButton color="inherit" disabled sx={{ opacity: 0.5 }}>
-                        <HistoryIcon />
+                        <CalendarMonthIcon />
                       </IconButton>
                     </span>
                   </Tooltip>
@@ -384,9 +384,9 @@ function App() {
                 </>
               ) : (
                 <>
-                  <Tooltip title="Geçmiş & İstatistikler">
+                  <Tooltip title="Kayıtlar & Planlama">
                     <IconButton color="inherit" onClick={() => setHistoryOpen(true)}>
-                      <HistoryIcon />
+                      <CalendarMonthIcon />
                     </IconButton>
                   </Tooltip>
                   {!isGuest && (

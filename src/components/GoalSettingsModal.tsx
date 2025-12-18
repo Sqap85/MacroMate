@@ -71,7 +71,7 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
               onChange={(_, value) => handleChange('calories', value as number)}
               min={500}
               max={10000}
-              step={50}
+              step={5}
               marks={[
                 { value: 1000, label: '1k' },
                 { value: 2500, label: '2.5k' },
@@ -93,7 +93,7 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
               onChange={(_, value) => handleChange('protein', value as number)}
               min={30}
               max={400}
-              step={5}
+              step={1}
               color="info"
             />
           </Box>
@@ -108,7 +108,7 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
               onChange={(_, value) => handleChange('carbs', value as number)}
               min={30}
               max={600}
-              step={5}
+              step={1}
               color="success"
             />
           </Box>
@@ -123,7 +123,7 @@ export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSe
               onChange={(_, value) => handleChange('fat', value as number)}
               min={20}
               max={200}
-              step={5}
+              step={1}
               color="warning"
             />
           </Box>

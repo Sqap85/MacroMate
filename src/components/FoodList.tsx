@@ -31,6 +31,7 @@ import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
 import CookieIcon from '@mui/icons-material/Cookie';
 import ScaleIcon from '@mui/icons-material/Scale';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import type { Food, FoodTemplate, MealType } from '../types';
 import { useState } from 'react';
 
@@ -227,6 +228,18 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     return groups;
   };
 
+  // Yemeğin plan mı yoksa gerçekleşmiş mi olduğunu kontrol et (sadece tarihe göre)
+  const isPlanned = (food: Food) => {
+    const foodDate = new Date(food.timestamp);
+    const today = new Date();
+    
+    // Sadece tarihleri karşılaştır (saati yok say)
+    const foodDateOnly = new Date(foodDate.getFullYear(), foodDate.getMonth(), foodDate.getDate()).getTime();
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    
+    return foodDateOnly > todayDateOnly;
+  };
+
   const getMealInfo = (mealType: string) => {
     switch (mealType) {
       case 'breakfast':
@@ -344,6 +357,16 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                   <Typography variant="subtitle1" fontWeight="bold">
                                     {food.name}
                                   </Typography>
+                                  {isPlanned(food) && (
+                                    <Chip 
+                                      icon={<EventAvailableIcon />}
+                                      label="Plan" 
+                                      size="small" 
+                                      color="success" 
+                                      variant="outlined"
+                                      sx={{ height: 20, fontSize: '0.7rem' }}
+                                    />
+                                  )}
                                   <Typography variant="caption" color="text.secondary">
                                     {formatTime(food.timestamp)}
                                   </Typography>

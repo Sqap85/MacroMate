@@ -32,7 +32,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import BarChartIcon from '@mui/icons-material/BarChart';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import LocalCafeIcon from '@mui/icons-material/LocalCafe';
 import LunchDiningIcon from '@mui/icons-material/LunchDining';
@@ -101,6 +100,22 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     return dateString === todayStr;
+  };
+
+  // Yarının tarihini kontrol et
+  const isTomorrow = (dateString: string): boolean => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+    return dateString === tomorrowStr;
+  };
+
+  // Gelecek günler için tarih formatı
+  const formatFutureDate = (dateString: string): string => {
+    if (isTomorrow(dateString)) {
+      return 'Yarın';
+    }
+    return formatDate(dateString);
   };
 
   // Yemek düzenle başlat
@@ -220,34 +235,23 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   const handleAddToDateSave = () => {
     if (!addingToDate) return;
 
-    // Tarihi timestamp'e çevir (o günün öğle saati olarak)
+    // Tarihi timestamp'e çevir (o günün başı - 00:00)
     const dateParts = addingToDate.split('-');
     const targetDate = new Date(
       parseInt(dateParts[0]),
       parseInt(dateParts[1]) - 1,
       parseInt(dateParts[2]),
-      12, 0, 0 // Öğle saati
+      0, 0, 0 // Günün başı
     );
 
     const customTimestamp = targetDate.getTime();
 
-    let hasError = false;
-    let errorMessage = '';
     if (addFoodTabValue === 0) {
-      // Template modunda
-      if (!selectedTemplate) {
-        hasError = true;
-        errorMessage = 'Lütfen bir besin seçiniz';
-      } else if (!templateAmount) {
-        hasError = true;
-        errorMessage = selectedTemplate.unit === 'piece' ? 'Lütfen kaç adet yediğinizi giriniz' : 'Lütfen kaç gram yediğinizi giriniz';
-      }
-      if (hasError) {
-        setAddFoodError(errorMessage);
+      // Template modunda - tarayıcının native validasyonunu kullan
+      if (!selectedTemplate || !templateAmount) {
         return;
       }
-      setAddFoodError('');
-      // Buradan sonra selectedTemplate kesinlikle null değil!
+      
       const amount = Number(templateAmount);
       let calories: number;
       let protein: number;
@@ -281,12 +285,11 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
       };
       onAddFood(newFood, customTimestamp);
     } else {
-      // Manuel modunda
+      // Manuel modunda - tarayıcının native validasyonunu kullan
       if (!editFormData.name || !editFormData.calories) {
-        setAddFoodError('Lütfen en az yemek adı ve kalori giriniz');
         return;
       }
-      setAddFoodError('');
+      
       const newFood = {
         name: editFormData.name,
         calories: Number(editFormData.calories),
@@ -302,8 +305,6 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
     setTemplateAmount('');
   };
   
-  // Hata mesajı için state
-  const [addFoodError, setAddFoodError] = useState<string>('');
   // Template önizleme değerlerini hesapla
   const getTemplatePreviewValues = () => {
     if (!selectedTemplate || !templateAmount) return null;
@@ -365,9 +366,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   };
   
   // Farklı zaman aralıkları
-  const weeklyStats = calculateWeeklyStats(foods, 7);
   const monthlyStats = calculateWeeklyStats(foods, 30);
-  const quarterlyStats = calculateWeeklyStats(foods, 90);
   
   const allTimeStats = (() => {
     if (foods.length === 0) return calculateWeeklyStats(foods, 0);
@@ -386,11 +385,61 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
     
     return calculateWeeklyStats(foods, daysDiff);
   })();
+
+  // Gelecek 7 gün için istatistikler (yarından başlayarak)
+  const getFutureDaysStats = () => {
+    const futureDays = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 1; i <= 7; i++) {
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + i);
+      const dateString = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+      
+      const dayStart = futureDate.getTime();
+      const dayEnd = new Date(futureDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      // Bu güne planlanan yemekleri filtrele (timestamp gelecekte olanlar)
+      const plannedFoods = foods.filter(f => 
+        f.timestamp >= dayStart && f.timestamp <= dayEnd.getTime()
+      );
+
+      const stats = plannedFoods.reduce(
+        (acc, food) => ({
+          totalCalories: acc.totalCalories + food.calories,
+          totalProtein: acc.totalProtein + food.protein,
+          totalCarbs: acc.totalCarbs + food.carbs,
+          totalFat: acc.totalFat + food.fat,
+        }),
+        { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
+      );
+
+      futureDays.push({
+        ...stats,
+        foods: plannedFoods,
+        date: dateString,
+      });
+    }
+
+    return {
+      days: futureDays,
+      averageCalories: 0,
+      averageProtein: 0,
+      averageCarbs: 0,
+      averageFat: 0,
+      totalDays: 7,
+    };
+  };
+
+  const futureStats = getFutureDaysStats();
   
-  const statsOptions = [weeklyStats, monthlyStats, quarterlyStats, allTimeStats];
+  const statsOptions = [monthlyStats, allTimeStats, futureStats];
   const currentStats = statsOptions[tabValue];
+  const isFutureTab = tabValue === 2;
   const activeDays = currentStats.days.filter(d => d.foods.length > 0).length;
-  const hasAnyData = activeDays > 0;
+  const hasAnyData = isFutureTab ? true : activeDays > 0;
 
   // En iyi ve en kötü günleri bul
   const getBestAndWorstDays = () => {
@@ -417,9 +466,9 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
 
   // Trend hesaplama (önceki döneme göre değişim)
   const calculateTrend = () => {
-    if (tabValue === 3 || activeDays < 3) return null; // Tüm zamanlar için trend gösterme
+    if (tabValue === 1 || activeDays < 3) return null; // Tüm zamanlar için trend gösterme
     
-    const periodDays = [7, 30, 90][tabValue];
+    const periodDays = 30;
     const currentPeriodDays = currentStats.days.slice(-periodDays);
     const previousPeriodStart = Math.max(0, currentStats.days.length - (periodDays * 2));
     const previousPeriodEnd = currentStats.days.length - periodDays;
@@ -472,9 +521,9 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         <DialogTitle id="history-dialog-title" sx={{ pb: isMobile ? 1 : 2 }}>
           <Box display="flex" alignItems="center" justifyContent="space-between">
             <Box display="flex" alignItems="center" gap={1}>
-              <BarChartIcon sx={{ fontSize: isMobile ? 20 : 24 }} />
+              <CalendarMonthIcon sx={{ fontSize: isMobile ? 20 : 24 }} />
               <Typography variant={isMobile ? 'subtitle1' : 'h6'}>
-                Geçmiş & İstatistikler
+                Kayıtlar & Planlama
               </Typography>
             </Box>
             <IconButton 
@@ -501,17 +550,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
             variant="fullWidth"
           >
             <Tab
-              label={isMobile ? '7 Gün' : 'Son 7 Gün'}
-              disableRipple
-              sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
-            />
-            <Tab
               label={isMobile ? '30 Gün' : 'Son 30 Gün'}
-              disableRipple
-              sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
-            />
-            <Tab
-              label={isMobile ? '90 Gün' : 'Son 90 Gün'}
               disableRipple
               sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
             />
@@ -531,11 +570,38 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
               disableRipple
               sx={{ flexGrow: 1, textAlign: 'center' }}
             />
+            <Tab
+              icon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={
+                <Typography variant="caption" display="block" sx={isMobile ? { fontSize: '0.85rem' } : {}} color="success.main" fontWeight="600">
+                  {isMobile ? 'Planlar' : 'Gelecek 7 Gün'}
+                </Typography>
+              }
+              disableRipple
+              sx={{ flexGrow: 1, textAlign: 'center' }}
+            />
           </Tabs>
 
           {hasAnyData ? (
             <>
-              {/* Özet İstatistikler */}
+              {/* Gelecek planları için özel başlık */}
+              {isFutureTab && (
+                <Box mb={2}>
+                  <Box display="flex" alignItems="center" gap={1} mb={1}>
+                    <CalendarMonthIcon color="success" sx={{ fontSize: isMobile ? 24 : 28 }} />
+                    <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight="bold" color="success.main">
+                      Gelecek 7 Günün Planı
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Gelecek günler için yemek planlaması yapın. Her gün için + butonuna tıklayarak plan ekleyin.
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Özet İstatistikler - Gelecek tab'ında gizle */}
+              {!isFutureTab && (
               <Card sx={{ mb: isMobile ? 2 : 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
                   <Box 
@@ -549,7 +615,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                     <Box display="flex" alignItems="center" gap={1}>
                       <TrendingUpIcon color="primary" sx={{ fontSize: isMobile ? 20 : 24 }} />
                       <Typography variant={isMobile ? 'subtitle2' : 'h6'} fontWeight="bold">
-                        {tabValue === 3 ? 'Genel İstatistikler' : isMobile ? 'Ortalama' : 'Ortalama Günlük Değerler'}
+                        {tabValue === 1 ? 'Genel İstatistikler' : isMobile ? 'Ortalama' : 'Ortalama Günlük Değerler'}
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
@@ -828,15 +894,18 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   </Stack>
                 </CardContent>
               </Card>
+              )}
 
               {/* Günlük Detaylar */}
               <Box mb={isMobile ? 1.5 : 2}>
                 <Typography variant={isMobile ? 'subtitle2' : 'h6'} gutterBottom>
-                  Günlük Detaylar
+                  {isFutureTab ? 'Günlere Göre Planlar' : 'Günlük Detaylar'}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.7rem' : undefined}>
-                  {currentStats.days.filter(d => d.foods.length > 0).length} / {currentStats.totalDays} gün aktif
-                </Typography>
+                {!isFutureTab && (
+                  <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.7rem' : undefined}>
+                    {currentStats.days.filter(d => d.foods.length > 0).length} / {currentStats.totalDays} gün aktif
+                  </Typography>
+                )}
               </Box>
               
               <Stack 
@@ -848,7 +917,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   pb: 1 
                 }}
               >
-                {currentStats.days.slice().reverse().map((day) => {
+                {(isFutureTab ? currentStats.days : currentStats.days.slice().reverse()).map((day) => {
                   const percentage = getPercentage(day.totalCalories, goal.calories);
                   const hasData = day.foods.length > 0;
                   const isExpanded = expandedDays[day.date];
@@ -860,8 +929,9 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                       sx={{
                         opacity: hasData ? 1 : 0.7,
                         borderLeft: 3,
-                        borderLeftColor: hasData ? 'primary.main' : 'grey.400',
+                        borderLeftColor: isFutureTab ? (hasData ? 'success.main' : 'grey.300') : (hasData ? 'primary.main' : 'grey.400'),
                         overflow: 'visible',
+                        bgcolor: isFutureTab ? (hasData ? 'success.50' : 'background.paper') : 'background.paper',
                       }}
                     >
                       <CardContent sx={{ 
@@ -883,8 +953,9 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                               fontWeight="bold" 
                               noWrap
                               fontSize={isMobile ? '0.8rem' : '0.875rem'}
+                              color={isFutureTab ? 'success.dark' : 'text.primary'}
                             >
-                              {formatDate(day.date)}
+                              {isFutureTab ? formatFutureDate(day.date) : formatDate(day.date)}
                             </Typography>
                             <Typography 
                               variant="caption" 
@@ -896,12 +967,12 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                             </Typography>
                           </Box>
                           <Stack direction="row" spacing={0.5} alignItems="center">
-                            {/* Yemek ekle butonu - sadece geçmiş günler için */}
-                            {!isToday(day.date) && (
-                              <Tooltip title="Bu güne yemek ekle">
+                            {/* Yemek ekle butonu - geçmiş günler ve gelecek tab'ında */}
+                            {(isFutureTab || !isToday(day.date)) && (
+                              <Tooltip title={isFutureTab ? "Bu güne plan ekle" : "Bu güne yemek ekle"}>
                                 <IconButton
                                   size="small"
-                                  color="primary"
+                                  color={isFutureTab ? "success" : "primary"}
                                   onClick={() => handleAddToDate(day.date)}
                                   sx={{ padding: 0.5 }}
                                 >
@@ -924,13 +995,13 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                             {hasData ? (
                               <Chip
                                 label={`${day.totalCalories} kcal`}
-                                color={getColor(percentage)}
+                                color={isFutureTab ? "success" : getColor(percentage)}
                                 size="small"
                                 sx={{ fontSize: isMobile ? '0.7rem' : undefined }}
                               />
                             ) : (
                               <Chip
-                                label="Veri yok"
+                                label={isFutureTab ? "Plan yok" : "Veri yok"}
                                 size="small"
                                 variant="outlined"
                                 color="default"
@@ -1361,10 +1432,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
       {/* Geçmiş Güne Yemek Ekleme Dialog'u */}
       <Dialog 
         open={!!addingToDate} 
-        onClose={() => {
-          setAddingToDate(null);
-          setAddFoodError('');
-        }}
+        onClose={() => setAddingToDate(null)}
         maxWidth="sm"
         fullWidth
       >
@@ -1395,10 +1463,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         <DialogContent>
           <Tabs 
             value={addFoodTabValue} 
-            onChange={(_, newValue) => {
-              setAddFoodTabValue(newValue);
-              setAddFoodError('');
-            }}
+            onChange={(_, newValue) => setAddFoodTabValue(newValue)}
             sx={{ mb: 2, mt: 1 }}
           >
             <Tab label="Kayıtlı Besinler" />
@@ -1406,6 +1471,8 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
           </Tabs>
 
           <Divider sx={{ mb: 2 }} />
+
+          <Box component="form" id="add-food-form" onSubmit={(e) => { e.preventDefault(); handleAddToDateSave(); }}>
 
           {/* TAB 0: Template/Kayıtlı Besinler */}
           {addFoodTabValue === 0 && (
@@ -1505,6 +1572,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   onChange={(e) => setTemplateAmount(e.target.value)}
                   inputProps={{ min: 0, step: selectedTemplate.unit === 'piece' ? 0.01 : 1 }}
                   size="small"
+                  required
                 />
               )}
 
@@ -1596,6 +1664,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                 fullWidth
                 size="small"
                 autoFocus
+                required
               />
               <Stack direction="row" spacing={1}>
                 <TextField
@@ -1605,6 +1674,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   onChange={(e) => setEditFormData({ ...editFormData, calories: e.target.value })}
                   fullWidth
                   size="small"
+                  required
                 />
                 <TextField
                   label="Protein (g)"
@@ -1635,21 +1705,20 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
               </Stack>
             </Stack>
           )}
-        {/* Hata mesajı */}
-        {addFoodError && (
-          <Box sx={{ color: 'error.main', mt: 1, mb: 1, textAlign: 'center' }}>
-            {addFoodError}
           </Box>
-        )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => {
-            setAddingToDate(null);
-            setAddFoodError('');
-          }} variant="outlined">
+          <Button onClick={() => setAddingToDate(null)} variant="outlined">
             İptal
           </Button>
-          <Button onClick={handleAddToDateSave} color="primary" variant="contained" startIcon={<AddIcon />}>
+          <Button 
+            type="submit"
+            form="add-food-form"
+            color="primary" 
+            variant="contained" 
+            startIcon={<AddIcon />}
+            disabled={addFoodTabValue === 0 && (!selectedTemplate || !templateAmount)}
+          >
             Ekle
           </Button>
         </DialogActions>
