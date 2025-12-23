@@ -241,9 +241,19 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                 value={selectedTemplate}
                 onChange={(_, newValue) => {
                   setSelectedTemplate(newValue);
-                  // Şablon değişince miktar alanlarını temizle
-                  setGrams('');
-                  setPieces('');
+                  // Sadece adet ise otomatik 1, gramda boş
+                  if (newValue) {
+                    if (newValue.unit === 'piece') {
+                      setPieces('1');
+                      setGrams('');
+                    } else {
+                      setGrams('');
+                      setPieces('');
+                    }
+                  } else {
+                    setGrams('');
+                    setPieces('');
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField

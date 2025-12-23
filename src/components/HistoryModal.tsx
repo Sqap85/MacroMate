@@ -1516,7 +1516,15 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                 value={selectedTemplate}
                 onChange={(_, newValue) => {
                   setSelectedTemplate(newValue);
-                  setTemplateAmount('');
+                  if (newValue) {
+                    if (newValue.unit === 'piece') {
+                      setTemplateAmount('1');
+                    } else {
+                      setTemplateAmount('');
+                    }
+                  } else {
+                    setTemplateAmount('');
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField
