@@ -300,7 +300,6 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
       };
       onAddFood(newFood, customTimestamp);
     }
-    setAddingToDate(null);
     setSelectedTemplate(null);
     setTemplateAmount('');
   };
@@ -1709,7 +1708,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setAddingToDate(null)} variant="outlined">
-            İptal
+            Kapat
           </Button>
           <Button 
             type="submit"
