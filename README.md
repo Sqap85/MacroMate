@@ -4,7 +4,9 @@
 
 ---
 
+
 ## Türkçe
+MacroMate, günlük makro takibi ve beslenme yönetimi için modern bir web uygulamasıdır. Kullanıcılar yiyecek ekleyebilir, makro hedefleri belirleyebilir, geçmiş kayıtlarını görüntüleyebilir, planlama yapabilir ve istatistiklerini kolayca takip edebilirler.
 
 ### Özellikler
 - Kullanıcı girişi ve e-posta doğrulama
@@ -32,8 +34,8 @@ Bu proje MIT lisansı ile lisanslanmıştır. Detaylar için [LICENSE](LICENSE) 
 
 ---
 
-## English
 
+## English
 MacroMate is a modern web application for daily macro tracking and nutrition management. Users can add foods, set macro goals, view past records, make plans, and easily track their statistics.
 
 ### Features
