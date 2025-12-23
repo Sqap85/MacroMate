@@ -307,7 +307,8 @@ export const deleteTemplate = async (templateId: string): Promise<void> => {
  */
 export const migrateFromLocalStorage = async (userId: string): Promise<void> => {
   const batch = writeBatch(db);
-  
+  let goalToMigrate: DailyGoal | null = null;
+
   try {
     // Foods migrate et
     const localFoods = localStorage.getItem('macromate-foods');
@@ -323,17 +324,11 @@ export const migrateFromLocalStorage = async (userId: string): Promise<void> => 
         }));
       });
     }
-    
-    // Goal migrate et
+
+    // Hedefi daha sonra işlemek üzere al
     const localGoal = localStorage.getItem('macromate-goal');
     if (localGoal) {
-      const goal: DailyGoal = JSON.parse(localGoal);
-      const goalsRef = collection(db, COLLECTIONS.GOALS);
-      const newGoalRef = doc(goalsRef);
-      batch.set(newGoalRef, removeUndefined({
-        ...goal,
-        userId,
-      }));
+      goalToMigrate = JSON.parse(localGoal);
     }
     
     // Templates migrate et
@@ -351,7 +346,13 @@ export const migrateFromLocalStorage = async (userId: string): Promise<void> => 
       });
     }
     
+    // Batch'i commit et
     await batch.commit();
+
+    // Hedefi kaydet (ayrı işlem)
+    if (goalToMigrate) {
+      await saveUserGoal(userId, goalToMigrate);
+    }
     
     // Migration başarılı - LocalStorage'ı temizle
     localStorage.removeItem('macromate-foods');

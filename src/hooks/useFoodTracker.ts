@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Food, DailyGoal, DailyStats, FoodTemplate } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from './useLocalStorage';
@@ -10,22 +10,6 @@ import * as firestoreService from '../services/firestoreService';
  * - Misafir kullanıcılar: LocalStorage kullanır
  */
 export function useFoodTracker() {
-    // Besin şablonlarını toplu sil
-    const deleteFoodTemplatesBulk = async (ids: string[]) => {
-      if (isGuest) {
-        const updated = localTemplates.filter(t => !ids.includes(t.id));
-        setLocalTemplates(updated);
-        setFoodTemplates(updated);
-        return;
-      }
-      if (!currentUser) throw new Error('Lütfen önce giriş yapın');
-      try {
-        await firestoreService.deleteTemplatesBulk(ids);
-      } catch (error) {
-        console.error('Toplu şablon silme hatası:', error);
-        throw error;
-      }
-    };
   const { currentUser, isGuest } = useAuth();
   
   // Misafir kullanıcılar için LocalStorage
@@ -50,6 +34,23 @@ export function useFoodTracker() {
   const [dailyGoal, setDailyGoal] = useState<DailyGoal>(defaultGoal);
   const [foodTemplates, setFoodTemplates] = useState<FoodTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Besin şablonlarını toplu sil
+  const deleteFoodTemplatesBulk = useCallback(async (ids: string[]) => {
+    if (isGuest) {
+      const updated = localTemplates.filter(t => !ids.includes(t.id));
+      setLocalTemplates(updated);
+      setFoodTemplates(updated);
+      return;
+    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
+    try {
+      await firestoreService.deleteTemplatesBulk(ids);
+    } catch (error) {
+      console.error('Toplu şablon silme hatası:', error);
+      throw error;
+    }
+  }, [currentUser, isGuest, localTemplates, setLocalTemplates, setFoodTemplates]);
 
   // Firestore'dan verileri dinle (realtime updates) - Sadece kayıtlı kullanıcılar için
   useEffect(() => {
@@ -122,7 +123,7 @@ export function useFoodTracker() {
       unsubGoal();
       unsubTemplates();
     };
-  }, [currentUser, isGuest, localFoods, localGoal, localTemplates]);
+  }, [currentUser, isGuest]);
 
   // Bugünün tarihini al (YYYY-MM-DD formatında)
   const getTodayString = (): string => {
