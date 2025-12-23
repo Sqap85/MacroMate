@@ -265,14 +265,14 @@ function App() {
   const handleLogout = async () => {
     setLogoutDialogOpen(false);
     try {
-      // Misafir modundaysa LocalStorage verilerini temizle
+      // Misafir modundaysa LocalStorage ve state verilerini temizle
       if (isGuest) {
         localStorage.removeItem('macromate-foods');
         localStorage.removeItem('macromate-goal');
         localStorage.removeItem('macromate-templates');
         console.log('Misafir mod verileri temizlendi');
+        window.location.reload();
       }
-      
       await logout();
       setToast({
         open: true,
