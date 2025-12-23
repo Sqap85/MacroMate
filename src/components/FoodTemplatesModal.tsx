@@ -330,6 +330,7 @@ export function FoodTemplatesModal({
         }
       let added = 0;
       const skipped: string[] = [];
+      let negativeSkipped = 0;
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
         if (row.length < 6) continue;
@@ -342,14 +343,19 @@ export function FoodTemplatesModal({
 
         // Zararlı karakter/formül kontrolü (Excel injection, XSS)
         const dangerous = (val: string) => /^[=+\-@]/.test(val);
+        // Negatif değer kontrolü
+        if (calories < 0 || protein < 0 || carbs < 0 || fat < 0) {
+          negativeSkipped++;
+          continue;
+        }
         if (
           !name || name.length > 50 || dangerous(name) ||
           !['piece', 'gram'].includes(unit) ||
           isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
           calories <= 0 || calories > 5000 ||
-          protein < 0 || protein > 500 ||
-          carbs < 0 || carbs > 1000 ||
-          fat < 0 || fat > 500 ||
+          protein > 500 ||
+          carbs > 1000 ||
+          fat > 500 ||
           dangerous(unit) || dangerous(String(calories)) || dangerous(String(protein)) || dangerous(String(carbs)) || dangerous(String(fat))
         ) {
           continue; 
@@ -370,12 +376,20 @@ export function FoodTemplatesModal({
           skipped.push(template.name);
         }
       }
-      if (added > 0 && skipped.length === 0) {
+      if (added > 0 && skipped.length === 0 && negativeSkipped === 0) {
         showToast({ open: true, message: `${added} şablon başarıyla eklendi.`, severity: 'success' });
-      } else if (added > 0 && skipped.length > 0) {
-        showToast({ open: true, message: `${added} yeni şablon eklendi. Eklenemeyenler: ${skipped.join(', ')} (isim zaten var)`, severity: 'warning' });
-      } else if (added === 0 && skipped.length > 0) {
-        showToast({ open: true, message: `Hiçbir şablon eklenmedi. Eklenemeyenler: ${skipped.join(', ')} (isim zaten var)`, severity: 'error' });
+      } else if (added > 0 && skipped.length === 0 && negativeSkipped > 0) {
+        showToast({ open: true, message: `${added} şablon eklendi. ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'warning' });
+      } else if (added > 0 && skipped.length > 0 && negativeSkipped === 0) {
+        showToast({ open: true, message: `${added} şablon eklendi. ${skipped.length} satır isim çakıştığı için eklenmedi.`, severity: 'warning' });
+      } else if (added > 0 && skipped.length > 0 && negativeSkipped > 0) {
+        showToast({ open: true, message: `${added} şablon eklendi. ${skipped.length} satır isim çakıştığı için, ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'warning' });
+      } else if (added === 0 && skipped.length > 0 && negativeSkipped === 0) {
+        showToast({ open: true, message: `Hiçbir şablon eklenmedi. ${skipped.length} satır isim çakıştığı için eklenmedi.`, severity: 'error' });
+      } else if (added === 0 && skipped.length === 0 && negativeSkipped > 0) {
+        showToast({ open: true, message: `Hiçbir şablon eklenmedi. ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'error' });
+      } else if (added === 0 && skipped.length > 0 && negativeSkipped > 0) {
+        showToast({ open: true, message: `Hiçbir şablon eklenmedi. ${skipped.length} satır isim çakıştığı için, ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'error' });
       } else {
         showToast({ open: true, message: 'Uygun veri bulunamadı.', severity: 'error' });
       }
