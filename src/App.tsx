@@ -20,6 +20,7 @@ import { useAuth } from './contexts/AuthContext';
 import { migrateFromLocalStorage } from './services/firestoreService';
 import type { AlertColor } from '@mui/material';
 import './App.css';
+import { formatDate } from './utils/dateUtils';
 
 function App() {
   const { currentUser, logout, isGuest } = useAuth();
@@ -39,6 +40,7 @@ function App() {
     editFoodTemplate,
     addFoodFromTemplate,
     deleteFoodTemplatesBulk,
+    deleteAllDayFoods,
   } = useFoodTracker();
     // Toplu silme fonksiyonu
     const handleBulkDeleteTemplates = async (ids: string[]) => {
@@ -170,6 +172,23 @@ function App() {
       setToast({
         open: true,
         message: error.message || 'Yemek silinirken hata oluştu',
+        severity: 'error',
+      });
+    }
+  };
+
+  const handleDeleteAllDayFoods = async (dateString: string) => {
+    try {
+      await deleteAllDayFoods(dateString);
+      setToast({
+        open: true,
+        message: `${formatDate(dateString)} tarihine ait tüm yemekler silindi!`,
+        severity: 'info',
+      });
+    } catch (error: any) {
+      setToast({
+        open: true,
+        message: error.message || 'Yemekler silinirken hata oluştu',
         severity: 'error',
       });
     }
@@ -561,6 +580,7 @@ function App() {
         onDeleteFood={handleDeleteFood}
         onEditFood={handleEditFood}
         onAddFood={handleAddFood}
+        onDeleteAllDayFoods={handleDeleteAllDayFoods}
         foodTemplates={foodTemplates}
         onOpenTemplates={() => setTemplatesOpen(true)}
       />

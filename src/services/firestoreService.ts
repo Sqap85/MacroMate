@@ -1,4 +1,17 @@
 /**
+ * Çoklu yemek sil (batch)
+ */
+export const deleteFoodsBulk = async (ids: string[]): Promise<void> => {
+  if (!ids || ids.length === 0) return;
+  const batch = writeBatch(db);
+  ids.forEach(id => {
+    const ref = doc(db, COLLECTIONS.FOODS, id);
+    batch.delete(ref);
+  });
+  await batch.commit();
+};
+
+/**
  * Çoklu şablon sil (batch)
  */
 export const deleteTemplatesBulk = async (ids: string[]): Promise<void> => {

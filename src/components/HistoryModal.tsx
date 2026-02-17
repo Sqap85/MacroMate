@@ -61,17 +61,20 @@ interface HistoryModalProps {
   onDeleteFood: (id: string) => void;
   onEditFood: (id: string, updatedFood: Partial<Food>) => void;
   onAddFood: (food: Omit<Food, 'id' | 'timestamp'>, customTimestamp?: number) => void;
+  onDeleteAllDayFoods: (dateString: string) => void;
   foodTemplates: FoodTemplate[];
   onOpenTemplates: () => void;
 }
 
-export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditFood, onAddFood, foodTemplates, onOpenTemplates }: HistoryModalProps) {
+export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditFood, onAddFood, onDeleteAllDayFoods, foodTemplates, onOpenTemplates }: HistoryModalProps) {
   const [tabValue, setTabValue] = useState(0);
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [editingFood, setEditingFood] = useState<Food | null>(null);
   const [addingToDate, setAddingToDate] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [foodToDelete, setFoodToDelete] = useState<Food | null>(null);
+  const [deleteAllDayDialogOpen, setDeleteAllDayDialogOpen] = useState(false);
+  const [dayToDeleteAll, setDayToDeleteAll] = useState<string | null>(null);
   const [addFoodTabValue, setAddFoodTabValue] = useState(0); // 0: Template, 1: Manuel
   const [selectedTemplate, setSelectedTemplate] = useState<FoodTemplate | null>(null);
   const [templateAmount, setTemplateAmount] = useState('');
@@ -210,6 +213,20 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
       onDeleteFood(foodToDelete.id);
       setDeleteDialogOpen(false);
       setFoodToDelete(null);
+    }
+  };
+
+  // Günün tüm yemeklerini silme
+  const handleDeleteAllDay = (dateString: string) => {
+    setDayToDeleteAll(dateString);
+    setDeleteAllDayDialogOpen(true);
+  };
+
+  const handleDeleteAllDayConfirm = () => {
+    if (dayToDeleteAll) {
+      onDeleteAllDayFoods(dayToDeleteAll);
+      setDeleteAllDayDialogOpen(false);
+      setDayToDeleteAll(null);
     }
   };
 
@@ -980,6 +997,20 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                               </Tooltip>
                             )}
                             
+                            {/* Günün tüm yemeklerini sil butonu */}
+                            {hasData && (isFutureTab || !isToday(day.date)) && (
+                              <Tooltip title="Bu günün tüm yemeklerini sil">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteAllDay(day.date)}
+                                  sx={{ padding: 0.5 }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
                             {hasData && (
                               <Tooltip title={isExpanded ? "Daralt" : "Genişlet"}>
                                 <IconButton
@@ -1295,6 +1326,72 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
             startIcon={<DeleteIcon />}
           >
             Sil
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Günün Tüm Yemeklerini Silme Onay Dialogu */}
+      <Dialog
+        open={deleteAllDayDialogOpen}
+        onClose={() => setDeleteAllDayDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            m: 2,
+          }
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h6">
+            Günün Tüm Yemeklerini Sil
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Bu güne ait tüm yemekleri silmek istediğinizden emin misiniz?
+          </Typography>
+          
+          {dayToDeleteAll && (
+            <Box sx={{ 
+              mt: 2,
+              p: 1.5,
+              bgcolor: 'error.50',
+              borderRadius: 1,
+              borderLeft: 3,
+              borderColor: 'error.main'
+            }}>
+              <Typography variant="body2" fontWeight="medium">
+                {formatDate(dayToDeleteAll)} - {getDayName(dayToDeleteAll)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {(() => {
+                  const dateParts = dayToDeleteAll.split('-');
+                  const dayStart = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]), 0, 0, 0).getTime();
+                  const dayEnd = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]), 23, 59, 59, 999).getTime();
+                  const dayFoods = foods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
+                  const totalCal = dayFoods.reduce((sum, f) => sum + f.calories, 0);
+                  return `${dayFoods.length} yemek • ${totalCal} kcal`;
+                })()}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setDeleteAllDayDialogOpen(false)}
+            variant="outlined"
+          >
+            İptal
+          </Button>
+          <Button 
+            onClick={handleDeleteAllDayConfirm}
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+          >
+            Tümünü Sil
           </Button>
         </DialogActions>
       </Dialog>

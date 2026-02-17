@@ -10,6 +10,46 @@ import * as firestoreService from '../services/firestoreService';
  * - Misafir kullanıcılar: LocalStorage kullanır
  */
 export function useFoodTracker() {
+    // Bir güne ait tüm yemekleri sil
+    const deleteAllDayFoods = async (dateString: string) => {
+      // Tarihi parse et
+      const dateParts = dateString.split('-');
+      const dayStart = new Date(
+        parseInt(dateParts[0]),
+        parseInt(dateParts[1]) - 1,
+        parseInt(dateParts[2]),
+        0, 0, 0
+      ).getTime();
+      const dayEnd = new Date(
+        parseInt(dateParts[0]),
+        parseInt(dateParts[1]) - 1,
+        parseInt(dateParts[2]),
+        23, 59, 59, 999
+      ).getTime();
+
+      const activeFoods = isGuest ? localFoods : foods;
+      const dayFoods = activeFoods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
+
+      if (dayFoods.length === 0) return;
+
+      if (isGuest) {
+        const dayFoodIds = new Set(dayFoods.map(f => f.id));
+        const updated = localFoods.filter(f => !dayFoodIds.has(f.id));
+        setLocalFoods(updated);
+        setFoods(updated);
+        return;
+      }
+
+      if (!currentUser) throw new Error('Lütfen önce giriş yapın');
+      try {
+        const ids = dayFoods.map(f => f.id);
+        await firestoreService.deleteFoodsBulk(ids);
+      } catch (error) {
+        console.error('Günlük yemek silme hatası:', error);
+        throw error;
+      }
+    };
+
     // Besin şablonlarını toplu sil
     const deleteFoodTemplatesBulk = async (ids: string[]) => {
       if (isGuest) {
@@ -404,5 +444,6 @@ export function useFoodTracker() {
     editFoodTemplate,
     addFoodFromTemplate,
     deleteFoodTemplatesBulk,
+    deleteAllDayFoods,
   };
 }
