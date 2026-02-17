@@ -12,11 +12,14 @@ import {
   sendEmailVerification,
   updatePassword,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   EmailAuthProvider,
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail,
   linkWithCredential,
+  deleteUser,
 } from 'firebase/auth';
+import { deleteAllUserData } from '../services/firestoreService';
 import { auth, emailVerificationSettings, passwordResetSettings } from '../config/firebase';
 
 /**
@@ -41,6 +44,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   checkSignInMethods: (email: string) => Promise<string[]>;
   addPasswordToAccount: (password: string) => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
   emailVerificationDismissed: boolean;
   setEmailVerificationDismissed: (dismissed: boolean) => void;
 }
@@ -252,6 +256,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setCurrentUser({ ...auth.currentUser } as User);
   };
 
+  // Hesabı sil (tüm veriler dahil)
+  const deleteAccount = async (password?: string) => {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('Giriş yapılmamış');
+    }
+
+    // Yeniden doğrulama (güvenlik için)
+    if (password && user.email) {
+      // Şifre ile doğrula
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+    } else {
+      // Google popup ile doğrula
+      const provider = new GoogleAuthProvider();
+      await reauthenticateWithPopup(user, provider);
+    }
+
+    // Önce Firestore verilerini sil
+    await deleteAllUserData(user.uid);
+
+    // Sonra Firebase Auth hesabını sil
+    await deleteUser(user);
+
+    // State temizle
+    setCurrentUser(null);
+    setIsGuest(false);
+    localStorage.removeItem('guestMode');
+  };
+
   // Auth state değişikliklerini dinle
   useEffect(() => {
     // Misafir modunu kontrol et
@@ -289,6 +323,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     resetPassword,
     checkSignInMethods,
     addPasswordToAccount,
+    deleteAccount,
     emailVerificationDismissed,
     setEmailVerificationDismissed,
   };

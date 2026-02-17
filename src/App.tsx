@@ -652,6 +652,8 @@ function App() {
         onSuccess={(message) => {
           if (message === 'Şifre başarıyla güncellendi!') {
             setToast({ open: true, message, severity: 'success' });
+          } else if (message === 'Hesabınız başarıyla silindi.') {
+            setToast({ open: true, message, severity: 'info' });
           } else if (pendingPasswordAdd) {
             setToast({ open: true, message, severity: 'success' });
             setPendingPasswordAdd(false);

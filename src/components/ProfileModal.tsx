@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   TextField,
   Button,
   Box,
@@ -13,6 +14,9 @@ import {
   Typography,
   Avatar,
   Chip,
+  InputAdornment,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
@@ -20,6 +24,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import GoogleIcon from '@mui/icons-material/Google';
 import EmailIcon from '@mui/icons-material/Email';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../config/firebase';
 import { useFormik } from 'formik';
@@ -38,11 +45,20 @@ interface ProfileModalProps {
 }
 
 export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: ProfileModalProps) {
-  const { currentUser, updateUserProfile, updateUserPassword, addPasswordToAccount } = useAuth();
+  const { currentUser, updateUserProfile, addPasswordToAccount, deleteAccount, updateUserPassword } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
   const [showAddPassword, setShowAddPassword] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [deleteMethod, setDeleteMethod] = useState<'password' | 'google'>('password');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   // Formik for display name
   const profileFormik = useFormik({
@@ -72,69 +88,6 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
       } catch (err: any) {
         console.error('Profile update error:', err);
         setError(err.message || 'Profil güncellenirken hata oluştu');
-        setLoading(false);
-      }
-    },
-  });
-
-  // Formik for password change
-  const passwordFormik = useFormik({
-    initialValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    },
-    validationSchema: Yup.object({
-      currentPassword: Yup.string()
-        .required('Mevcut şifre zorunlu')
-        .min(8, 'En az 8 karakter olmalı'),
-      newPassword: Yup.string()
-        .required('Yeni şifre zorunlu')
-        .min(8, 'Şifre en az 8 karakter olmalı')
-        .max(128, 'Şifre en fazla 128 karakter olabilir')
-        .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
-        .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-        .matches(/[0-9]/, 'En az bir rakam içermelidir')
-        .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)')
-        .notOneOf([Yup.ref('currentPassword')], 'Yeni şifre mevcut şifre ile aynı olamaz'),
-      confirmPassword: Yup.string()
-        .required('Şifre tekrarı zorunlu')
-        .oneOf([Yup.ref('newPassword')], 'Şifreler eşleşmiyor'),
-    }),
-    validateOnChange: false,
-    validateOnBlur: false,
-    onSubmit: async (values) => {
-      setLoading(true);
-
-      try {
-        await updateUserPassword(values.currentPassword, values.newPassword);
-        setLoading(false);
-        
-        if (onSuccess) {
-          onSuccess('Şifre başarıyla güncellendi!');
-        }
-        
-        passwordFormik.resetForm();
-      } catch (err: any) {
-        console.error('Password update error:', err);
-        
-        // Firebase hatalarını Formik field error olarak göster
-        if (err.code === 'auth/wrong-password' || 
-            err.code === 'auth/invalid-credential' || 
-            err.code === 'auth/invalid-login-credentials') {
-          passwordFormik.setFieldError('currentPassword', 'Mevcut şifre hatalı. Lütfen tekrar deneyin.');
-        } else if (err.code === 'auth/weak-password') {
-          passwordFormik.setFieldError('newPassword', 'Yeni şifre çok zayıf. En az 6 karakter kullanın.');
-        } else if (err.code === 'auth/requires-recent-login') {
-          setError('Güvenlik nedeniyle çıkış yapıp tekrar giriş yapmanız gerekiyor.');
-        } else if (err.code === 'auth/too-many-requests') {
-          setError('Çok fazla deneme. Lütfen birkaç dakika sonra tekrar deneyin.');
-        } else if (err.code === 'auth/network-request-failed') {
-          setError('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
-        } else {
-          setError('Şifre güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
-        }
-        
         setLoading(false);
       }
     },
@@ -205,24 +158,82 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
     },
   });
 
+  // Formik for password change (for email/password users)
+  const passwordFormik = useFormik({
+    initialValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    validationSchema: Yup.object({
+      currentPassword: Yup.string().required('Mevcut şifre zorunlu'),
+      newPassword: Yup.string()
+        .required('Yeni şifre zorunlu')
+        .min(8, 'Şifre en az 8 karakter olmalı')
+        .max(128, 'Şifre en fazla 128 karakter olabilir')
+        .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
+        .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
+        .matches(/[0-9]/, 'En az bir rakam içermelidir')
+        .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
+      confirmPassword: Yup.string()
+        .required('Şifre tekrarı zorunlu')
+        .oneOf([Yup.ref('newPassword')], 'Şifreler eşleşmiyor'),
+    }),
+    validateOnChange: false,
+    validateOnBlur: false,
+    onSubmit: async (values) => {
+      setLoading(true);
+      setError('');
+      try {
+        await updateUserPassword(values.currentPassword, values.newPassword);
+        setLoading(false);
+        passwordFormik.resetForm();
+        if (onSuccess) {
+          onSuccess('Şifre başarıyla güncellendi!');
+        }
+      } catch (err: any) {
+        console.error('Password update error:', err);
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+          setError('Mevcut şifre hatalı.');
+        } else if (err.code === 'auth/requires-recent-login') {
+          setError('Güvenlik nedeniyle çıkış yapıp tekrar giriş yapmanız gerekiyor.');
+        } else if (err.code === 'auth/too-many-requests') {
+          setError('Çok fazla deneme. Lütfen birkaç dakika sonra tekrar deneyin.');
+        } else {
+          setError('Şifre güncellenirken bir hata oluştu.');
+        }
+        setLoading(false);
+      }
+    },
+  });
+
   // Modal açıldığında state'leri reset et
   useEffect(() => {
     if (open) {
       profileFormik.resetForm();
-      passwordFormik.resetForm();
       addPasswordFormik.resetForm();
+      passwordFormik.resetForm();
       setError('');
       setLoading(false);
       setIsClosing(false);
       setShowAddPassword(false);
+      setDeleteDialogOpen(false);
+      setDeletePassword('');
+      setDeleteError('');
+      setDeleteLoading(false);
+      setShowDeletePassword(false);
+      setDeleteMethod('password');
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmNewPassword(false);
     }
   }, [open]);
 
   const handleClose = () => {
     if (isClosing) return;
     profileFormik.resetForm();
-    passwordFormik.resetForm();
     addPasswordFormik.resetForm();
+    passwordFormik.resetForm();
     setError('');
     setShowAddPassword(false);
     onClose();
@@ -232,11 +243,16 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
   const isEmailProvider = currentUser?.providerData.some(
     (provider) => provider.providerId === 'password'
   );
+  const isGoogleProvider = currentUser?.providerData.some(
+    (provider) => provider.providerId === 'google.com'
+  );
+  const hasBothProviders = isEmailProvider && isGoogleProvider;
 
   // Provider bilgilerini al
   const providersList = currentUser?.providerData.map(p => p.providerId) || [];
 
   return (
+    <>
     <Dialog 
       open={open} 
       onClose={handleClose} 
@@ -428,7 +444,7 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
                 </Typography>
                 <TextField
                   fullWidth
-                  type="password"
+                  type={showCurrentPassword ? 'text' : 'password'}
                   label="Mevcut Şifre"
                   name="currentPassword"
                   value={passwordFormik.values.currentPassword}
@@ -437,10 +453,19 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
                   helperText={passwordFormik.touched.currentPassword && passwordFormik.errors.currentPassword}
                   disabled={loading}
                   margin="normal"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowCurrentPassword(!showCurrentPassword)} edge="end" size="small">
+                          {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
                 <TextField
                   fullWidth
-                  type="password"
+                  type={showNewPassword ? 'text' : 'password'}
                   label="Yeni Şifre"
                   name="newPassword"
                   value={passwordFormik.values.newPassword}
@@ -449,11 +474,20 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
                   helperText={passwordFormik.touched.newPassword && passwordFormik.errors.newPassword}
                   disabled={loading}
                   margin="normal"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">
+                          {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
                 <TextField
                   fullWidth
-                  type="password"
-                  label="Yeni Şifre (Tekrar)"
+                  type={showConfirmNewPassword ? 'text' : 'password'}
+                  label="Yeni Şifre Tekrar"
                   name="confirmPassword"
                   value={passwordFormik.values.confirmPassword}
                   onChange={passwordFormik.handleChange}
@@ -461,29 +495,224 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
                   helperText={passwordFormik.touched.confirmPassword && passwordFormik.errors.confirmPassword}
                   disabled={loading}
                   margin="normal"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)} edge="end" size="small">
+                          {showConfirmNewPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
-                
-                {/* Firebase Hata Mesajı - Şifre alanlarının altında */}
                 {error && (
-                  <Alert severity="error" sx={{ mt: 2 }}>
+                  <Alert severity="error" sx={{ mt: 1 }}>
                     {error}
                   </Alert>
                 )}
-                
                 <Button
                   type="submit"
-                  variant="outlined"
+                  variant="contained"
                   disabled={loading || !passwordFormik.values.currentPassword || !passwordFormik.values.newPassword || !passwordFormik.values.confirmPassword}
                   fullWidth
                   sx={{ mt: 1 }}
                 >
-                  Şifreyi Güncelle
+                  {loading ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
                 </Button>
               </Box>
             </>
           )}
+
+          <Divider />
+
+          {/* Hesap Silme */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom fontWeight="medium" color="error">
+              Tehlikeli Bölge
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={1.5}>
+              Hesabınızı sildiğinizde tüm verileriniz (yemek kayıtları, hedefler, besin şablonları) kalıcı olarak silinir. Bu işlem geri alınamaz.
+            </Typography>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteForeverIcon />}
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={loading}
+            >
+              Hesabı Sil
+            </Button>
+          </Box>
         </Stack>
       </DialogContent>
     </Dialog>
+
+    {/* Hesap Silme Onay Dialogu */}
+    <Dialog
+      open={deleteDialogOpen}
+      onClose={() => {
+        if (!deleteLoading) {
+          setDeleteDialogOpen(false);
+          setDeletePassword('');
+          setDeleteError('');
+        }
+      }}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+        }
+      }}
+    >
+      <DialogTitle>
+        <Box display="flex" alignItems="center" gap={1}>
+          <DeleteForeverIcon color="error" />
+          <Typography variant="h6" color="error">
+            Hesabı Sil
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Bu işlem geri alınamaz! Hesabınız ve tüm verileriniz kalıcı olarak silinecektir.
+        </Alert>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Silinecek veriler:
+        </Typography>
+        <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 2, color: 'text.secondary' }}>
+          <li>Tüm yemek kayıtları</li>
+          <li>Günlük hedefler</li>
+          <li>Besin şablonları</li>
+          <li>Hesap bilgileri</li>
+        </Typography>
+
+        {/* Her iki provider'a da sahip kullanıcılar için yöntem seçimi */}
+        {hasBothProviders && (
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Doğrulama yöntemi seçin:
+            </Typography>
+            <ToggleButtonGroup
+              value={deleteMethod}
+              exclusive
+              onChange={(_, val) => { if (val) { setDeleteMethod(val); setDeletePassword(''); setDeleteError(''); } }}
+              fullWidth
+              size="small"
+              sx={{ mb: 1 }}
+            >
+              <ToggleButton value="password" sx={{ textTransform: 'none' }}>
+                <EmailIcon sx={{ mr: 0.5 }} fontSize="small" />
+                Şifre ile
+              </ToggleButton>
+              <ToggleButton value="google" sx={{ textTransform: 'none' }}>
+                <GoogleIcon sx={{ mr: 0.5 }} fontSize="small" />
+                Google ile
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        )}
+
+        {/* Şifre ile doğrulama */}
+        {((isEmailProvider && !hasBothProviders) || (hasBothProviders && deleteMethod === 'password')) && (
+          <TextField
+            fullWidth
+            type={showDeletePassword ? 'text' : 'password'}
+            label="Şifrenizi girin"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            disabled={deleteLoading}
+            helperText="Güvenlik için mevcut şifrenizi girin"
+            margin="normal"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowDeletePassword(!showDeletePassword)}
+                    edge="end"
+                    size="small"
+                  >
+                    {showDeletePassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        )}
+
+        {/* Google ile doğrulama */}
+        {(!isEmailProvider || (hasBothProviders && deleteMethod === 'google')) && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Devam etmek için Google hesabınızla doğrulama yapmanız gerekecektir.
+          </Typography>
+        )}
+
+        {deleteError && (
+          <Alert severity="error" sx={{ mt: 1 }}>
+            {deleteError}
+          </Alert>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button
+          onClick={() => {
+            setDeleteDialogOpen(false);
+            setDeletePassword('');
+            setDeleteError('');
+          }}
+          variant="outlined"
+          disabled={deleteLoading}
+        >
+          İptal
+        </Button>
+        <Button
+          onClick={async () => {
+            const usePassword = hasBothProviders ? deleteMethod === 'password' : isEmailProvider;
+            if (usePassword && !deletePassword) {
+              setDeleteError('Lütfen şifrenizi girin.');
+              return;
+            }
+            setDeleteLoading(true);
+            setDeleteError('');
+            try {
+              await deleteAccount(usePassword ? deletePassword : undefined);
+              setDeleteDialogOpen(false);
+              onClose();
+              if (onSuccess) {
+                onSuccess('Hesabınız başarıyla silindi.');
+              }
+            } catch (err: any) {
+              console.error('Account delete error:', err);
+              if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+                setDeleteError('Şifre hatalı. Lütfen tekrar deneyin.');
+              } else if (err.code === 'auth/user-mismatch') {
+                setDeleteError('Farklı bir hesap seçtiniz. Lütfen mevcut hesabınızı seçin.');
+              } else if (err.code === 'auth/popup-closed-by-user') {
+                setDeleteError('Doğrulama penceresi kapatıldı. İşlem iptal edildi.');
+              } else if (err.code === 'auth/requires-recent-login') {
+                setDeleteError('Güvenlik nedeniyle çıkış yapıp tekrar giriş yapmanız gerekiyor.');
+              } else if (err.code === 'auth/too-many-requests') {
+                setDeleteError('Çok fazla deneme. Lütfen birkaç dakika sonra tekrar deneyin.');
+              } else {
+                setDeleteError('Hesap silinirken bir hata oluştu. Lütfen tekrar deneyin.');
+              }
+            } finally {
+              setDeleteLoading(false);
+            }
+          }}
+          variant="contained"
+          color="error"
+          startIcon={<DeleteForeverIcon />}
+          disabled={deleteLoading || ((hasBothProviders ? deleteMethod === 'password' : !!isEmailProvider) && !deletePassword)}
+        >
+          {deleteLoading ? 'Siliniyor...' : (
+            (hasBothProviders && deleteMethod === 'google') || (!isEmailProvider && !hasBothProviders)
+              ? 'Google ile Doğrula ve Sil'
+              : 'Hesabı Kalıcı Olarak Sil'
+          )}
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }

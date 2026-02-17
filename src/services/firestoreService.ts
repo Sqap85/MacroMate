@@ -312,6 +312,38 @@ export const deleteTemplate = async (templateId: string): Promise<void> => {
 };
 
 // ============================================
+// USER DATA DELETION (Hesap Silme)
+// ============================================
+
+/**
+ * Kullanıcının tüm verilerini sil (hesap silme öncesi)
+ */
+export const deleteAllUserData = async (userId: string): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Tüm yemekleri sil
+  const foodsRef = collection(db, COLLECTIONS.FOODS);
+  const foodsQuery = query(foodsRef, where('userId', '==', userId));
+  const foodsSnapshot = await getDocs(foodsQuery);
+  foodsSnapshot.docs.forEach(d => batch.delete(d.ref));
+
+  // Tüm hedefleri sil
+  const goalsRef = collection(db, COLLECTIONS.GOALS);
+  const goalsQuery = query(goalsRef, where('userId', '==', userId));
+  const goalsSnapshot = await getDocs(goalsQuery);
+  goalsSnapshot.docs.forEach(d => batch.delete(d.ref));
+
+  // Tüm şablonları sil
+  const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
+  const templatesQuery = query(templatesRef, where('userId', '==', userId));
+  const templatesSnapshot = await getDocs(templatesQuery);
+  templatesSnapshot.docs.forEach(d => batch.delete(d.ref));
+
+  await batch.commit();
+  console.log('[Delete] Kullanıcının tüm verileri silindi:', userId);
+};
+
+// ============================================
 // MIGRATION OPERATIONS (LocalStorage → Firestore)
 // ============================================
 

@@ -35,7 +35,7 @@ export const emailVerificationSettings: ActionCodeSettings = {
 export const passwordResetSettings: ActionCodeSettings = {
   // Sıfırlama sonrası yönlendirilecek URL
   url: window.location.origin,
-  // Web'de handle etmek için
+  // Firebase'in kendi sayfasında handle et
   handleCodeInApp: false,
 };
 
