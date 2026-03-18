@@ -33,7 +33,7 @@ import CookieIcon from '@mui/icons-material/Cookie';
 import ScaleIcon from '@mui/icons-material/Scale';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import type { Food, FoodTemplate, MealType } from '../types';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 // Öğün renk tanımları - HistoryModal ile aynı
 const MEAL_COLORS = {
@@ -51,6 +51,7 @@ interface FoodListProps {
 }
 
 export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: FoodListProps) {
+  const ANIMATION_THRESHOLD = 25;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
@@ -198,14 +199,13 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     );
   }
 
+  const timeFormatter = useMemo(
+    () => new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+    []
+  );
+
   // Zamanı formatla
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('tr-TR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
+  const formatTime = (timestamp: number) => timeFormatter.format(new Date(timestamp));
 
   // Yemekleri öğünlere göre grupla
   const groupFoodsByMeal = () => {
@@ -228,18 +228,6 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     return groups;
   };
 
-  // Yemeğin plan mı yoksa gerçekleşmiş mi olduğunu kontrol et (sadece tarihe göre)
-  const isPlanned = (food: Food) => {
-    const foodDate = new Date(food.timestamp);
-    const today = new Date();
-    
-    // Sadece tarihleri karşılaştır (saati yok say)
-    const foodDateOnly = new Date(foodDate.getFullYear(), foodDate.getMonth(), foodDate.getDate()).getTime();
-    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    
-    return foodDateOnly > todayDateOnly;
-  };
-
   const getMealInfo = (mealType: string) => {
     switch (mealType) {
       case 'breakfast':
@@ -255,12 +243,19 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     }
   };
 
-  const groupedFoods = groupFoodsByMeal();
+  const groupedFoods = useMemo(() => groupFoodsByMeal(), [foods]);
+  const todayDateOnly = useMemo(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  }, []);
 
-  // Toplam kalori hesapla (öğün bazında)
-  const getMealCalories = (mealFoods: Food[]) => {
-    return mealFoods.reduce((sum, food) => sum + food.calories, 0);
+  const isPlannedTimestamp = (timestamp: number) => {
+    const foodDate = new Date(timestamp);
+    const foodDateOnly = new Date(foodDate.getFullYear(), foodDate.getMonth(), foodDate.getDate()).getTime();
+    return foodDateOnly > todayDateOnly;
   };
+
+  const shouldAnimateItems = foods.length <= ANIMATION_THRESHOLD;
 
   return (
     <Card 
@@ -288,7 +283,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
             const mealInfo = getMealInfo(mealType);
             const MealIcon = mealInfo.icon;
             const isExpanded = expandedMeals[mealType as keyof typeof expandedMeals];
-            const totalCalories = getMealCalories(mealFoods);
+            const totalCalories = mealFoods.reduce((sum, food) => sum + food.calories, 0);
 
             return (
               <Paper 
@@ -337,7 +332,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                   <Box sx={{ p: 2, pt: 0 }}>
                     <Stack spacing={2}>
                       {mealFoods.map((food, index) => (
-                        <Grow in timeout={300 + index * 100} key={food.id}>
+                        <Grow in timeout={shouldAnimateItems ? 300 + index * 100 : 0} key={food.id}>
                           <Box>
                             <Box 
                               display="flex" 
@@ -357,7 +352,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                   <Typography variant="subtitle1" fontWeight="bold">
                                     {food.name}
                                   </Typography>
-                                  {isPlanned(food) && (
+                                  {isPlannedTimestamp(food.timestamp) && (
                                     <Chip 
                                       icon={<EventAvailableIcon />}
                                       label="Plan" 

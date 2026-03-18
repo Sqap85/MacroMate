@@ -42,6 +42,7 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { Food, DailyGoal, MealType, FoodTemplate } from '../types';
 import { calculateWeeklyStats, formatDate, getDayName } from '../utils/dateUtils';
 
@@ -66,8 +67,177 @@ interface HistoryModalProps {
   onOpenTemplates: () => void;
 }
 
-export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditFood, onAddFood, onDeleteAllDayFoods, foodTemplates, onOpenTemplates }: HistoryModalProps) {
+interface MealInfo {
+  label: string;
+  icon: ReactNode;
+  color: string;
+}
+
+interface HistoryFoodRowProps {
+  food: Food;
+  isMobile: boolean;
+  onEdit: (food: Food) => void;
+  onDelete: (food: Food) => void;
+}
+
+interface HistoryMealSectionProps {
+  mealType: string;
+  mealFoods: Food[];
+  isMobile: boolean;
+  onEdit: (food: Food) => void;
+  onDelete: (food: Food) => void;
+}
+
+function getMealInfoForHistory(mealType: string): MealInfo {
+  switch (mealType) {
+    case 'breakfast':
+      return { label: 'Kahvaltı', icon: <LocalCafeIcon sx={{ color: MEAL_COLORS.breakfast }} />, color: MEAL_COLORS.breakfast };
+    case 'lunch':
+      return { label: 'Öğle Yemeği', icon: <LunchDiningIcon sx={{ color: MEAL_COLORS.lunch }} />, color: MEAL_COLORS.lunch };
+    case 'dinner':
+      return { label: 'Akşam Yemeği', icon: <DinnerDiningIcon sx={{ color: MEAL_COLORS.dinner }} />, color: MEAL_COLORS.dinner };
+    case 'snack':
+      return { label: 'Atıştırmalık', icon: <CookieIcon sx={{ color: MEAL_COLORS.snack }} />, color: MEAL_COLORS.snack };
+    default:
+      return { label: 'Diğer', icon: '🍴', color: '#95a5a6' };
+  }
+}
+
+function HistoryFoodRow({ food, isMobile, onEdit, onDelete }: Readonly<HistoryFoodRowProps>) {
+  return (
+    <Box
+      key={food.id}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+        minWidth: 0,
+        p: 0.5,
+        borderRadius: 1,
+        '&:hover': {
+          bgcolor: 'action.hover',
+        },
+        '&:hover .food-actions': {
+          opacity: 1,
+        },
+      }}
+    >
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{
+          flexShrink: 0,
+          fontSize: isMobile ? '0.65rem' : '0.75rem'
+        }}
+      >
+        •
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.primary"
+        sx={{
+          wordBreak: 'break-word',
+          overflow: 'hidden',
+          flex: 1,
+          minWidth: 0,
+          fontSize: isMobile ? '0.7rem' : '0.8rem',
+        }}
+      >
+        {food.name}
+      </Typography>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          fontWeight: 600,
+          whiteSpace: 'nowrap',
+          fontSize: isMobile ? '0.6rem' : '0.7rem',
+        }}
+      >
+        {food.calories} kcal
+      </Typography>
+      <Box
+        className="food-actions"
+        sx={{
+          display: 'flex',
+          gap: 0.25,
+          opacity: isMobile ? 1 : 0,
+          transition: 'opacity 0.2s',
+        }}
+      >
+        <Tooltip title="Düzenle">
+          <IconButton
+            size="small"
+            onClick={() => onEdit(food)}
+            sx={{ padding: 0.25 }}
+          >
+            <EditIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Sil">
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => onDelete(food)}
+            sx={{ padding: 0.25 }}
+          >
+            <DeleteIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
+  );
+}
+
+function HistoryMealSection({ mealType, mealFoods, isMobile, onEdit, onDelete }: Readonly<HistoryMealSectionProps>) {
+  const mealInfo = getMealInfoForHistory(mealType);
+
+  return (
+    <Paper
+      key={mealType}
+      variant="outlined"
+      sx={{
+        p: isMobile ? 0.75 : 1,
+        bgcolor: 'background.default',
+        borderLeft: 3,
+        borderColor: mealInfo.color,
+      }}
+    >
+      <Box display="flex" alignItems="center" gap={0.5} mb={isMobile ? 0.4 : 0.5}>
+        <Box sx={{ color: mealInfo.color, display: 'flex', fontSize: isMobile ? 14 : 16 }}>
+          {mealInfo.icon}
+        </Box>
+        <Typography
+          variant="caption"
+          fontWeight="600"
+          sx={{
+            color: mealInfo.color,
+            fontSize: isMobile ? '0.65rem' : '0.75rem',
+          }}
+        >
+          {mealInfo.label}
+        </Typography>
+      </Box>
+      <Stack spacing={0.4}>
+        {mealFoods.map((food) => (
+          <HistoryFoodRow
+            key={food.id}
+            food={food}
+            isMobile={isMobile}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </Stack>
+    </Paper>
+  );
+}
+
+export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditFood, onAddFood, onDeleteAllDayFoods, foodTemplates, onOpenTemplates }: Readonly<HistoryModalProps>) {
+  const INITIAL_DAY_COUNT = 20;
+  const DAY_INCREMENT = 20;
   const [tabValue, setTabValue] = useState(0);
+  const [visibleDayCount, setVisibleDayCount] = useState(INITIAL_DAY_COUNT);
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [editingFood, setEditingFood] = useState<Food | null>(null);
   const [addingToDate, setAddingToDate] = useState<string | null>(null);
@@ -255,9 +425,9 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
     // Tarihi timestamp'e çevir (o günün başı - 00:00)
     const dateParts = addingToDate.split('-');
     const targetDate = new Date(
-      parseInt(dateParts[0]),
-      parseInt(dateParts[1]) - 1,
-      parseInt(dateParts[2]),
+      Number.parseInt(dateParts[0], 10),
+      Number.parseInt(dateParts[1], 10) - 1,
+      Number.parseInt(dateParts[2], 10),
       0, 0, 0 // Günün başı
     );
 
@@ -349,17 +519,6 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
 
   const templatePreview = getTemplatePreviewValues();
   
-  // Öğün bilgilerini getir
-  const getMealInfo = (mealType: MealType) => {
-    const mealConfig = {
-      breakfast: { label: 'Kahvaltı', icon: <LocalCafeIcon sx={{ color: MEAL_COLORS.breakfast }} />, color: MEAL_COLORS.breakfast },
-      lunch: { label: 'Öğle Yemeği', icon: <LunchDiningIcon sx={{ color: MEAL_COLORS.lunch }} />, color: MEAL_COLORS.lunch },
-      dinner: { label: 'Akşam Yemeği', icon: <DinnerDiningIcon sx={{ color: MEAL_COLORS.dinner }} />, color: MEAL_COLORS.dinner },
-      snack: { label: 'Atıştırmalık', icon: <CookieIcon sx={{ color: MEAL_COLORS.snack }} />, color: MEAL_COLORS.snack },
-    };
-    return mealConfig[mealType];
-  };
-
   // Yemekleri öğün türüne göre grupla
   const groupFoodsByMeal = (foods: Food[]) => {
     const groups: Record<MealType | 'other', Food[]> = {
@@ -456,6 +615,44 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   const isFutureTab = tabValue === 2;
   const activeDays = currentStats.days.filter(d => d.foods.length > 0).length;
   const hasAnyData = isFutureTab ? true : activeDays > 0;
+  const orderedDays = useMemo(
+    () => (isFutureTab ? currentStats.days : currentStats.days.slice().reverse()),
+    [currentStats.days, isFutureTab]
+  );
+  const visibleDays = useMemo(
+    () => (isFutureTab ? orderedDays : orderedDays.slice(0, visibleDayCount)),
+    [isFutureTab, orderedDays, visibleDayCount]
+  );
+
+  const summaryTotals = useMemo(() => {
+    const totals = currentStats.days.reduce(
+      (acc, day) => {
+        acc.calories += day.totalCalories;
+        acc.protein += day.totalProtein;
+        acc.carbs += day.totalCarbs;
+        acc.fat += day.totalFat;
+        return acc;
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    const goals = {
+      calories: goal.calories * currentStats.totalDays,
+      protein: goal.protein * currentStats.totalDays,
+      carbs: goal.carbs * currentStats.totalDays,
+      fat: goal.fat * currentStats.totalDays,
+    };
+
+    return {
+      totals,
+      goals,
+      caloriePercentage: Math.round(getPercentage(totals.calories, goals.calories)),
+      calorieProgressColor: getColor(getPercentage(totals.calories, goals.calories)),
+      proteinPercentage: getPercentage(totals.protein, goals.protein),
+      carbsPercentage: getPercentage(totals.carbs, goals.carbs),
+      fatPercentage: getPercentage(totals.fat, goals.fat),
+    };
+  }, [currentStats.days, currentStats.totalDays, goal]);
 
   // En iyi ve en kötü günleri bul
   const getBestAndWorstDays = () => {
@@ -508,15 +705,46 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
 
   const trend = calculateTrend();
 
-  const getPercentage = (current: number, target: number) => {
+  function getPercentage(current: number, target: number) {
     return Math.min((current / target) * 100, 100);
-  };
+  }
 
-  const getColor = (percentage: number): "primary" | "success" | "warning" | "error" => {
+  function getColor(percentage: number): "primary" | "success" | "warning" | "error" {
     if (percentage < 70) return "primary";
     if (percentage < 90) return "success";
     if (percentage < 110) return "warning";
     return "error";
+  }
+
+  const getDeleteDaySummary = (dateString: string): string => {
+    const dateParts = dateString.split('-');
+    const dayStart = new Date(
+      Number.parseInt(dateParts[0], 10),
+      Number.parseInt(dateParts[1], 10) - 1,
+      Number.parseInt(dateParts[2], 10),
+      0,
+      0,
+      0
+    ).getTime();
+    const dayEnd = new Date(
+      Number.parseInt(dateParts[0], 10),
+      Number.parseInt(dateParts[1], 10) - 1,
+      Number.parseInt(dateParts[2], 10),
+      23,
+      59,
+      59,
+      999
+    ).getTime();
+    const dayFoods = foods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
+    const totalCal = dayFoods.reduce((sum, f) => sum + f.calories, 0);
+    return `${dayFoods.length} yemek • ${totalCal} kcal`;
+  };
+
+  const getTemplateAmountLabel = (): string => {
+    if (!editingFood?.templateId) return 'Miktar';
+    const template = foodTemplates.find(t => t.id === editingFood.templateId);
+    if (!template) return 'Miktar';
+    return template.unit === 'piece' ? 'Adet' : 'Gram';
   };
 
   return (
@@ -528,9 +756,11 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         fullWidth
         fullScreen={isMobile}
         aria-labelledby="history-dialog-title"
-        PaperProps={{
-          sx: {
-            maxHeight: isMobile ? '100%' : '90vh',
+        slotProps={{
+          paper: {
+            sx: {
+              maxHeight: isMobile ? '100%' : '90vh',
+            }
           }
         }}
       >
@@ -555,7 +785,10 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         <DialogContent sx={{ px: isMobile ? 1.5 : 3, pb: isMobile ? 2 : 3 }}>
           <Tabs
             value={tabValue}
-            onChange={(_, newValue) => setTabValue(newValue)}
+            onChange={(_, newValue) => {
+              setTabValue(newValue);
+              setVisibleDayCount(INITIAL_DAY_COUNT);
+            }}
             sx={{
               mb: isMobile ? 2 : 3,
               px: isMobile ? 0.5 : 0,
@@ -806,34 +1039,21 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                           Toplam Kalori Hedefi
                         </Typography>
                         <Typography variant="body2" fontSize={isMobile ? '0.8rem' : undefined}>
-                          {(() => {
-                            const totalCalories = currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0);
-                            const totalGoal = goal.calories * currentStats.totalDays;
-                            const percentage = Math.round(getPercentage(totalCalories, totalGoal));
-                            return `${percentage}% tamamlandı`;
-                          })()}
+                          {`${summaryTotals.caloriePercentage}% tamamlandı`}
                         </Typography>
                       </Box>
                       <Box display="flex" justifyContent="space-between" mb={0.5}>
                         <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.7rem' : '0.75rem'}>
-                          {currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0).toLocaleString()} kcal
+                          {summaryTotals.totals.calories.toLocaleString()} kcal
                         </Typography>
                         <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.7rem' : '0.75rem'}>
-                          Hedef: {(goal.calories * currentStats.totalDays).toLocaleString()} kcal
+                          Hedef: {summaryTotals.goals.calories.toLocaleString()} kcal
                         </Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
-                        value={(() => {
-                          const totalCalories = currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0);
-                          const totalGoal = goal.calories * currentStats.totalDays;
-                          return getPercentage(totalCalories, totalGoal);
-                        })()}
-                        color={(() => {
-                          const totalCalories = currentStats.days.reduce((sum, d) => sum + d.totalCalories, 0);
-                          const totalGoal = goal.calories * currentStats.totalDays;
-                          return getColor(getPercentage(totalCalories, totalGoal));
-                        })()}
+                        value={summaryTotals.caloriePercentage}
+                        color={summaryTotals.calorieProgressColor}
                         sx={{ height: isMobile ? 6 : 8, borderRadius: 4 }}
                       />
                     </Box>
@@ -846,20 +1066,12 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                         </Typography>
                         <LinearProgress
                           variant="determinate"
-                          value={(() => {
-                            const totalProtein = currentStats.days.reduce((sum, d) => sum + d.totalProtein, 0);
-                            const totalGoal = goal.protein * currentStats.totalDays;
-                            return getPercentage(totalProtein, totalGoal);
-                          })()}
+                          value={summaryTotals.proteinPercentage}
                           color="info"
                           sx={{ height: 6, borderRadius: 3 }}
                         />
                         <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">
-                          {(() => {
-                            const totalProtein = currentStats.days.reduce((sum, d) => sum + d.totalProtein, 0);
-                            const totalGoal = goal.protein * currentStats.totalDays;
-                            return `${Math.round(totalProtein)}g / ${Math.round(totalGoal)}g`;
-                          })()}
+                          {`${Math.round(summaryTotals.totals.protein)}g / ${Math.round(summaryTotals.goals.protein)}g`}
                         </Typography>
                       </Box>
                       <Box flex={1}>
@@ -868,20 +1080,12 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                         </Typography>
                         <LinearProgress
                           variant="determinate"
-                          value={(() => {
-                            const totalCarbs = currentStats.days.reduce((sum, d) => sum + d.totalCarbs, 0);
-                            const totalGoal = goal.carbs * currentStats.totalDays;
-                            return getPercentage(totalCarbs, totalGoal);
-                          })()}
+                          value={summaryTotals.carbsPercentage}
                           color="success"
                           sx={{ height: 6, borderRadius: 3 }}
                         />
                         <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">
-                          {(() => {
-                            const totalCarbs = currentStats.days.reduce((sum, d) => sum + d.totalCarbs, 0);
-                            const totalGoal = goal.carbs * currentStats.totalDays;
-                            return `${Math.round(totalCarbs)}g / ${Math.round(totalGoal)}g`;
-                          })()}
+                          {`${Math.round(summaryTotals.totals.carbs)}g / ${Math.round(summaryTotals.goals.carbs)}g`}
                         </Typography>
                       </Box>
                       <Box flex={1}>
@@ -890,20 +1094,12 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                         </Typography>
                         <LinearProgress
                           variant="determinate"
-                          value={(() => {
-                            const totalFat = currentStats.days.reduce((sum, d) => sum + d.totalFat, 0);
-                            const totalGoal = goal.fat * currentStats.totalDays;
-                            return getPercentage(totalFat, totalGoal);
-                          })()}
+                          value={summaryTotals.fatPercentage}
                           color="warning"
                           sx={{ height: 6, borderRadius: 3 }}
                         />
                         <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">
-                          {(() => {
-                            const totalFat = currentStats.days.reduce((sum, d) => sum + d.totalFat, 0);
-                            const totalGoal = goal.fat * currentStats.totalDays;
-                            return `${Math.round(totalFat)}g / ${Math.round(totalGoal)}g`;
-                          })()}
+                          {`${Math.round(summaryTotals.totals.fat)}g / ${Math.round(summaryTotals.goals.fat)}g`}
                         </Typography>
                       </Box>
                     </Stack>
@@ -933,7 +1129,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   pb: 1 
                 }}
               >
-                {(isFutureTab ? currentStats.days : currentStats.days.slice().reverse()).map((day) => {
+                {visibleDays.map((day) => {
                   const percentage = getPercentage(day.totalCalories, goal.calories);
                   const hasData = day.foods.length > 0;
                   const isExpanded = expandedDays[day.date];
@@ -1093,126 +1289,16 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                               <Stack spacing={isMobile ? 0.75 : 1}>
                                 {Object.entries(groupFoodsByMeal(day.foods)).map(([mealType, mealFoods]) => {
                                   if (mealFoods.length === 0) return null;
-                                  
-                                  let mealInfo;
-                                  if (mealType === 'other') {
-                                    mealInfo = { label: 'Diğer', icon: '🍴', color: '#95a5a6' };
-                                  } else {
-                                    mealInfo = getMealInfo(mealType as MealType);
-                                  }
-                                  
+
                                   return (
-                                    <Paper
+                                    <HistoryMealSection
                                       key={mealType}
-                                      variant="outlined"
-                                      sx={{
-                                        p: isMobile ? 0.75 : 1,
-                                        bgcolor: 'background.default',
-                                        borderLeft: 3,
-                                        borderColor: mealInfo.color,
-                                      }}
-                                    >
-                                      <Box display="flex" alignItems="center" gap={0.5} mb={isMobile ? 0.4 : 0.5}>
-                                        <Box sx={{ color: mealInfo.color, display: 'flex', fontSize: isMobile ? 14 : 16 }}>
-                                          {typeof mealInfo.icon === 'string' ? mealInfo.icon : mealInfo.icon}
-                                        </Box>
-                                        <Typography
-                                          variant="caption"
-                                          fontWeight="600"
-                                          sx={{ 
-                                            color: mealInfo.color,
-                                            fontSize: isMobile ? '0.65rem' : '0.75rem',
-                                          }}
-                                        >
-                                          {mealInfo.label}
-                                        </Typography>
-                                      </Box>
-                                      <Stack spacing={0.4}>
-                                        {mealFoods.map((food) => (
-                                          <Box
-                                            key={food.id}
-                                            sx={{
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 0.5,
-                                              minWidth: 0,
-                                              p: 0.5,
-                                              borderRadius: 1,
-                                              '&:hover': {
-                                                bgcolor: 'action.hover',
-                                              },
-                                              '&:hover .food-actions': {
-                                                opacity: 1,
-                                              },
-                                            }}
-                                          >
-                                            <Typography 
-                                              variant="body2" 
-                                              color="text.secondary"
-                                              sx={{ 
-                                                flexShrink: 0, 
-                                                fontSize: isMobile ? '0.65rem' : '0.75rem' 
-                                              }}
-                                            >
-                                              •
-                                            </Typography>
-                                            <Typography 
-                                              variant="body2" 
-                                              color="text.primary"
-                                              sx={{ 
-                                                wordBreak: 'break-word',
-                                                overflow: 'hidden',
-                                                flex: 1,
-                                                minWidth: 0,
-                                                fontSize: isMobile ? '0.7rem' : '0.8rem',
-                                              }}
-                                            >
-                                              {food.name}
-                                            </Typography>
-                                            <Typography 
-                                              variant="caption" 
-                                              color="text.secondary"
-                                              sx={{ 
-                                                fontWeight: 600,
-                                                whiteSpace: 'nowrap',
-                                                fontSize: isMobile ? '0.6rem' : '0.7rem',
-                                              }}
-                                            >
-                                              {food.calories} kcal
-                                            </Typography>
-                                            <Box 
-                                              className="food-actions"
-                                              sx={{ 
-                                                display: 'flex',
-                                                gap: 0.25,
-                                                opacity: isMobile ? 1 : 0,
-                                                transition: 'opacity 0.2s',
-                                              }}
-                                            >
-                                              <Tooltip title="Düzenle">
-                                                <IconButton
-                                                  size="small"
-                                                  onClick={() => handleEditFood(food)}
-                                                  sx={{ padding: 0.25 }}
-                                                >
-                                                  <EditIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
-                                                </IconButton>
-                                              </Tooltip>
-                                              <Tooltip title="Sil">
-                                                <IconButton
-                                                  size="small"
-                                                  color="error"
-                                                  onClick={() => handleDeleteFood(food)}
-                                                  sx={{ padding: 0.25 }}
-                                                >
-                                                  <DeleteIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
-                                                </IconButton>
-                                              </Tooltip>
-                                            </Box>
-                                          </Box>
-                                        ))}
-                                      </Stack>
-                                    </Paper>
+                                      mealType={mealType}
+                                      mealFoods={mealFoods}
+                                      isMobile={isMobile}
+                                      onEdit={handleEditFood}
+                                      onDelete={handleDeleteFood}
+                                    />
                                   );
                                 })}
                               </Stack>
@@ -1256,6 +1342,17 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   );
                 })}
               </Stack>
+
+              {!isFutureTab && orderedDays.length > visibleDays.length && (
+                <Box display="flex" justifyContent="center" mt={2}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setVisibleDayCount((prev) => prev + DAY_INCREMENT)}
+                  >
+                    Daha Fazla Gün Göster
+                  </Button>
+                </Box>
+              )}
             </>
           ) : (
             <Box textAlign="center" py={isMobile ? 4 : 8}>
@@ -1277,10 +1374,12 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         onClose={() => setDeleteDialogOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            m: 2,
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              m: 2,
+            }
           }
         }}
       >
@@ -1336,10 +1435,12 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         onClose={() => setDeleteAllDayDialogOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            m: 2,
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              m: 2,
+            }
           }
         }}
       >
@@ -1366,14 +1467,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                 {formatDate(dayToDeleteAll)} - {getDayName(dayToDeleteAll)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {(() => {
-                  const dateParts = dayToDeleteAll.split('-');
-                  const dayStart = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]), 0, 0, 0).getTime();
-                  const dayEnd = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]), 23, 59, 59, 999).getTime();
-                  const dayFoods = foods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
-                  const totalCal = dayFoods.reduce((sum, f) => sum + f.calories, 0);
-                  return `${dayFoods.length} yemek • ${totalCal} kcal`;
-                })()}
+                {getDeleteDaySummary(dayToDeleteAll)}
               </Typography>
             </Box>
           )}
@@ -1418,14 +1512,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
                   size="small"
                 />
                 <TextField
-                  label={(() => {
-                    const template = foodTemplates.find(t => t.id === editingFood.templateId);
-                    if (!template) return 'Miktar';
-                    if (template.unit === 'piece') {
-                      return 'Adet';
-                    }
-                    return 'Gram';
-                  })()}
+                  label={getTemplateAmountLabel()}
                   type="number"
                   value={editFormData.amount}
                   onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
