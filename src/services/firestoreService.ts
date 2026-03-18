@@ -33,6 +33,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
   onSnapshot,
   writeBatch,
 } from 'firebase/firestore';
@@ -113,6 +114,82 @@ export const listenToUserFoods = (
     (error) => {
       console.error('Error listening to foods:', error);
       // Index eksikse boş array döndür
+      if (error.code === 'failed-precondition') {
+        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
+        callback([]);
+      } else {
+        callback([]);
+      }
+    }
+  );
+};
+
+/**
+ * Yemekleri limitli realtime dinle (performans için)
+ */
+export const listenToUserFoodsLimited = (
+  userId: string,
+  maxCount: number,
+  callback: (foods: Food[]) => void
+) => {
+  const foodsRef = collection(db, COLLECTIONS.FOODS);
+  const q = query(
+    foodsRef,
+    where('userId', '==', userId),
+    orderBy('timestamp', 'desc'),
+    limit(maxCount)
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const foods = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Food[];
+      callback(foods);
+    },
+    (error) => {
+      console.error('Error listening to limited foods:', error);
+      if (error.code === 'failed-precondition') {
+        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
+        callback([]);
+      } else {
+        callback([]);
+      }
+    }
+  );
+};
+
+/**
+ * Belirli zaman aralığındaki yemekleri realtime dinle
+ */
+export const listenToUserFoodsInRange = (
+  userId: string,
+  startTimestamp: number,
+  endTimestamp: number,
+  callback: (foods: Food[]) => void
+) => {
+  const foodsRef = collection(db, COLLECTIONS.FOODS);
+  const q = query(
+    foodsRef,
+    where('userId', '==', userId),
+    where('timestamp', '>=', startTimestamp),
+    where('timestamp', '<=', endTimestamp),
+    orderBy('timestamp', 'desc')
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const foods = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Food[];
+      callback(foods);
+    },
+    (error) => {
+      console.error('Error listening to foods in range:', error);
       if (error.code === 'failed-precondition') {
         console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
         callback([]);

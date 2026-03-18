@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Food, DailyGoal, DailyStats, FoodTemplate } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from './useLocalStorage';
@@ -10,24 +10,33 @@ import * as firestoreService from '../services/firestoreService';
  * - Misafir kullanıcılar: LocalStorage kullanır
  */
 export function useFoodTracker() {
+  const allFoodsLoadPromiseRef = useRef<Promise<void> | null>(null);
+  const getTodayRange = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+    return { start, end };
+  };
     // Bir güne ait tüm yemekleri sil
     const deleteAllDayFoods = async (dateString: string) => {
       // Tarihi parse et
       const dateParts = dateString.split('-');
       const dayStart = new Date(
-        parseInt(dateParts[0]),
-        parseInt(dateParts[1]) - 1,
-        parseInt(dateParts[2]),
+        Number.parseInt(dateParts[0], 10),
+        Number.parseInt(dateParts[1], 10) - 1,
+        Number.parseInt(dateParts[2], 10),
         0, 0, 0
       ).getTime();
       const dayEnd = new Date(
-        parseInt(dateParts[0]),
-        parseInt(dateParts[1]) - 1,
-        parseInt(dateParts[2]),
+        Number.parseInt(dateParts[0], 10),
+        Number.parseInt(dateParts[1], 10) - 1,
+        Number.parseInt(dateParts[2], 10),
         23, 59, 59, 999
       ).getTime();
 
-      const activeFoods = isGuest ? localFoods : foods;
+      const activeFoods = isGuest
+        ? localFoods
+        : (allFoodsLoaded ? historyFoods : foods);
       const dayFoods = activeFoods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
 
       if (dayFoods.length === 0) return;
@@ -37,6 +46,7 @@ export function useFoodTracker() {
         const updated = localFoods.filter(f => !dayFoodIds.has(f.id));
         setLocalFoods(updated);
         setFoods(updated);
+        setHistoryFoods(updated);
         return;
       }
 
@@ -44,6 +54,10 @@ export function useFoodTracker() {
       try {
         const ids = dayFoods.map(f => f.id);
         await firestoreService.deleteFoodsBulk(ids);
+        if (allFoodsLoaded) {
+          const idSet = new Set(ids);
+          setHistoryFoods((prev) => prev.filter((food) => !idSet.has(food.id)));
+        }
       } catch (error) {
         console.error('Günlük yemek silme hatası:', error);
         throw error;
@@ -87,24 +101,48 @@ export function useFoodTracker() {
   };
 
   const [foods, setFoods] = useState<Food[]>([]);
+  const [historyFoods, setHistoryFoods] = useState<Food[]>([]);
+  const [allFoodsLoaded, setAllFoodsLoaded] = useState(false);
+  const [allFoodsLoading, setAllFoodsLoading] = useState(false);
   const [dailyGoal, setDailyGoal] = useState<DailyGoal>(defaultGoal);
   const [foodTemplates, setFoodTemplates] = useState<FoodTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [todayTick, setTodayTick] = useState(() => new Date().toDateString());
+
+  const { start: todayStart, end: todayEnd } = useMemo(() => getTodayRange(), [todayTick]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const next = new Date().toDateString();
+      setTodayTick((prev) => (prev === next ? prev : next));
+    }, 60_000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Misafir modunda LocalStorage verilerini state'e yansıt
+  useEffect(() => {
+    if (!isGuest) return;
+
+    setFoods(localFoods);
+    setHistoryFoods(localFoods);
+    setAllFoodsLoaded(true);
+    setDailyGoal(localGoal);
+    setFoodTemplates(localTemplates);
+    setLoading(false);
+  }, [isGuest, localFoods, localGoal, localTemplates]);
 
   // Firestore'dan verileri dinle (realtime updates) - Sadece kayıtlı kullanıcılar için
   useEffect(() => {
-    // Misafir modunda LocalStorage kullan, loading'i kapat
-    if (isGuest) {
-      setFoods(localFoods);
-      setDailyGoal(localGoal);
-      setFoodTemplates(localTemplates);
-      setLoading(false);
-      return;
-    }
+    if (isGuest) return;
 
     if (!currentUser) {
       // Kullanıcı yoksa temizle ve loading'i kapat
       setFoods([]);
+      setHistoryFoods([]);
+      setAllFoodsLoaded(false);
+      setAllFoodsLoading(false);
+      allFoodsLoadPromiseRef.current = null;
       setDailyGoal(defaultGoal);
       setFoodTemplates([]);
       setLoading(false);
@@ -123,7 +161,7 @@ export function useFoodTracker() {
     };
 
     // Foods listener
-    const unsubFoods = firestoreService.listenToUserFoods(currentUser.uid, (newFoods) => {
+    const unsubFoods = firestoreService.listenToUserFoodsInRange(currentUser.uid, todayStart, todayEnd, (newFoods) => {
       setFoods(newFoods);
       hasLoadedFoods = true;
       checkAllLoaded();
@@ -162,7 +200,7 @@ export function useFoodTracker() {
       unsubGoal();
       unsubTemplates();
     };
-  }, [currentUser, isGuest, localFoods, localGoal, localTemplates]);
+  }, [currentUser, isGuest, todayStart, todayEnd]);
 
   // Bugünün tarihini al (YYYY-MM-DD formatında)
   const getTodayString = (): string => {
@@ -173,22 +211,21 @@ export function useFoodTracker() {
     return `${year}-${month}-${day}`;
   };
 
+  const activeAllFoods = isGuest ? localFoods : historyFoods;
+
   // Bugünün yemeklerini ve planlarını filtrele
-  const getTodayFoods = (): Food[] => {
+  const todayFoods = useMemo((): Food[] => {
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0).getTime();
     const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime();
 
-    const activeFoods = isGuest ? localFoods : foods;
-    return activeFoods.filter(food => 
+    return foods.filter(food => 
       food.timestamp >= todayStart && food.timestamp <= todayEnd
     );
-  };
+  }, [foods]);
 
   // Günlük istatistikleri hesapla
-  const getDailyStats = (): DailyStats => {
-    const todayFoods = getTodayFoods();
-    
+  const dailyStats = useMemo((): DailyStats => {
     const stats = todayFoods.reduce(
       (acc, food) => ({
         totalCalories: acc.totalCalories + food.calories,
@@ -204,7 +241,7 @@ export function useFoodTracker() {
       foods: todayFoods,
       date: getTodayString(),
     };
-  };
+  }, [todayFoods]);
 
   // Yeni yemek ekle
   const addFood = async (food: Omit<Food, 'id' | 'timestamp'>, customTimestamp?: number) => {
@@ -218,6 +255,7 @@ export function useFoodTracker() {
       const newFoodWithId = { ...newFood, id: Date.now().toString() };
       setLocalFoods([...localFoods, newFoodWithId]);
       setFoods([...foods, newFoodWithId]);
+      setHistoryFoods([newFoodWithId, ...localFoods]);
       return;
     }
 
@@ -227,7 +265,10 @@ export function useFoodTracker() {
     }
     
     try {
-      await firestoreService.addFood(currentUser.uid, newFood);
+      const newFoodId = await firestoreService.addFood(currentUser.uid, newFood);
+      if (allFoodsLoaded) {
+        setHistoryFoods((prev) => [{ ...newFood, id: newFoodId }, ...prev]);
+      }
     } catch (error) {
       console.error('Yemek ekleme hatası:', error);
       throw error;
@@ -241,6 +282,7 @@ export function useFoodTracker() {
       const updated = localFoods.filter(f => f.id !== id);
       setLocalFoods(updated);
       setFoods(updated);
+      setHistoryFoods(updated);
       return;
     }
 
@@ -250,6 +292,9 @@ export function useFoodTracker() {
     }
     try {
       await firestoreService.deleteFood(id);
+      if (allFoodsLoaded) {
+        setHistoryFoods((prev) => prev.filter((food) => food.id !== id));
+      }
     } catch (error) {
       console.error('Yemek silme hatası:', error);
       throw error;
@@ -265,6 +310,7 @@ export function useFoodTracker() {
       );
       setLocalFoods(updated);
       setFoods(updated);
+      setHistoryFoods(updated);
       return;
     }
 
@@ -274,6 +320,11 @@ export function useFoodTracker() {
     }
     try {
       await firestoreService.updateFood(id, updatedFood);
+      if (allFoodsLoaded) {
+        setHistoryFoods((prev) =>
+          prev.map((food) => (food.id === id ? { ...food, ...updatedFood } : food))
+        );
+      }
     } catch (error) {
       console.error('Yemek güncelleme hatası:', error);
       throw error;
@@ -420,20 +471,63 @@ export function useFoodTracker() {
       const newFoodWithId = { ...newFood, id: Date.now().toString() };
       setLocalFoods([...localFoods, newFoodWithId]);
       setFoods([...foods, newFoodWithId]);
+      setHistoryFoods([newFoodWithId, ...localFoods]);
       return;
     }
 
     // Kayıtlı kullanıcı
     if (!currentUser) return;
-    await firestoreService.addFood(currentUser.uid, newFood);
+    const newFoodId = await firestoreService.addFood(currentUser.uid, newFood);
+    if (allFoodsLoaded) {
+      setHistoryFoods((prev) => [{ ...newFood, id: newFoodId }, ...prev]);
+    }
   };
 
+  const ensureAllFoodsLoaded = useCallback(async () => {
+    if (isGuest) {
+      setHistoryFoods(localFoods);
+      setAllFoodsLoaded(true);
+      return;
+    }
+
+    if (!currentUser) {
+      throw new Error('Lütfen önce giriş yapın');
+    }
+
+    if (allFoodsLoaded) return;
+
+    if (allFoodsLoadPromiseRef.current) {
+      await allFoodsLoadPromiseRef.current;
+      return;
+    }
+
+    setAllFoodsLoading(true);
+
+    const loadPromise = (async () => {
+      const userFoods = await firestoreService.getUserFoods(currentUser.uid);
+      setHistoryFoods(userFoods);
+      setAllFoodsLoaded(true);
+    })();
+
+    allFoodsLoadPromiseRef.current = loadPromise;
+
+    try {
+      await loadPromise;
+    } finally {
+      allFoodsLoadPromiseRef.current = null;
+      setAllFoodsLoading(false);
+    }
+  }, [currentUser, isGuest, localFoods, allFoodsLoaded]);
+
   return {
-    foods: getTodayFoods(),
-    allFoods: isGuest ? localFoods : foods, // Tüm geçmiş için - misafirde localFoods, kayıtlı kullanıcıda foods
+    foods: todayFoods,
+    allFoods: activeAllFoods,
+    allFoodsLoaded,
+    allFoodsLoading,
     dailyGoal,
-    dailyStats: getDailyStats(),
+    dailyStats,
     loading,
+    ensureAllFoodsLoaded,
     addFood,
     deleteFood,
     editFood,

@@ -41,7 +41,7 @@ import AddIcon from '@mui/icons-material/Add';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Food, DailyGoal, MealType, FoodTemplate } from '../types';
 import { calculateWeeklyStats, formatDate, getDayName } from '../utils/dateUtils';
 
@@ -382,9 +382,9 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   };
   
   // Farklı zaman aralıkları
-  const monthlyStats = calculateWeeklyStats(foods, 30);
-  
-  const allTimeStats = (() => {
+  const monthlyStats = useMemo(() => calculateWeeklyStats(foods, 30), [foods]);
+
+  const allTimeStats = useMemo(() => {
     if (foods.length === 0) return calculateWeeklyStats(foods, 0);
     
     const oldestFood = foods.reduce((oldest, food) => 
@@ -400,7 +400,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
     const daysDiff = Math.round((today.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
     return calculateWeeklyStats(foods, daysDiff);
-  })();
+  }, [foods]);
 
   // Gelecek 7 gün için istatistikler (yarından başlayarak)
   const getFutureDaysStats = () => {
@@ -449,7 +449,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
     };
   };
 
-  const futureStats = getFutureDaysStats();
+  const futureStats = useMemo(() => getFutureDaysStats(), [foods]);
   
   const statsOptions = [monthlyStats, allTimeStats, futureStats];
   const currentStats = statsOptions[tabValue];

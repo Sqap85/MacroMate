@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Container, Typography, Box, AppBar, Toolbar, Stack, Link as MuiLink, Fade, IconButton, Tooltip, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -8,12 +8,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { FoodForm } from './components/FoodForm';
 import { StatsCard } from './components/StatsCard';
 import { FoodList } from './components/FoodList';
-import { GoalSettingsModal } from './components/GoalSettingsModal';
-import { HistoryModal } from './components/HistoryModal';
-import { FoodTemplatesModal } from './components/FoodTemplatesModal';
-import { AuthModal } from './components/AuthModal';
 import { EmailVerificationScreen } from './components/EmailVerificationScreen';
-import { ProfileModal } from './components/ProfileModal';
 import { Toast } from './components/Toast';
 import { useFoodTracker } from './hooks/useFoodTracker';
 import { useAuth } from './contexts/AuthContext';
@@ -22,14 +17,33 @@ import type { AlertColor } from '@mui/material';
 import './App.css';
 import { formatDate } from './utils/dateUtils';
 
+const HistoryModal = lazy(() =>
+  import('./components/HistoryModal').then((module) => ({ default: module.HistoryModal }))
+);
+const GoalSettingsModal = lazy(() =>
+  import('./components/GoalSettingsModal').then((module) => ({ default: module.GoalSettingsModal }))
+);
+const FoodTemplatesModal = lazy(() =>
+  import('./components/FoodTemplatesModal').then((module) => ({ default: module.FoodTemplatesModal }))
+);
+const AuthModal = lazy(() =>
+  import('./components/AuthModal').then((module) => ({ default: module.AuthModal }))
+);
+const ProfileModal = lazy(() =>
+  import('./components/ProfileModal').then((module) => ({ default: module.ProfileModal }))
+);
+
 function App() {
   const { currentUser, logout, isGuest } = useAuth();
   const { 
     foods, 
     allFoods, 
+    allFoodsLoaded,
+    allFoodsLoading,
     dailyGoal, 
     dailyStats,
     loading: dataLoading,
+    ensureAllFoodsLoaded,
     addFood, 
     deleteFood, 
     editFood,
@@ -161,7 +175,7 @@ function App() {
 
   const handleDeleteFood = async (id: string) => {
     try {
-      const foodName = allFoods.find(f => f.id === id)?.name;
+      const foodName = allFoods.find(f => f.id === id)?.name || foods.find(f => f.id === id)?.name;
       await deleteFood(id);
       setToast({
         open: true,
@@ -311,6 +325,29 @@ function App() {
     setLogoutDialogOpen(false);
   };
 
+  const handleOpenHistory = async () => {
+    if (allFoodsLoading) return;
+
+    if (!allFoodsLoaded) {
+      setToast({
+        open: true,
+        message: 'Geçmiş kayıtlar yükleniyor...',
+        severity: 'info',
+      });
+    }
+
+    try {
+      await ensureAllFoodsLoaded();
+      setHistoryOpen(true);
+    } catch (error: any) {
+      setToast({
+        open: true,
+        message: error?.message || 'Geçmiş kayıtlar yüklenirken hata oluştu',
+        severity: 'error',
+      });
+    }
+  };
+
   // Veri yüklenirken loading göster (sadece kullanıcı giriş yaptıysa, misafir değilse)
   if (currentUser && !isGuest && dataLoading) {
     return (
@@ -404,7 +441,7 @@ function App() {
               ) : (
                 <>
                   <Tooltip title="Kayıtlar & Planlama">
-                    <IconButton color="inherit" onClick={() => setHistoryOpen(true)}>
+                    <IconButton color="inherit" onClick={handleOpenHistory} disabled={allFoodsLoading}>
                       <CalendarMonthIcon />
                     </IconButton>
                   </Tooltip>
@@ -560,40 +597,50 @@ function App() {
       </Box>
 
       {/* Modals & Notifications */}
-      <AuthModal
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <AuthModal
+          open={authOpen}
+          onClose={() => setAuthOpen(false)}
+        />
+      </Suspense>
       
-      <GoalSettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        currentGoal={dailyGoal}
-        onSave={handleSaveGoal}
-      />
+      <Suspense fallback={null}>
+        <GoalSettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          currentGoal={dailyGoal}
+          onSave={handleSaveGoal}
+        />
+      </Suspense>
 
-      <HistoryModal
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        foods={allFoods}
-        goal={dailyGoal}
-        onDeleteFood={handleDeleteFood}
-        onEditFood={handleEditFood}
-        onAddFood={handleAddFood}
-        onDeleteAllDayFoods={handleDeleteAllDayFoods}
-        foodTemplates={foodTemplates}
-        onOpenTemplates={() => setTemplatesOpen(true)}
-      />
+      {historyOpen && (
+        <Suspense fallback={null}>
+          <HistoryModal
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            foods={allFoods}
+            goal={dailyGoal}
+            onDeleteFood={handleDeleteFood}
+            onEditFood={handleEditFood}
+            onAddFood={handleAddFood}
+            onDeleteAllDayFoods={handleDeleteAllDayFoods}
+            foodTemplates={foodTemplates}
+            onOpenTemplates={() => setTemplatesOpen(true)}
+          />
+        </Suspense>
+      )}
 
-      <FoodTemplatesModal
-        open={templatesOpen}
-        onClose={() => setTemplatesOpen(false)}
-        templates={foodTemplates}
-        onAddTemplate={handleAddTemplate}
-        onDeleteTemplate={handleDeleteTemplate}
-        onEditTemplate={handleEditTemplate}
-        onBulkDelete={handleBulkDeleteTemplates}
-      />
+      <Suspense fallback={null}>
+        <FoodTemplatesModal
+          open={templatesOpen}
+          onClose={() => setTemplatesOpen(false)}
+          templates={foodTemplates}
+          onAddTemplate={handleAddTemplate}
+          onDeleteTemplate={handleDeleteTemplate}
+          onEditTemplate={handleEditTemplate}
+          onBulkDelete={handleBulkDeleteTemplates}
+        />
+      </Suspense>
       
       <Toast
         open={toast.open}
@@ -643,26 +690,28 @@ function App() {
 
     {/* Profil Modal - EmailVerificationScreen açıksa DOM'dan kaldır */}
   {!showEmailVerification && (
-      <ProfileModal 
-        open={profileOpen}
-        onClose={() => {
-          setProfileOpen(false);
-          setPendingPasswordAdd(false);
-        }}
-        onSuccess={(message) => {
-          if (message === 'Şifre başarıyla güncellendi!') {
-            setToast({ open: true, message, severity: 'success' });
-          } else if (message === 'Hesabınız başarıyla silindi.') {
-            setToast({ open: true, message, severity: 'info' });
-          } else if (pendingPasswordAdd) {
-            setToast({ open: true, message, severity: 'success' });
+      <Suspense fallback={null}>
+        <ProfileModal 
+          open={profileOpen}
+          onClose={() => {
+            setProfileOpen(false);
             setPendingPasswordAdd(false);
-          } else if (message === 'İsim başarıyla güncellendi!') {
-            setToast({ open: true, message, severity: 'success' });
-          }
-        }}
-        onStartPasswordAdd={() => setPendingPasswordAdd(true)}
-      />
+          }}
+          onSuccess={(message) => {
+            if (message === 'Şifre başarıyla güncellendi!') {
+              setToast({ open: true, message, severity: 'success' });
+            } else if (message === 'Hesabınız başarıyla silindi.') {
+              setToast({ open: true, message, severity: 'info' });
+            } else if (pendingPasswordAdd) {
+              setToast({ open: true, message, severity: 'success' });
+              setPendingPasswordAdd(false);
+            } else if (message === 'İsim başarıyla güncellendi!') {
+              setToast({ open: true, message, severity: 'success' });
+            }
+          }}
+          onStartPasswordAdd={() => setPendingPasswordAdd(true)}
+        />
+      </Suspense>
     )}
     {/* EmailVerificationScreen'e iptal callback'i ilet */}
       {showEmailVerification && (

@@ -12,6 +12,10 @@ export const getDateString = (date: Date = new Date()): string => {
   return `${year}-${month}-${day}`;
 };
 
+const getDateStringFromTimestamp = (timestamp: number): string => {
+  return getDateString(new Date(timestamp));
+};
+
 // Tarih range'i oluştur
 export const getDateRange = (days: number): string[] => {
   const dates: string[] = [];
@@ -62,7 +66,44 @@ export const calculateDailyStats = (foods: Food[], dateString: string): DailySta
 // Haftalık istatistik hesapla
 export const calculateWeeklyStats = (foods: Food[], days: number = 7): WeeklyStats => {
   const dateRange = getDateRange(days);
-  const dailyStats = dateRange.map(date => calculateDailyStats(foods, date));
+  const dayMap = new Map<string, DailyStats>();
+
+  // Tek geciste gunluk toplamlari olustur
+  for (const food of foods) {
+    const dateKey = getDateStringFromTimestamp(food.timestamp);
+    const current = dayMap.get(dateKey);
+
+    if (current) {
+      current.totalCalories += food.calories;
+      current.totalProtein += food.protein;
+      current.totalCarbs += food.carbs;
+      current.totalFat += food.fat;
+      current.foods.push(food);
+    } else {
+      dayMap.set(dateKey, {
+        totalCalories: food.calories,
+        totalProtein: food.protein,
+        totalCarbs: food.carbs,
+        totalFat: food.fat,
+        foods: [food],
+        date: dateKey,
+      });
+    }
+  }
+
+  const dailyStats = dateRange.map((date) => {
+    const stats = dayMap.get(date);
+    if (stats) return stats;
+
+    return {
+      totalCalories: 0,
+      totalProtein: 0,
+      totalCarbs: 0,
+      totalFat: 0,
+      foods: [],
+      date,
+    };
+  });
   
   // Sadece yemek olan günleri say (aktif günler)
   const activeDays = dailyStats.filter(day => day.foods.length > 0);
