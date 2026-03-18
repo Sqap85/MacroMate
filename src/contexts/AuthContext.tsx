@@ -271,6 +271,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } else {
       // Google popup ile doğrula
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
       await reauthenticateWithPopup(user, provider);
     }
 
