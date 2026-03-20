@@ -180,6 +180,36 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     setEditDialogOpen(false);
     setSelectedFood(null);
   };
+
+  const timeFormatter = useMemo(
+    () => new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+    []
+  );
+
+  const groupedFoods = useMemo(() => {
+    const groups: { [key: string]: Food[] } = {
+      breakfast: [],
+      lunch: [],
+      dinner: [],
+      snack: [],
+      other: [],
+    };
+
+    foods.forEach(food => {
+      if (food.mealType) {
+        groups[food.mealType].push(food);
+      } else {
+        groups.other.push(food);
+      }
+    });
+
+    return groups;
+  }, [foods]);
+
+  const todayDateOnly = useMemo(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  }, []);
   
   if (foods.length === 0) {
     return (
@@ -199,34 +229,8 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     );
   }
 
-  const timeFormatter = useMemo(
-    () => new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-    []
-  );
-
   // Zamanı formatla
   const formatTime = (timestamp: number) => timeFormatter.format(new Date(timestamp));
-
-  // Yemekleri öğünlere göre grupla
-  const groupFoodsByMeal = () => {
-    const groups: { [key: string]: Food[] } = {
-      breakfast: [],
-      lunch: [],
-      dinner: [],
-      snack: [],
-      other: [],
-    };
-
-    foods.forEach(food => {
-      if (food.mealType) {
-        groups[food.mealType].push(food);
-      } else {
-        groups.other.push(food);
-      }
-    });
-
-    return groups;
-  };
 
   const getMealInfo = (mealType: string) => {
     switch (mealType) {
@@ -242,12 +246,6 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
         return { icon: RestaurantIcon, label: 'Diğer', color: '#9E9E9E' };
     }
   };
-
-  const groupedFoods = useMemo(() => groupFoodsByMeal(), [foods]);
-  const todayDateOnly = useMemo(() => {
-    const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  }, []);
 
   const isPlannedTimestamp = (timestamp: number) => {
     const foodDate = new Date(timestamp);

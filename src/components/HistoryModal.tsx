@@ -232,6 +232,57 @@ function HistoryMealSection({ mealType, mealFoods, isMobile, onEdit, onDelete }:
     </Paper>
   );
 }
+function getPercentage(current: number, target: number) {
+  return Math.min((current / target) * 100, 100);
+}
+
+function getColor(percentage: number): "primary" | "success" | "warning" | "error" {
+  if (percentage < 70) return "primary";
+  if (percentage < 90) return "success";
+  if (percentage < 110) return "warning";
+  return "error";
+}
+
+function getFutureDaysStats(foods: Food[]) {
+  const futureDays = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 1; i <= 7; i++) {
+    const futureDate = new Date(today);
+    futureDate.setDate(today.getDate() + i);
+    const dateString = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+
+    const dayStart = futureDate.getTime();
+    const dayEnd = new Date(futureDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const plannedFoods = foods.filter(f =>
+      f.timestamp >= dayStart && f.timestamp <= dayEnd.getTime()
+    );
+
+    const stats = plannedFoods.reduce(
+      (acc, food) => ({
+        totalCalories: acc.totalCalories + food.calories,
+        totalProtein: acc.totalProtein + food.protein,
+        totalCarbs: acc.totalCarbs + food.carbs,
+        totalFat: acc.totalFat + food.fat,
+      }),
+      { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
+    );
+
+    futureDays.push({ ...stats, foods: plannedFoods, date: dateString });
+  }
+
+  return {
+    days: futureDays,
+    averageCalories: 0,
+    averageProtein: 0,
+    averageCarbs: 0,
+    averageFat: 0,
+    totalDays: 7,
+  };
+}
 
 export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditFood, onAddFood, onDeleteAllDayFoods, foodTemplates, onOpenTemplates }: Readonly<HistoryModalProps>) {
   const INITIAL_DAY_COUNT = 20;
@@ -561,54 +612,7 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
     return calculateWeeklyStats(foods, daysDiff);
   }, [foods]);
 
-  // Gelecek 7 gün için istatistikler (yarından başlayarak)
-  const getFutureDaysStats = () => {
-    const futureDays = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (let i = 1; i <= 7; i++) {
-      const futureDate = new Date(today);
-      futureDate.setDate(today.getDate() + i);
-      const dateString = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
-      
-      const dayStart = futureDate.getTime();
-      const dayEnd = new Date(futureDate);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      // Bu güne planlanan yemekleri filtrele (timestamp gelecekte olanlar)
-      const plannedFoods = foods.filter(f => 
-        f.timestamp >= dayStart && f.timestamp <= dayEnd.getTime()
-      );
-
-      const stats = plannedFoods.reduce(
-        (acc, food) => ({
-          totalCalories: acc.totalCalories + food.calories,
-          totalProtein: acc.totalProtein + food.protein,
-          totalCarbs: acc.totalCarbs + food.carbs,
-          totalFat: acc.totalFat + food.fat,
-        }),
-        { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
-      );
-
-      futureDays.push({
-        ...stats,
-        foods: plannedFoods,
-        date: dateString,
-      });
-    }
-
-    return {
-      days: futureDays,
-      averageCalories: 0,
-      averageProtein: 0,
-      averageCarbs: 0,
-      averageFat: 0,
-      totalDays: 7,
-    };
-  };
-
-  const futureStats = useMemo(() => getFutureDaysStats(), [foods]);
+  const futureStats = useMemo(() => getFutureDaysStats(foods), [foods]);
   
   const statsOptions = [monthlyStats, allTimeStats, futureStats];
   const currentStats = statsOptions[tabValue];
@@ -704,17 +708,6 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
   };
 
   const trend = calculateTrend();
-
-  function getPercentage(current: number, target: number) {
-    return Math.min((current / target) * 100, 100);
-  }
-
-  function getColor(percentage: number): "primary" | "success" | "warning" | "error" {
-    if (percentage < 70) return "primary";
-    if (percentage < 90) return "success";
-    if (percentage < 110) return "warning";
-    return "error";
-  }
 
   const getDeleteDaySummary = (dateString: string): string => {
     const dateParts = dateString.split('-');

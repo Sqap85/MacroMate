@@ -17,69 +17,6 @@ export function useFoodTracker() {
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
     return { start, end };
   };
-    // Bir güne ait tüm yemekleri sil
-    const deleteAllDayFoods = async (dateString: string) => {
-      // Tarihi parse et
-      const dateParts = dateString.split('-');
-      const dayStart = new Date(
-        Number.parseInt(dateParts[0], 10),
-        Number.parseInt(dateParts[1], 10) - 1,
-        Number.parseInt(dateParts[2], 10),
-        0, 0, 0
-      ).getTime();
-      const dayEnd = new Date(
-        Number.parseInt(dateParts[0], 10),
-        Number.parseInt(dateParts[1], 10) - 1,
-        Number.parseInt(dateParts[2], 10),
-        23, 59, 59, 999
-      ).getTime();
-
-      const activeFoods = isGuest
-        ? localFoods
-        : (allFoodsLoaded ? historyFoods : foods);
-      const dayFoods = activeFoods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
-
-      if (dayFoods.length === 0) return;
-
-      if (isGuest) {
-        const dayFoodIds = new Set(dayFoods.map(f => f.id));
-        const updated = localFoods.filter(f => !dayFoodIds.has(f.id));
-        setLocalFoods(updated);
-        setFoods(updated);
-        setHistoryFoods(updated);
-        return;
-      }
-
-      if (!currentUser) throw new Error('Lütfen önce giriş yapın');
-      try {
-        const ids = dayFoods.map(f => f.id);
-        await firestoreService.deleteFoodsBulk(ids);
-        if (allFoodsLoaded) {
-          const idSet = new Set(ids);
-          setHistoryFoods((prev) => prev.filter((food) => !idSet.has(food.id)));
-        }
-      } catch (error) {
-        console.error('Günlük yemek silme hatası:', error);
-        throw error;
-      }
-    };
-
-    // Besin şablonlarını toplu sil
-    const deleteFoodTemplatesBulk = async (ids: string[]) => {
-      if (isGuest) {
-        const updated = localTemplates.filter(t => !ids.includes(t.id));
-        setLocalTemplates(updated);
-        setFoodTemplates(updated);
-        return;
-      }
-      if (!currentUser) throw new Error('Lütfen önce giriş yapın');
-      try {
-        await firestoreService.deleteTemplatesBulk(ids);
-      } catch (error) {
-        console.error('Toplu şablon silme hatası:', error);
-        throw error;
-      }
-    };
   const { currentUser, isGuest } = useAuth();
   
   // Misafir kullanıcılar için LocalStorage
@@ -110,6 +47,70 @@ export function useFoodTracker() {
   const [todayTick, setTodayTick] = useState(() => new Date().toDateString());
 
   const { start: todayStart, end: todayEnd } = useMemo(() => getTodayRange(), [todayTick]);
+
+  // Bir güne ait tüm yemekleri sil
+  const deleteAllDayFoods = async (dateString: string) => {
+    // Tarihi parse et
+    const dateParts = dateString.split('-');
+    const dayStart = new Date(
+      Number.parseInt(dateParts[0], 10),
+      Number.parseInt(dateParts[1], 10) - 1,
+      Number.parseInt(dateParts[2], 10),
+      0, 0, 0
+    ).getTime();
+    const dayEnd = new Date(
+      Number.parseInt(dateParts[0], 10),
+      Number.parseInt(dateParts[1], 10) - 1,
+      Number.parseInt(dateParts[2], 10),
+      23, 59, 59, 999
+    ).getTime();
+
+    const activeFoods = isGuest
+      ? localFoods
+      : (allFoodsLoaded ? historyFoods : foods);
+    const dayFoods = activeFoods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
+
+    if (dayFoods.length === 0) return;
+
+    if (isGuest) {
+      const dayFoodIds = new Set(dayFoods.map(f => f.id));
+      const updated = localFoods.filter(f => !dayFoodIds.has(f.id));
+      setLocalFoods(updated);
+      setFoods(updated);
+      setHistoryFoods(updated);
+      return;
+    }
+
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
+    try {
+      const ids = dayFoods.map(f => f.id);
+      await firestoreService.deleteFoodsBulk(ids);
+      if (allFoodsLoaded) {
+        const idSet = new Set(ids);
+        setHistoryFoods((prev) => prev.filter((food) => !idSet.has(food.id)));
+      }
+    } catch (error) {
+      console.error('Günlük yemek silme hatası:', error);
+      throw error;
+    }
+  };
+
+  // Besin şablonlarını toplu sil
+  const deleteFoodTemplatesBulk = async (ids: string[]) => {
+    if (isGuest) {
+      const updated = localTemplates.filter(t => !ids.includes(t.id));
+      setLocalTemplates(updated);
+      setFoodTemplates(updated);
+      return;
+    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
+    try {
+      await firestoreService.deleteTemplatesBulk(ids);
+    } catch (error) {
+      console.error('Toplu şablon silme hatası:', error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
