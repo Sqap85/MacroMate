@@ -22,12 +22,12 @@ export default defineConfig({
         prefer_related_applications: false,
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'calories.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'calories.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
