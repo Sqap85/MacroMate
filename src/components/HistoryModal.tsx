@@ -1326,33 +1326,57 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                             
                             {/* Makro chipler */}
                             <Box mb={isMobile ? 0.75 : 1}>
-                              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                              <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'nowrap' }}>
                                 <Chip 
                                   label={`P: ${formatGrams(day.totalProtein)}g`} 
                                   size="small" 
                                   variant="outlined"
                                   color="info"
-                                  sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem', height: 20 }}
+                                  sx={{
+                                    flex: { xs: 1, sm: '0 0 auto' },
+                                    minWidth: { xs: 0, sm: 'auto' },
+                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
+                                    height: isMobile ? 20 : 22,
+                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
+                                  }}
                                 />
                                 <Chip 
                                   label={`K: ${formatGrams(day.totalCarbs)}g`} 
                                   size="small" 
                                   variant="outlined"
                                   color="success"
-                                  sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem', height: 20 }}
+                                  sx={{
+                                    flex: { xs: 1, sm: '0 0 auto' },
+                                    minWidth: { xs: 0, sm: 'auto' },
+                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
+                                    height: isMobile ? 20 : 22,
+                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
+                                  }}
                                 />
                                 <Chip 
                                   label={`Y: ${formatGrams(day.totalFat)}g`} 
                                   size="small" 
                                   variant="outlined"
                                   color="warning"
-                                  sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem', height: 20 }}
+                                  sx={{
+                                    flex: { xs: 1, sm: '0 0 auto' },
+                                    minWidth: { xs: 0, sm: 'auto' },
+                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
+                                    height: isMobile ? 20 : 22,
+                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
+                                  }}
                                 />
                                 <Chip 
                                   label={`${day.foods.length} öğe`} 
                                   size="small" 
                                   variant="outlined"
-                                  sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem', height: 20 }}
+                                  sx={{
+                                    flex: { xs: 1, sm: '0 0 auto' },
+                                    minWidth: { xs: 0, sm: 'auto' },
+                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
+                                    height: isMobile ? 20 : 22,
+                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
+                                  }}
                                 />
                               </Stack>
                             </Box>
@@ -1806,32 +1830,60 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                   <Typography variant="caption" color="text.secondary" display="block" mb={1}>
                     Toplam Değerler ({templatePreview.amount} {templatePreview.unit})
                   </Typography>
-                  <Box display="flex" gap={1} flexWrap="wrap">
+                  <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'nowrap' }}>
                     <Chip 
                       label={`${templatePreview.calories} kcal`}
                       size="small"
                       color="error"
                       variant="outlined"
+                      sx={{
+                        flex: { xs: 1, sm: '0 0 auto' },
+                        minWidth: { xs: 0, sm: 'auto' },
+                        height: { xs: 20, sm: 24 },
+                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                      }}
                     />
                     <Chip 
                       label={`${formatGrams(templatePreview.protein)}g protein`}
                       size="small"
                       color="info"
                       variant="outlined"
+                      sx={{
+                        flex: { xs: 1, sm: '0 0 auto' },
+                        minWidth: { xs: 0, sm: 'auto' },
+                        height: { xs: 20, sm: 24 },
+                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                      }}
                     />
                     <Chip 
                       label={`${formatGrams(templatePreview.carbs)}g karb.`}
                       size="small"
                       color="success"
                       variant="outlined"
+                      sx={{
+                        flex: { xs: 1, sm: '0 0 auto' },
+                        minWidth: { xs: 0, sm: 'auto' },
+                        height: { xs: 20, sm: 24 },
+                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                      }}
                     />
                     <Chip 
                       label={`${formatGrams(templatePreview.fat)}g yağ`}
                       size="small"
                       color="warning"
                       variant="outlined"
+                      sx={{
+                        flex: { xs: 1, sm: '0 0 auto' },
+                        minWidth: { xs: 0, sm: 'auto' },
+                        height: { xs: 20, sm: 24 },
+                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                      }}
                     />
-                  </Box>
+                  </Stack>
                 </Box>
               )}
             </Stack>

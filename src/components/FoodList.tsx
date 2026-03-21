@@ -232,11 +232,6 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     setSelectedFood(null);
   };
 
-  const timeFormatter = useMemo(
-    () => new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-    []
-  );
-
   const groupedFoods = useMemo(() => {
     const groups: { [key: string]: Food[] } = {
       breakfast: [],
@@ -279,9 +274,6 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
       </Card>
     );
   }
-
-  // Zamanı formatla
-  const formatTime = (timestamp: number) => timeFormatter.format(new Date(timestamp));
 
   const getMealInfo = (mealType: string) => {
     switch (mealType) {
@@ -411,17 +403,26 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                       sx={{ height: 20, fontSize: '0.7rem' }}
                                     />
                                   )}
-                                  <Typography variant="caption" color="text.secondary">
-                                    {formatTime(food.timestamp)}
-                                  </Typography>
                                 </Box>
                                 
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                <Stack
+                                  direction="row"
+                                  spacing={0.5}
+                                  useFlexGap
+                                  sx={{ flexWrap: 'nowrap' }}
+                                >
                                   <Chip 
                                     label={`${food.calories} kcal`} 
                                     size="small" 
                                     color="error"
                                     variant="outlined"
+                                    sx={{
+                                      flex: { xs: 1, sm: '0 0 auto' },
+                                      minWidth: { xs: 0, sm: 'auto' },
+                                      height: { xs: 20, sm: 24 },
+                                      fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                                      '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                                    }}
                                   />
                                   {food.protein > 0 && (
                                     <Chip 
@@ -429,6 +430,13 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                       size="small" 
                                       color="info"
                                       variant="outlined"
+                                      sx={{
+                                        flex: { xs: 1, sm: '0 0 auto' },
+                                        minWidth: { xs: 0, sm: 'auto' },
+                                        height: { xs: 20, sm: 24 },
+                                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                                      }}
                                     />
                                   )}
                                   {food.carbs > 0 && (
@@ -437,6 +445,13 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                       size="small" 
                                       color="success"
                                       variant="outlined"
+                                      sx={{
+                                        flex: { xs: 1, sm: '0 0 auto' },
+                                        minWidth: { xs: 0, sm: 'auto' },
+                                        height: { xs: 20, sm: 24 },
+                                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                                      }}
                                     />
                                   )}
                                   {food.fat > 0 && (
@@ -445,6 +460,13 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                       size="small" 
                                       color="warning"
                                       variant="outlined"
+                                      sx={{
+                                        flex: { xs: 1, sm: '0 0 auto' },
+                                        minWidth: { xs: 0, sm: 'auto' },
+                                        height: { xs: 20, sm: 24 },
+                                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                                      }}
                                     />
                                   )}
                                 </Stack>
