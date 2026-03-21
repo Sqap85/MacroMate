@@ -236,31 +236,35 @@ export function BarcodeScanner({
         size="small"
       >
         <ToggleButton value="breakfast" sx={{
+          fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.breakfast}22`, color: MEAL_COLORS.breakfast, borderColor: MEAL_COLORS.breakfast },
           '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
         }}>
-          <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
+          <LocalCafeIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.breakfast }} />
           Kahvaltı
         </ToggleButton>
         <ToggleButton value="lunch" sx={{
+          fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.lunch}22`, color: MEAL_COLORS.lunch, borderColor: MEAL_COLORS.lunch },
           '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
         }}>
-          <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
+          <LunchDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.lunch }} />
           Öğle
         </ToggleButton>
         <ToggleButton value="dinner" sx={{
+          fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.dinner}22`, color: MEAL_COLORS.dinner, borderColor: MEAL_COLORS.dinner },
           '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
         }}>
-          <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
+          <DinnerDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.dinner }} />
           Akşam
         </ToggleButton>
         <ToggleButton value="snack" sx={{
+          fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.snack}22`, color: MEAL_COLORS.snack, borderColor: MEAL_COLORS.snack },
           '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
         }}>
-          <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
+          <CookieIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.snack }} />
           Atıştırma
         </ToggleButton>
       </ToggleButtonGroup>
