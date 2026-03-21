@@ -348,24 +348,17 @@ function App() {
 
   const handleOpenHistory = async () => {
     if (allFoodsLoading) return;
-
+    setHistoryOpen(true); // ✅ önce aç
     if (!allFoodsLoaded) {
-      setToast({
-        open: true,
-        message: 'Geçmiş kayıtlar yükleniyor...',
-        severity: 'info',
-      });
-    }
-
-    try {
-      await ensureAllFoodsLoaded();
-      setHistoryOpen(true);
-    } catch (error: any) {
-      setToast({
-        open: true,
-        message: error?.message || 'Geçmiş kayıtlar yüklenirken hata oluştu',
-        severity: 'error',
-      });
+      try {
+        await ensureAllFoodsLoaded();
+      } catch (error: any) {
+        setToast({
+          open: true,
+          message: error?.message || 'Geçmiş kayıtlar yüklenirken hata oluştu',
+          severity: 'error',
+        });
+      }
     }
   };
 
@@ -632,6 +625,7 @@ function App() {
           <HistoryModal
             open={historyOpen}
             onClose={() => setHistoryOpen(false)}
+            isLoading={allFoodsLoading}
             foods={allFoods}
             goal={dailyGoal}
             onDeleteFood={handleDeleteFood}

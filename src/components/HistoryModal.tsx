@@ -24,6 +24,7 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Autocomplete,
+  CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -57,6 +58,7 @@ const MEAL_COLORS = {
 interface HistoryModalProps {
   open: boolean;
   onClose: () => void;
+  isLoading?: boolean;
   foods: Food[];
   goal: DailyGoal;
   onDeleteFood: (id: string) => void;
@@ -284,7 +286,7 @@ function getFutureDaysStats(foods: Food[]) {
   };
 }
 
-export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditFood, onAddFood, onDeleteAllDayFoods, foodTemplates, onOpenTemplates }: Readonly<HistoryModalProps>) {
+export function HistoryModal({ open, onClose, isLoading = false, foods, goal, onDeleteFood, onEditFood, onAddFood, onDeleteAllDayFoods, foodTemplates, onOpenTemplates }: Readonly<HistoryModalProps>) {
   const INITIAL_DAY_COUNT = 20;
   const DAY_INCREMENT = 20;
   const [tabValue, setTabValue] = useState(0);
@@ -776,6 +778,15 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
         </DialogTitle>
 
         <DialogContent sx={{ px: isMobile ? 1.5 : 3, pb: isMobile ? 2 : 3 }}>
+          {isLoading ? (
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" py={10} gap={2}>
+              <CircularProgress size={40} />
+              <Typography variant="body2" color="text.secondary">
+                Kayıtlar yükleniyor...
+              </Typography>
+            </Box>
+          ) : (
+            <>
           <Tabs
             value={tabValue}
             onChange={(_, newValue) => {
@@ -1358,7 +1369,10 @@ export function HistoryModal({ open, onClose, foods, goal, onDeleteFood, onEditF
               </Typography>
             </Box>
           )}
+            </>
+          )}
         </DialogContent>
+
       </Dialog>
 
       {/* Silme Onay Dialogu */}
