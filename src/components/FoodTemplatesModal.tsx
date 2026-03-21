@@ -19,6 +19,7 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Chip,
+  Checkbox,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -27,6 +28,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ScaleIcon from '@mui/icons-material/Scale';
 import EggIcon from '@mui/icons-material/Egg';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import type { FoodTemplate, MeasurementUnit } from '../types';
@@ -50,34 +52,43 @@ export function FoodTemplatesModal({
   onEditTemplate,
   onBulkDelete,
 }: FoodTemplatesModalProps) {
-  // Toplu seçim için state
+  // Seçim modu
+  const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const allSelected = templates.length > 0 && selectedIds.length === templates.length;
 
-  // Toplu seçim checkbox değişimi
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(templates.map(t => t.id));
-    } else {
+  const handleEnterSelectionMode = () => {
+    setSelectionMode(true);
+    setSelectedIds([]);
+  };
+
+  const handleCancelSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds([]);
+  };
+
+  const handleSelectAll = () => {
+    if (allSelected) {
       setSelectedIds([]);
-    }
-  };
-
-  // Tekli seçim değişimi
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds(prev => [...prev, id]);
     } else {
-      setSelectedIds(prev => prev.filter(i => i !== id));
+      setSelectedIds(templates.map(t => t.id));
     }
   };
 
-  // Toplu silme dialog state
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  // Toplu silme dialog
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) return;
     setBulkDeleteDialogOpen(true);
   };
+
   const handleBulkDeleteConfirm = () => {
     if (onBulkDelete) {
       onBulkDelete(selectedIds);
@@ -87,9 +98,7 @@ export function FoodTemplatesModal({
     }
     setSelectedIds([]);
     setBulkDeleteDialogOpen(false);
-  };
-  const handleBulkDeleteCancel = () => {
-    setBulkDeleteDialogOpen(false);
+    setSelectionMode(false);
   };
 
   const [formData, setFormData] = useState({
@@ -113,56 +122,39 @@ export function FoodTemplatesModal({
     fat: '',
   });
 
-  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({ open: false, message: '', severity: 'success' });
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({
+    open: false, message: '', severity: 'success',
+  });
 
-  // Centralized toast helper to prevent overlap and support all severities
   const showToast = (toastObj: { open: boolean; message: string; severity: 'success' | 'error' | 'warning' }) => {
     setToast(t => {
       if (t.open) return { ...t, open: false };
       return t;
     });
-    setTimeout(() => {
-      setToast(toastObj);
-    }, 100);
+    setTimeout(() => setToast(toastObj), 100);
   };
 
-  // Form sıfırlama yardımcı fonksiyonu
   const resetForm = () => {
-    setFormData({
-      name: '',
-      unit: 'gram',
-      calories: '',
-      protein: '',
-      carbs: '',
-      fat: '',
-    });
+    setFormData({ name: '', unit: 'gram', calories: '', protein: '', carbs: '', fat: '' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) {
-      alert('Lütfen besin adı giriniz');
-      return;
-    }
+    if (!formData.name) { alert('Lütfen besin adı giriniz'); return; }
     const exists = templates.some(t => t.name.trim().toLowerCase() === formData.name.trim().toLowerCase());
     if (exists) {
       showToast({ open: true, message: 'Bu isimde bir besin zaten var.', severity: 'error' });
       return;
     }
-    // Tekil değerler ile kaydet
-    if (!formData.calories) {
-      alert('Lütfen kalori bilgisini giriniz');
-      return;
-    }
-    const templateData = {
+    if (!formData.calories) { alert('Lütfen kalori bilgisini giriniz'); return; }
+    onAddTemplate({
       name: formData.name,
       unit: formData.unit,
       calories: Number(formData.calories),
       protein: Number(formData.protein) || 0,
       carbs: Number(formData.carbs) || 0,
       fat: Number(formData.fat) || 0,
-    };
-    onAddTemplate(templateData);
+    });
     resetForm();
   };
 
@@ -180,25 +172,16 @@ export function FoodTemplatesModal({
 
   const handleEditSave = () => {
     if (!editingTemplate) return;
-
-    if (!editFormData.name) {
-      alert('Lütfen besin adı giriniz');
-      return;
-    }
-
-    if (!editFormData.calories) {
-      alert('Lütfen kalori bilgisini giriniz');
-      return;
-    }
-    const templateData = {
+    if (!editFormData.name) { alert('Lütfen besin adı giriniz'); return; }
+    if (!editFormData.calories) { alert('Lütfen kalori bilgisini giriniz'); return; }
+    onEditTemplate(editingTemplate.id, {
       name: editFormData.name,
       unit: editFormData.unit,
       calories: Number(editFormData.calories),
       protein: Number(editFormData.protein) || 0,
       carbs: Number(editFormData.carbs) || 0,
       fat: Number(editFormData.fat) || 0,
-    };
-    onEditTemplate(editingTemplate.id, templateData);
+    });
     setEditingTemplate(null);
   };
 
@@ -215,28 +198,13 @@ export function FoodTemplatesModal({
     }
   };
 
-  // Export templates as CSV
   const handleExportCSV = () => {
     if (!templates || templates.length === 0) {
       showToast({ open: true, message: 'İndirilecek şablon yok.', severity: 'error' });
       return;
     }
-    const header = [
-      'name',
-      'unit',
-      'calories',
-      'protein',
-      'carbs',
-      'fat'
-    ];
-    const rows = templates.map(t => [
-      t.name,
-      t.unit,
-      t.calories,
-      t.protein,
-      t.carbs,
-      t.fat
-    ]);
+    const header = ['name', 'unit', 'calories', 'protein', 'carbs', 'fat'];
+    const rows = templates.map(t => [t.name, t.unit, t.calories, t.protein, t.carbs, t.fat]);
     const csv = [header, ...rows]
       .map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -251,14 +219,11 @@ export function FoodTemplatesModal({
     URL.revokeObjectURL(url);
   };
 
-  // Import templates from CSV
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-      // Toplam şablon limiti
-      const MAX_TOTAL = 1000;
+    const MAX_TOTAL = 1000;
     const file = e.target.files?.[0];
     if (!file) return;
-    // Dosya boyutu limiti (2MB)
-    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    const MAX_SIZE = 2 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       showToast({ open: true, message: 'Dosya çok büyük (maksimum 2MB).', severity: 'error' });
       e.target.value = '';
@@ -267,12 +232,8 @@ export function FoodTemplatesModal({
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      if (!text) {
-        showToast({ open: true, message: 'Dosya okunamadı.', severity: 'error' });
-        return;
-      }
+      if (!text) { showToast({ open: true, message: 'Dosya okunamadı.', severity: 'error' }); return; }
       const lines = text.split(/\r?\n/).filter(Boolean);
-      // Satır limiti (1000 satırdan fazla ise iptal)
       const MAX_ROWS = 1000;
       if (lines.length - 1 > MAX_ROWS) {
         showToast({ open: true, message: `Çok fazla satır var (maksimum ${MAX_ROWS} şablon).`, severity: 'error' });
@@ -282,7 +243,6 @@ export function FoodTemplatesModal({
         showToast({ open: true, message: 'Geçersiz veya boş CSV dosyası.', severity: 'error' });
         return;
       }
-      // Başlık satırı tam ve sıralı olmalı
       const expectedHeader = '"name","unit","calories","protein","carbs","fat"';
       if (lines[0].trim() !== expectedHeader) {
         showToast({ open: true, message: 'CSV başlıkları hatalı. Doğru format: "name","unit","calories","protein","carbs","fat"', severity: 'error' });
@@ -296,38 +256,34 @@ export function FoodTemplatesModal({
       const carbIdx = header.indexOf('carbs');
       const fatIdx = header.indexOf('fat');
 
-        // --- Toplam şablon limiti kontrolü ---
-        // Geçerli ve yeni eklenecek şablonları say
-        let validNewCount = 0;
-        const dangerous = (val: string) => /^[=+\-@]/.test(val);
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
-          if (row.length < 6) continue;
-          const name = row[nameIdx]?.trim() || '';
-          const unit = row[unitIdx]?.trim();
-          const calories = Number(row[calIdx]);
-          const protein = Number(row[proIdx]);
-          const carbs = Number(row[carbIdx]);
-          const fat = Number(row[fatIdx]);
-          if (
-            !name || name.length > 50 || dangerous(name) ||
-            !['piece', 'gram'].includes(unit) ||
-            isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
-            calories <= 0 || calories > 5000 ||
-            protein < 0 || protein > 500 ||
-            carbs < 0 || carbs > 1000 ||
-            fat < 0 || fat > 500 ||
-            dangerous(unit) || dangerous(String(calories)) || dangerous(String(protein)) || dangerous(String(carbs)) || dangerous(String(fat))
-          ) {
-            continue;
-          }
-          const exists = templates.some(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());
-          if (!exists) validNewCount++;
-        }
-        if (templates.length + validNewCount > MAX_TOTAL) {
-          showToast({ open: true, message: `Toplam şablon limiti aşıldı (maksimum ${MAX_TOTAL}). Lütfen bazı şablonları silin.`, severity: 'error' });
-          return;
-        }
+      const dangerous = (val: string) => /^[=+\-@]/.test(val);
+      let validNewCount = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
+        if (row.length < 6) continue;
+        const name = row[nameIdx]?.trim() || '';
+        const unit = row[unitIdx]?.trim();
+        const calories = Number(row[calIdx]);
+        const protein = Number(row[proIdx]);
+        const carbs = Number(row[carbIdx]);
+        const fat = Number(row[fatIdx]);
+        if (
+          !name || name.length > 50 || dangerous(name) ||
+          !['piece', 'gram'].includes(unit) ||
+          isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
+          calories <= 0 || calories > 5000 ||
+          protein < 0 || protein > 500 ||
+          carbs < 0 || carbs > 1000 ||
+          fat < 0 || fat > 500
+        ) continue;
+        const exists = templates.some(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());
+        if (!exists) validNewCount++;
+      }
+      if (templates.length + validNewCount > MAX_TOTAL) {
+        showToast({ open: true, message: `Toplam şablon limiti aşıldı (maksimum ${MAX_TOTAL}).`, severity: 'error' });
+        return;
+      }
+
       let added = 0;
       const skipped: string[] = [];
       let negativeSkipped = 0;
@@ -340,78 +296,46 @@ export function FoodTemplatesModal({
         const protein = Number(row[proIdx]);
         const carbs = Number(row[carbIdx]);
         const fat = Number(row[fatIdx]);
-
-        // Zararlı karakter/formül kontrolü (Excel injection, XSS)
-        const dangerous = (val: string) => /^[=+\-@]/.test(val);
-        // Negatif değer kontrolü
-        if (calories < 0 || protein < 0 || carbs < 0 || fat < 0) {
-          negativeSkipped++;
-          continue;
-        }
+        if (calories < 0 || protein < 0 || carbs < 0 || fat < 0) { negativeSkipped++; continue; }
         if (
           !name || name.length > 50 || dangerous(name) ||
           !['piece', 'gram'].includes(unit) ||
           isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
-          calories <= 0 || calories > 5000 ||
-          protein > 500 ||
-          carbs > 1000 ||
-          fat > 500 ||
-          dangerous(unit) || dangerous(String(calories)) || dangerous(String(protein)) || dangerous(String(carbs)) || dangerous(String(fat))
-        ) {
-          continue; 
-        }
-        const template = {
-          name,
-          unit: unit as MeasurementUnit,
-          calories,
-          protein,
-          carbs,
-          fat,
-        };
-        const exists = templates.some(t => t.name.trim().toLowerCase() === template.name.trim().toLowerCase());
-        if (template.name && template.calories && !exists) {
-          onAddTemplate(template, true); // suppressToast = true for CSV import
+          calories <= 0 || calories > 5000 || protein > 500 || carbs > 1000 || fat > 500
+        ) continue;
+        const exists = templates.some(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());
+        if (name && calories && !exists) {
+          onAddTemplate({ name, unit: unit as MeasurementUnit, calories, protein, carbs, fat }, true);
           added++;
-        } else if (template.name && exists) {
-          skipped.push(template.name);
+        } else if (name && exists) {
+          skipped.push(name);
         }
       }
+
       if (added > 0 && skipped.length === 0 && negativeSkipped === 0) {
         showToast({ open: true, message: `${added} şablon başarıyla eklendi.`, severity: 'success' });
-      } else if (added > 0 && skipped.length === 0 && negativeSkipped > 0) {
+      } else if (added > 0 && negativeSkipped > 0) {
         showToast({ open: true, message: `${added} şablon eklendi. ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'warning' });
-      } else if (added > 0 && skipped.length > 0 && negativeSkipped === 0) {
+      } else if (added > 0 && skipped.length > 0) {
         showToast({ open: true, message: `${added} şablon eklendi. ${skipped.length} satır isim çakıştığı için eklenmedi.`, severity: 'warning' });
-      } else if (added > 0 && skipped.length > 0 && negativeSkipped > 0) {
-        showToast({ open: true, message: `${added} şablon eklendi. ${skipped.length} satır isim çakıştığı için, ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'warning' });
-      } else if (added === 0 && skipped.length > 0 && negativeSkipped === 0) {
+      } else if (added === 0 && skipped.length > 0) {
         showToast({ open: true, message: `Hiçbir şablon eklenmedi. ${skipped.length} satır isim çakıştığı için eklenmedi.`, severity: 'error' });
-      } else if (added === 0 && skipped.length === 0 && negativeSkipped > 0) {
-        showToast({ open: true, message: `Hiçbir şablon eklenmedi. ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'error' });
-      } else if (added === 0 && skipped.length > 0 && negativeSkipped > 0) {
-        showToast({ open: true, message: `Hiçbir şablon eklenmedi. ${skipped.length} satır isim çakıştığı için, ${negativeSkipped} satır negatif değer içerdiği için eklenmedi.`, severity: 'error' });
       } else {
         showToast({ open: true, message: 'Uygun veri bulunamadı.', severity: 'error' });
       }
     };
     reader.readAsText(file);
-    // Clear input value so same file can be uploaded again if needed
     e.target.value = '';
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="md"
       fullWidth
       aria-labelledby="templates-dialog-title"
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          maxHeight: '90vh',
-        }
-      }}
+      PaperProps={{ sx: { borderRadius: 2, maxHeight: '90vh' } }}
     >
       <DialogTitle
         sx={{
@@ -426,12 +350,7 @@ export function FoodTemplatesModal({
       >
         <Box display="flex" alignItems="center" gap={1}>
           <RestaurantMenuIcon color="primary" />
-          <Typography
-            variant="h6"
-            component="div"
-            id="templates-dialog-title"
-            sx={{ mr: 1 }}
-          >
+          <Typography variant="h6" component="div" id="templates-dialog-title" sx={{ mr: 1 }}>
             Besin Şablonlarım
           </Typography>
         </Box>
@@ -448,19 +367,14 @@ export function FoodTemplatesModal({
           onClick={onClose}
           size="small"
           aria-label="Kapat"
-          sx={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            minWidth: 0,
-          }}
+          sx={{ position: 'absolute', top: 8, right: 8, minWidth: 0 }}
         >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      
+
       <Divider />
-      
+
       <DialogContent sx={{ pt: 3 }}>
         <Stack spacing={3}>
           {/* Yeni Şablon Ekleme Formu */}
@@ -481,8 +395,6 @@ export function FoodTemplatesModal({
                   required
                   size="small"
                 />
-
-                {/* Ölçü Birimi Seçimi */}
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block" mb={1}>
                     Ölçü Birimi
@@ -495,72 +407,37 @@ export function FoodTemplatesModal({
                     size="small"
                   >
                     <ToggleButton value="gram">
-                      <ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      Gram
+                      <ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />Gram
                     </ToggleButton>
                     <ToggleButton value="piece">
-                      <EggIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      Adet
+                      <EggIcon fontSize="small" sx={{ mr: 0.5 }} />Adet
                     </ToggleButton>
                   </ToggleButtonGroup>
                 </Box>
-
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                  {formData.unit === 'piece' 
-                    ? '1 adet için besin değerlerini giriniz' 
-                    : '100 gram için besin değerlerini giriniz'}
+                  {formData.unit === 'piece' ? '1 adet için besin değerlerini giriniz' : '100 gram için besin değerlerini giriniz'}
                 </Typography>
-                
                 <Box display="flex" gap={2}>
-                  <TextField
-                    fullWidth
-                    label={formData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
-                    type="number"
-                    value={formData.calories}
+                  <TextField fullWidth label={formData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
+                    type="number" value={formData.calories}
                     onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
-                    required
-                    inputProps={{ min: 0, step: 1 }}
-                    size="small"
-                  />
-                  <TextField
-                    fullWidth
-                    label={formData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
-                    type="number"
-                    value={formData.protein}
+                    required inputProps={{ min: 0, step: 1 }} size="small" />
+                  <TextField fullWidth label={formData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
+                    type="number" value={formData.protein}
                     onChange={(e) => setFormData({ ...formData, protein: e.target.value })}
-                    inputProps={{ min: 0, step: 0.1 }}
-                    size="small"
-                  />
+                    inputProps={{ min: 0, step: 0.1 }} size="small" />
                 </Box>
-                
                 <Box display="flex" gap={2}>
-                  <TextField
-                    fullWidth
-                    label={formData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
-                    type="number"
-                    value={formData.carbs}
+                  <TextField fullWidth label={formData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
+                    type="number" value={formData.carbs}
                     onChange={(e) => setFormData({ ...formData, carbs: e.target.value })}
-                    inputProps={{ min: 0, step: 0.1 }}
-                    size="small"
-                  />
-                  <TextField
-                    fullWidth
-                    label={formData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
-                    type="number"
-                    value={formData.fat}
+                    inputProps={{ min: 0, step: 0.1 }} size="small" />
+                  <TextField fullWidth label={formData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
+                    type="number" value={formData.fat}
                     onChange={(e) => setFormData({ ...formData, fat: e.target.value })}
-                    inputProps={{ min: 0, step: 0.1 }}
-                    size="small"
-                  />
+                    inputProps={{ min: 0, step: 0.1 }} size="small" />
                 </Box>
-                
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  type="submit"
-                  startIcon={<AddIcon />}
-                >
+                <Button fullWidth variant="contained" color="primary" type="submit" startIcon={<AddIcon />}>
                   Şablon Ekle
                 </Button>
               </Stack>
@@ -569,79 +446,86 @@ export function FoodTemplatesModal({
 
           {/* Kayıtlı Şablonlar Listesi */}
           <Box>
-            <Box mb={1}>
-              <Typography
-                variant="subtitle2"
-                gutterBottom
-                color="text.secondary"
-                sx={{ textAlign: { xs: 'left', sm: 'center' }, flex: 1 }}
-              >
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={1} flexWrap="wrap" gap={1}>
+              <Typography variant="subtitle2" color="text.secondary">
                 Kayıtlı Besinler ({templates.length})
               </Typography>
+
               {templates.length > 0 && (
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  alignItems="center"
-                  justifyContent="flex-start"
-                  flexWrap="wrap"
-                  sx={{ width: '100%' }}
-                >
-                  <Button
-                    variant={allSelected ? 'contained' : 'outlined'}
-                    color={allSelected ? 'primary' : 'inherit'}
-                    size="small"
-                    onClick={() => handleSelectAll(!allSelected)}
-                    sx={{ minWidth: 90, px: 1.5, py: 0.7, fontSize: { xs: '0.85rem', sm: '0.95rem' } }}
-                  >
-                    {allSelected ? 'Tümünü Bırak' : 'Tümünü Seç'}
-                  </Button>
-                  <Button
-                    variant="contained"
-                    color="error"
-                    size="small"
-                    disabled={selectedIds.length === 0}
-                    onClick={handleBulkDelete}
-                    sx={{ minWidth: 120, px: 1.5, py: 0.7, fontSize: { xs: '0.85rem', sm: '0.95rem' } }}
-                  >
-                    Seçili Besinleri Sil
-                  </Button>
-                </Stack>
-              )}
-            </Box>
-                  {/* Toplu silme onay dialogu */}
-                  <Dialog
-                    open={bulkDeleteDialogOpen}
-                    onClose={handleBulkDeleteCancel}
-                    maxWidth="xs"
-                    fullWidth
-                    aria-labelledby="bulk-delete-dialog-title"
-                    PaperProps={{ sx: { borderRadius: 2, m: 2 } }}
-                  >
-                    <DialogTitle id="bulk-delete-dialog-title">
-                      <Typography variant="h6">
-                        Seçili Besinleri Sil
-                      </Typography>
-                    </DialogTitle>
-                    <DialogContent sx={{ pt: 2 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        {selectedIds.length} besini silmek istediğinizden emin misiniz?
-                      </Typography>
-                      <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
-                        <Typography variant="body2" fontWeight="medium">
-                          {templates.filter(t => selectedIds.includes(t.id)).map(t => t.name).join(', ')}
-                        </Typography>
-                      </Box>
-                    </DialogContent>
-                    <DialogActions sx={{ px: 3, pb: 2 }}>
-                      <Button onClick={handleBulkDeleteCancel} variant="outlined">
+                <Box>
+                  {/* Normal mod — Toplu Sil butonu */}
+                  {!selectionMode && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteSweepIcon />}
+                      onClick={handleEnterSelectionMode}
+                    >
+                      Toplu Sil
+                    </Button>
+                  )}
+
+                  {/* Seçim modu — Tümünü Seç + Sil + İptal */}
+                  {selectionMode && (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Button
+                        size="small"
+                        variant={allSelected ? 'contained' : 'outlined'}
+                        onClick={handleSelectAll}
+                      >
+                        {allSelected ? 'Tümünü Bırak' : 'Tümünü Seç'}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        disabled={selectedIds.length === 0}
+                        onClick={handleBulkDelete}
+                      >
+                        Sil ({selectedIds.length})
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={handleCancelSelectionMode}
+                      >
                         İptal
                       </Button>
-                      <Button onClick={handleBulkDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>
-                        Sil
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
+                    </Stack>
+                  )}
+                </Box>
+              )}
+            </Box>
+
+            {/* Toplu silme onay dialogu */}
+            <Dialog
+              open={bulkDeleteDialogOpen}
+              onClose={() => setBulkDeleteDialogOpen(false)}
+              maxWidth="xs"
+              fullWidth
+              PaperProps={{ sx: { borderRadius: 2, m: 2 } }}
+            >
+              <DialogTitle>
+                <Typography variant="h6">Seçili Besinleri Sil</Typography>
+              </DialogTitle>
+              <DialogContent sx={{ pt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {selectedIds.length} besini silmek istediğinizden emin misiniz?
+                </Typography>
+                <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
+                  <Typography variant="body2" fontWeight="medium">
+                    {templates.filter(t => selectedIds.includes(t.id)).map(t => t.name).join(', ')}
+                  </Typography>
+                </Box>
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={() => setBulkDeleteDialogOpen(false)} variant="outlined">İptal</Button>
+                <Button onClick={handleBulkDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>Sil</Button>
+              </DialogActions>
+            </Dialog>
+
             {templates.length === 0 ? (
               <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
                 <Typography color="text.secondary">
@@ -649,38 +533,37 @@ export function FoodTemplatesModal({
                 </Typography>
               </Paper>
             ) : (
-              <List sx={{ 
-                bgcolor: 'background.paper', 
+              <List sx={{
+                bgcolor: 'background.paper',
                 borderRadius: 1,
                 border: '1px solid',
                 borderColor: 'divider',
                 maxHeight: '300px',
-                overflow: 'auto'
+                overflow: 'auto',
               }}>
                 {templates.map((template) => (
-                  <ListItem 
+                  <ListItem
                     key={template.id}
                     divider
-                    sx={{
-                      '&:hover': {
-                        bgcolor: 'action.hover',
-                      }
-                    }}
+                    sx={{ '&:hover': { bgcolor: 'action.hover' } }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(template.id)}
-                      onChange={e => handleSelectOne(template.id, e.target.checked)}
-                      style={{ marginRight: 12 }}
-                      title="Seç"
-                    />
+                    {/* Seçim modunda checkbox göster */}
+                    {selectionMode && (
+                      <Checkbox
+                        checked={selectedIds.includes(template.id)}
+                        onChange={() => handleSelectOne(template.id)}
+                        size="small"
+                        sx={{ mr: 1, p: 0.5 }}
+                      />
+                    )}
+
                     <ListItemText
                       primary={
                         <Box display="flex" alignItems="center" gap={1}>
                           <Typography variant="body1" fontWeight="medium">
                             {template.name}
                           </Typography>
-                          <Chip 
+                          <Chip
                             label={template.unit === 'gram' ? 'Gram' : 'Adet'}
                             size="small"
                             color={template.unit === 'gram' ? 'default' : 'primary'}
@@ -695,11 +578,7 @@ export function FoodTemplatesModal({
                             component="div"
                             color="text.secondary"
                             noWrap
-                            sx={{
-                              textOverflow: 'ellipsis',
-                              overflow: 'hidden',
-                              width: '100%'
-                            }}
+                            sx={{ textOverflow: 'ellipsis', overflow: 'hidden', width: '100%' }}
                           >
                             {template.unit === 'piece'
                               ? `1 adet: ${template.calories} kcal | P: ${template.protein}g | K: ${template.carbs}g | Y: ${template.fat}g`
@@ -709,27 +588,20 @@ export function FoodTemplatesModal({
                         </Box>
                       }
                     />
-                    <ListItemSecondaryAction>
-                      <Box display="flex" gap={0.5}>
-                        <IconButton
-                          aria-label="edit"
-                          onClick={() => handleEdit(template)}
-                          color="primary"
-                          size="small"
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          onClick={() => handleDeleteClick(template)}
-                          color="error"
-                          size="small"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    </ListItemSecondaryAction>
+
+                    {/* Normal modda düzenle/sil, seçim modunda gizle */}
+                    {!selectionMode && (
+                      <ListItemSecondaryAction>
+                        <Box display="flex" gap={0.5}>
+                          <IconButton aria-label="edit" onClick={() => handleEdit(template)} color="primary" size="small">
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(template)} color="error" size="small">
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </ListItemSecondaryAction>
+                    )}
                   </ListItem>
                 ))}
               </List>
@@ -737,201 +609,90 @@ export function FoodTemplatesModal({
           </Box>
         </Stack>
       </DialogContent>
-      
+
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined">
-          Kapat
-        </Button>
+        <Button onClick={onClose} variant="outlined">Kapat</Button>
       </DialogActions>
 
       {/* Besin Düzenleme Dialogu */}
-      <Dialog
-        open={!!editingTemplate}
-        onClose={() => setEditingTemplate(null)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            m: 2,
-          }
-        }}
-      >
+      <Dialog open={!!editingTemplate} onClose={() => setEditingTemplate(null)} maxWidth="sm" fullWidth
+        PaperProps={{ sx: { borderRadius: 2, m: 2 } }}>
         <DialogTitle sx={{ pb: 3 }}>
           <Box display="flex" alignItems="center" gap={1}>
             <EditIcon color="primary" />
-            <Typography variant="h6">
-              Besin Düzenle
-            </Typography>
+            <Typography variant="h6">Besin Düzenle</Typography>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ pt: 3, pb: 1, px: { xs: 2, sm: 3 }, overflow: 'visible' }}>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Besin Adı"
-              value={editFormData.name}
+            <TextField fullWidth label="Besin Adı" value={editFormData.name}
               onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-              placeholder="Örn: Tavuk Göğsü, Yumurta, Elma"
-              required
-              size="small"
-              autoFocus
-            />
-
-            {/* Ölçü Birimi Seçimi */}
+              placeholder="Örn: Tavuk Göğsü, Yumurta, Elma" required size="small" autoFocus />
             <Box>
-              <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                Ölçü Birimi
-              </Typography>
-              <ToggleButtonGroup
-                value={editFormData.unit}
-                exclusive
-                onChange={(_, value) => value && setEditFormData({ ...editFormData, unit: value as MeasurementUnit })}
-                fullWidth
-                size="small"
-              >
-                <ToggleButton value="gram">
-                  <ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />
-                  Gram
-                </ToggleButton>
-                <ToggleButton value="piece">
-                  <EggIcon fontSize="small" sx={{ mr: 0.5 }} />
-                  Adet
-                </ToggleButton>
+              <Typography variant="caption" color="text.secondary" display="block" mb={1}>Ölçü Birimi</Typography>
+              <ToggleButtonGroup value={editFormData.unit} exclusive fullWidth size="small"
+                onChange={(_, value) => value && setEditFormData({ ...editFormData, unit: value as MeasurementUnit })}>
+                <ToggleButton value="gram"><ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />Gram</ToggleButton>
+                <ToggleButton value="piece"><EggIcon fontSize="small" sx={{ mr: 0.5 }} />Adet</ToggleButton>
               </ToggleButtonGroup>
             </Box>
-
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-              {editFormData.unit === 'piece' 
-                ? '1 adet için besin değerlerini giriniz' 
-                : '100 gram için besin değerlerini giriniz'}
+              {editFormData.unit === 'piece' ? '1 adet için besin değerlerini giriniz' : '100 gram için besin değerlerini giriniz'}
             </Typography>
-            
             <Box display="flex" gap={2}>
-              <TextField
-                fullWidth
-                label={editFormData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
-                type="number"
-                value={editFormData.calories}
+              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
+                type="number" value={editFormData.calories}
                 onChange={(e) => setEditFormData({ ...editFormData, calories: e.target.value })}
-                required
-                inputProps={{ min: 0, step: 1 }}
-                size="small"
-              />
-              <TextField
-                fullWidth
-                label={editFormData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
-                type="number"
-                value={editFormData.protein}
+                required inputProps={{ min: 0, step: 1 }} size="small" />
+              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
+                type="number" value={editFormData.protein}
                 onChange={(e) => setEditFormData({ ...editFormData, protein: e.target.value })}
-                inputProps={{ min: 0, step: 0.1 }}
-                size="small"
-              />
+                inputProps={{ min: 0, step: 0.1 }} size="small" />
             </Box>
-            
             <Box display="flex" gap={2}>
-              <TextField
-                fullWidth
-                label={editFormData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
-                type="number"
-                value={editFormData.carbs}
+              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
+                type="number" value={editFormData.carbs}
                 onChange={(e) => setEditFormData({ ...editFormData, carbs: e.target.value })}
-                inputProps={{ min: 0, step: 0.1 }}
-                size="small"
-              />
-              <TextField
-                fullWidth
-                label={editFormData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
-                type="number"
-                value={editFormData.fat}
+                inputProps={{ min: 0, step: 0.1 }} size="small" />
+              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
+                type="number" value={editFormData.fat}
                 onChange={(e) => setEditFormData({ ...editFormData, fat: e.target.value })}
-                inputProps={{ min: 0, step: 0.1 }}
-                size="small"
-              />
+                inputProps={{ min: 0, step: 0.1 }} size="small" />
             </Box>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button 
-            onClick={() => setEditingTemplate(null)}
-            variant="outlined"
-          >
-            İptal
-          </Button>
-          <Button 
-            onClick={handleEditSave} 
-            color="primary"
-            variant="contained"
-            startIcon={<EditIcon />}
-          >
-            Kaydet
-          </Button>
+          <Button onClick={() => setEditingTemplate(null)} variant="outlined">İptal</Button>
+          <Button onClick={handleEditSave} color="primary" variant="contained" startIcon={<EditIcon />}>Kaydet</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Silme Onay Dialogu */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        aria-labelledby="delete-confirm-dialog-title"
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            m: 2,
-          }
-        }}
-      >
-        <DialogTitle id="delete-confirm-dialog-title">
-          <Typography variant="h6">
-            Besini Sil
-          </Typography>
-        </DialogTitle>
+      {/* Tekil Silme Onay Dialogu */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: 2, m: 2 } }}>
+        <DialogTitle><Typography variant="h6">Besini Sil</Typography></DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Bu besini silmek istediğinizden emin misiniz?
           </Typography>
-          
           {templateToDelete && (
-            <Box sx={{ 
-              mt: 2,
-              p: 1.5,
-              bgcolor: 'error.50',
-              borderRadius: 1,
-              borderLeft: 3,
-              borderColor: 'error.main'
-            }}>
-              <Typography variant="body2" fontWeight="medium">
-                {templateToDelete.name}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {templateToDelete.calories} kcal
-              </Typography>
+            <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
+              <Typography variant="body2" fontWeight="medium">{templateToDelete.name}</Typography>
+              <Typography variant="caption" color="text.secondary">{templateToDelete.calories} kcal</Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button 
-            onClick={() => setDeleteDialogOpen(false)}
-            variant="outlined"
-          >
-            İptal
-          </Button>
-          <Button 
-            onClick={handleDeleteConfirm}
-            variant="contained"
-            color="error"
-            startIcon={<DeleteIcon />}
-          >
-            Sil
-          </Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined">İptal</Button>
+          <Button onClick={handleDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>Sil</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Toast (Snackbar) Bildirimi */}
-      <Snackbar open={toast.open} autoHideDuration={6000} onClose={() => setToast({ ...toast, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <MuiAlert elevation={6} variant="filled" onClose={() => setToast({ ...toast, open: false })} severity={toast.severity} sx={{ width: '100%' }}>
+      {/* Toast */}
+      <Snackbar open={toast.open} autoHideDuration={6000} onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <MuiAlert elevation={6} variant="filled" onClose={() => setToast({ ...toast, open: false })}
+          severity={toast.severity} sx={{ width: '100%' }}>
           {toast.message}
         </MuiAlert>
       </Snackbar>
