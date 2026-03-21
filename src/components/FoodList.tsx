@@ -356,7 +356,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     '&:hover': {
-                      bgcolor: 'action.hover',
+                      bgcolor: `${mealInfo.color}11`,
                     },
                     transition: 'background-color 0.2s',
                   }}

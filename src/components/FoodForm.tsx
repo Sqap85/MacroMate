@@ -213,19 +213,59 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                     fullWidth
                     size="small"
                   >
-                    <ToggleButton value="breakfast">
+                    <ToggleButton
+                      value="breakfast"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.breakfast}22`,
+                          color: MEAL_COLORS.breakfast,
+                          borderColor: MEAL_COLORS.breakfast,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
+                      }}
+                    >
                       <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
                       Kahvaltı
                     </ToggleButton>
-                    <ToggleButton value="lunch">
+                    <ToggleButton
+                      value="lunch"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.lunch}22`,
+                          color: MEAL_COLORS.lunch,
+                          borderColor: MEAL_COLORS.lunch,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
+                      }}
+                    >
                       <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
                       Öğle
                     </ToggleButton>
-                    <ToggleButton value="dinner">
+                    <ToggleButton
+                      value="dinner"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.dinner}22`,
+                          color: MEAL_COLORS.dinner,
+                          borderColor: MEAL_COLORS.dinner,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
+                      }}
+                    >
                       <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
                       Akşam
                     </ToggleButton>
-                    <ToggleButton value="snack">
+                    <ToggleButton
+                      value="snack"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.snack}22`,
+                          color: MEAL_COLORS.snack,
+                          borderColor: MEAL_COLORS.snack,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
+                      }}
+                    >
                       <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
                       Atıştırma
                     </ToggleButton>
@@ -373,19 +413,59 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                     fullWidth
                     size="small"
                   >
-                    <ToggleButton value="breakfast">
+                    <ToggleButton
+                      value="breakfast"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.breakfast}22`,
+                          color: MEAL_COLORS.breakfast,
+                          borderColor: MEAL_COLORS.breakfast,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
+                      }}
+                    >
                       <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
                       Kahvaltı
                     </ToggleButton>
-                    <ToggleButton value="lunch">
+                    <ToggleButton
+                      value="lunch"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.lunch}22`,
+                          color: MEAL_COLORS.lunch,
+                          borderColor: MEAL_COLORS.lunch,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
+                      }}
+                    >
                       <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
                       Öğle
                     </ToggleButton>
-                    <ToggleButton value="dinner">
+                    <ToggleButton
+                      value="dinner"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.dinner}22`,
+                          color: MEAL_COLORS.dinner,
+                          borderColor: MEAL_COLORS.dinner,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
+                      }}
+                    >
                       <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
                       Akşam
                     </ToggleButton>
-                    <ToggleButton value="snack">
+                    <ToggleButton
+                      value="snack"
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: `${MEAL_COLORS.snack}22`,
+                          color: MEAL_COLORS.snack,
+                          borderColor: MEAL_COLORS.snack,
+                        },
+                        '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
+                      }}
+                    >
                       <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
                       Atıştırma
                     </ToggleButton>
