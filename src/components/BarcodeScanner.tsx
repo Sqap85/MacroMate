@@ -29,7 +29,6 @@ import { searchByBarcode } from '../services/openFoodFactsService';
 import type { OpenFoodFactsProduct } from '../services/openFoodFactsService';
 import type { FoodTemplate, MealType } from '../types';
 
-// Ana ekranla aynı renkler
 const MEAL_COLORS = {
   breakfast: '#FF6B35',
   lunch: '#F7931E',
@@ -74,6 +73,7 @@ export function BarcodeScanner({
 
   const [scanState, setScanState] = useState<ScanState>('scanning');
   const [product, setProduct] = useState<OpenFoodFactsProduct | null>(null);
+  const [editedProduct, setEditedProduct] = useState<OpenFoodFactsProduct | null>(null);
   const [existingTemplate, setExistingTemplate] = useState<FoodTemplate | null>(null);
   const [error, setError] = useState('');
   const [amount, setAmount] = useState('100');
@@ -114,6 +114,7 @@ export function BarcodeScanner({
               const searchResult = await searchByBarcode(barcode);
               if (searchResult.found && searchResult.product) {
                 setProduct(searchResult.product);
+                setEditedProduct(searchResult.product);
                 setScanState('found');
               } else {
                 setError(searchResult.error || 'Ürün veritabanında bulunamadı. Manuel giriş yapabilirsiniz.');
@@ -148,6 +149,7 @@ export function BarcodeScanner({
 
     setScanState('scanning');
     setProduct(null);
+    setEditedProduct(null);
     setExistingTemplate(null);
     setError('');
     setAmount('100');
@@ -171,6 +173,8 @@ export function BarcodeScanner({
   const handleRetry = () => {
     scannedOnceRef.current = false;
     setError('');
+    setProduct(null);
+    setEditedProduct(null);
     setScanState('scanning');
     controlsRef.current?.stop();
 
@@ -185,31 +189,31 @@ export function BarcodeScanner({
   };
 
   const handleAddOnly = () => {
-    if (!product || !isAmountValid()) return;
+    if (!editedProduct || !isAmountValid()) return;
     const grams = Number(amount);
     const multiplier = grams / 100;
     onAddFood({
-      name: `${product.name} (${grams}g)`,
-      calories: Math.round(product.calories * multiplier),
-      protein: Math.round(product.protein * multiplier * 10) / 10,
-      carbs: Math.round(product.carbs * multiplier * 10) / 10,
-      fat: Math.round(product.fat * multiplier * 10) / 10,
+      name: `${editedProduct.name} (${grams}g)`,
+      calories: Math.round(editedProduct.calories * multiplier),
+      protein: Math.round(editedProduct.protein * multiplier * 10) / 10,
+      carbs: Math.round(editedProduct.carbs * multiplier * 10) / 10,
+      fat: Math.round(editedProduct.fat * multiplier * 10) / 10,
       mealType,
     });
     handleClose();
   };
 
   const handleSaveAndAdd = () => {
-    if (!product || !isAmountValid()) return;
+    if (!editedProduct || !isAmountValid()) return;
     onSaveAndAdd(
       {
-        name: product.name,
+        name: editedProduct.name,
         unit: 'gram',
-        calories: product.calories,
-        protein: product.protein,
-        carbs: product.carbs,
-        fat: product.fat,
-        barcode: product.barcode,
+        calories: editedProduct.calories,
+        protein: editedProduct.protein,
+        carbs: editedProduct.carbs,
+        fat: editedProduct.fat,
+        barcode: editedProduct.barcode,
       },
       Number(amount),
       mealType
@@ -298,15 +302,12 @@ export function BarcodeScanner({
       </DialogTitle>
 
       <DialogContent>
+        {/* Kamera */}
         {(scanState === 'scanning' || scanState === 'loading') && (
           <Box>
             <Box sx={{
-              position: 'relative',
-              width: '100%',
-              borderRadius: 2,
-              overflow: 'hidden',
-              bgcolor: 'black',
-              aspectRatio: '4/3',
+              position: 'relative', width: '100%', borderRadius: 2,
+              overflow: 'hidden', bgcolor: 'black', aspectRatio: '4/3',
             }}>
               <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               {scanState === 'scanning' && (
@@ -342,6 +343,7 @@ export function BarcodeScanner({
           </Box>
         )}
 
+        {/* Mevcut şablonda bulundu */}
         {scanState === 'existing' && existingTemplate && (
           <Stack spacing={2}>
             <Alert severity="info" icon={<CheckCircleIcon />}>
@@ -361,24 +363,76 @@ export function BarcodeScanner({
           </Stack>
         )}
 
-        {scanState === 'found' && product && (
+        {/* Yeni ürün bulundu — düzenlenebilir */}
+        {scanState === 'found' && product && editedProduct && (
           <Stack spacing={2}>
-            <Alert severity="success">Ürün bulundu!</Alert>
+            <Alert severity="success">
+              Ürün bulundu! Değerleri kontrol edip düzenleyebilirsiniz.
+            </Alert>
+
             <Box p={2} bgcolor="action.hover" borderRadius={2}>
-              <Typography variant="subtitle1" fontWeight="bold">{product.name}</Typography>
-              <Typography variant="caption" color="text.secondary">100g başına değerler</Typography>
-              <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
-                <Chip label={`${product.calories} kcal`} size="small" color="error" variant="outlined" />
-                <Chip label={`P: ${product.protein}g`} size="small" color="info" variant="outlined" />
-                <Chip label={`K: ${product.carbs}g`} size="small" color="success" variant="outlined" />
-                <Chip label={`Y: ${product.fat}g`} size="small" color="warning" variant="outlined" />
+              <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
+                100g başına değerler
+              </Typography>
+
+              <TextField
+                fullWidth
+                label="Ürün Adı"
+                value={editedProduct.name}
+                onChange={(e) => setEditedProduct({ ...editedProduct, name: e.target.value })}
+                size="small"
+                sx={{ mb: 1.5 }}
+              />
+
+              <Stack direction="row" spacing={1} mb={1}>
+                <TextField
+                  fullWidth
+                  label="Kalori (kcal)"
+                  type="number"
+                  value={editedProduct.calories}
+                  onChange={(e) => setEditedProduct({ ...editedProduct, calories: Number(e.target.value) })}
+                  size="small"
+                  inputProps={{ min: 0 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Protein (g)"
+                  type="number"
+                  value={editedProduct.protein}
+                  onChange={(e) => setEditedProduct({ ...editedProduct, protein: Number(e.target.value) })}
+                  size="small"
+                  inputProps={{ min: 0 }}
+                />
+              </Stack>
+
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  fullWidth
+                  label="Karbonhidrat (g)"
+                  type="number"
+                  value={editedProduct.carbs}
+                  onChange={(e) => setEditedProduct({ ...editedProduct, carbs: Number(e.target.value) })}
+                  size="small"
+                  inputProps={{ min: 0 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Yağ (g)"
+                  type="number"
+                  value={editedProduct.fat}
+                  onChange={(e) => setEditedProduct({ ...editedProduct, fat: Number(e.target.value) })}
+                  size="small"
+                  inputProps={{ min: 0 }}
+                />
               </Stack>
             </Box>
+
             <Divider />
             {renderAmountAndMeal('gram')}
           </Stack>
         )}
 
+        {/* Ürün bulunamadı */}
         {scanState === 'notfound' && (
           <Stack spacing={2}>
             <Alert severity="warning">{error || 'Ürün veritabanında bulunamadı.'}</Alert>
@@ -388,12 +442,14 @@ export function BarcodeScanner({
           </Stack>
         )}
 
+        {/* Hata */}
         {scanState === 'error' && (
           <Alert severity="error">{error || 'Bir hata oluştu.'}</Alert>
         )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2, flexDirection: 'column', gap: 1 }}>
+        {/* Mevcut şablondan ekle */}
         {scanState === 'existing' && (
           <Button fullWidth variant="contained" startIcon={<AddIcon />}
             onClick={handleAddFromExisting} disabled={!isAmountValid()}>
@@ -401,21 +457,23 @@ export function BarcodeScanner({
           </Button>
         )}
 
+        {/* Yeni ürün — iki seçenek yan yana */}
         {scanState === 'found' && (
-        <Stack direction="row" spacing={1} width="100%">
+          <Stack direction="row" spacing={1} width="100%">
             <Button fullWidth variant="contained" startIcon={<SaveIcon />}
-            onClick={handleSaveAndAdd} disabled={!isAmountValid()} color="primary"
-            sx={{ flex: 1, fontSize: '0.8rem' }}>
-            Kaydet ve Ekle
+              onClick={handleSaveAndAdd} disabled={!isAmountValid()} color="primary"
+              sx={{ flex: 1, fontSize: '0.8rem' }}>
+              Kaydet ve Ekle
             </Button>
             <Button fullWidth variant="outlined" startIcon={<AddIcon />}
-            onClick={handleAddOnly} disabled={!isAmountValid()}
-            sx={{ flex: 1, fontSize: '0.8rem' }}>
-            Sadece Ekle
+              onClick={handleAddOnly} disabled={!isAmountValid()}
+              sx={{ flex: 1, fontSize: '0.8rem' }}>
+              Sadece Ekle
             </Button>
-        </Stack>
+          </Stack>
         )}
 
+        {/* Tekrar tara */}
         {(scanState === 'notfound' || scanState === 'error') && (
           <Button fullWidth variant="outlined" startIcon={<QrCodeScannerIcon />} onClick={handleRetry}>
             Tekrar Tara
