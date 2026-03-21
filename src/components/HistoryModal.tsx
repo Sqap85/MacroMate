@@ -90,6 +90,12 @@ interface HistoryMealSectionProps {
   onDelete: (food: Food) => void;
 }
 
+interface MealTypeSelectorProps {
+  value: MealType | undefined;
+  onChange: (mealType: MealType | undefined) => void;
+  label?: string;
+}
+
 function getMealInfoForHistory(mealType: string): MealInfo {
   switch (mealType) {
     case 'breakfast':
@@ -234,6 +240,69 @@ function HistoryMealSection({ mealType, mealFoods, isMobile, onEdit, onDelete }:
     </Paper>
   );
 }
+
+function MealTypeSelector({ value, onChange, label = 'Öğün (opsiyonel)' }: Readonly<MealTypeSelectorProps>) {
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+        {label}
+      </Typography>
+      <ToggleButtonGroup
+        value={value}
+        exclusive
+        onChange={(_, selectedValue) => onChange((selectedValue ?? undefined) as MealType | undefined)}
+        fullWidth
+        size="small"
+      >
+        <ToggleButton
+          value="breakfast"
+          sx={{
+            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
+            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.breakfast}22`, color: MEAL_COLORS.breakfast, borderColor: MEAL_COLORS.breakfast },
+            '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
+          }}
+        >
+          <LocalCafeIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.breakfast }} />
+          Kahvaltı
+        </ToggleButton>
+        <ToggleButton
+          value="lunch"
+          sx={{
+            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
+            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.lunch}22`, color: MEAL_COLORS.lunch, borderColor: MEAL_COLORS.lunch },
+            '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
+          }}
+        >
+          <LunchDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.lunch }} />
+          Öğle
+        </ToggleButton>
+        <ToggleButton
+          value="dinner"
+          sx={{
+            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
+            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.dinner}22`, color: MEAL_COLORS.dinner, borderColor: MEAL_COLORS.dinner },
+            '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
+          }}
+        >
+          <DinnerDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.dinner }} />
+          Akşam
+        </ToggleButton>
+        <ToggleButton
+          value="snack"
+          sx={{
+            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
+            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.snack}22`, color: MEAL_COLORS.snack, borderColor: MEAL_COLORS.snack },
+            '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
+          }}
+        >
+          <CookieIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.snack }} />
+          Atıştırma
+        </ToggleButton>
+      </ToggleButtonGroup>
+    </Box>
+  );
+}
+
 function getPercentage(current: number, target: number) {
   return Math.min((current / target) * 100, 100);
 }
@@ -1576,37 +1645,11 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
               </>
             )}
             
-            <Box>
-              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                Öğün
-              </Typography>
-              <ToggleButtonGroup
-                value={editFormData.mealType}
-                exclusive
-                onChange={(_, value) => setEditFormData({ ...editFormData, mealType: value })}
-                size="small"
-                fullWidth
-                sx={{
-                  '& .MuiToggleButton-root': {
-                    fontSize: isMobile ? '0.7rem' : '0.8rem',
-                    py: 0.5,
-                  }
-                }}
-              >
-                <ToggleButton value="breakfast">
-                  <LocalCafeIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.breakfast }} /> Kahvaltı
-                </ToggleButton>
-                <ToggleButton value="lunch">
-                  <LunchDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.lunch }} /> Öğle
-                </ToggleButton>
-                <ToggleButton value="dinner">
-                  <DinnerDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.dinner }} /> Akşam
-                </ToggleButton>
-                <ToggleButton value="snack">
-                  <CookieIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.snack }} /> Atıştırmalık
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
+            <MealTypeSelector
+              value={editFormData.mealType}
+              onChange={(mealType) => setEditFormData({ ...editFormData, mealType })}
+              label="Öğün"
+            />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -1668,37 +1711,11 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
           {addFoodTabValue === 0 && (
             <Stack spacing={2}>
               {/* Öğün Seçimi */}
-              <Box>
-                <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                  Öğün
-                </Typography>
-                <ToggleButtonGroup
-                  value={editFormData.mealType}
-                  exclusive
-                  onChange={(_, value) => setEditFormData({ ...editFormData, mealType: value })}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      fontSize: isMobile ? '0.7rem' : '0.8rem',
-                      py: 0.5,
-                    }
-                  }}
-                >
-                  <ToggleButton value="breakfast">
-                    <LocalCafeIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.breakfast }} /> Kahvaltı
-                  </ToggleButton>
-                  <ToggleButton value="lunch">
-                    <LunchDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.lunch }} /> Öğle
-                  </ToggleButton>
-                  <ToggleButton value="dinner">
-                    <DinnerDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.dinner }} /> Akşam
-                  </ToggleButton>
-                  <ToggleButton value="snack">
-                    <CookieIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.snack }} /> Atıştırmalık
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
+              <MealTypeSelector
+                value={editFormData.mealType}
+                onChange={(mealType) => setEditFormData({ ...editFormData, mealType })}
+                label="Öğün"
+              />
 
               {/* Besin Seçimi */}
               <Autocomplete
@@ -1823,37 +1840,11 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
           {addFoodTabValue === 1 && (
             <Stack spacing={2}>
               {/* Öğün Seçimi */}
-              <Box>
-                <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                  Öğün
-                </Typography>
-                <ToggleButtonGroup
-                  value={editFormData.mealType}
-                  exclusive
-                  onChange={(_, value) => setEditFormData({ ...editFormData, mealType: value })}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      fontSize: isMobile ? '0.7rem' : '0.8rem',
-                      py: 0.5,
-                    }
-                  }}
-                >
-                  <ToggleButton value="breakfast">
-                    <LocalCafeIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.breakfast }} /> Kahvaltı
-                  </ToggleButton>
-                  <ToggleButton value="lunch">
-                    <LunchDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.lunch }} /> Öğle
-                  </ToggleButton>
-                  <ToggleButton value="dinner">
-                    <DinnerDiningIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.dinner }} /> Akşam
-                  </ToggleButton>
-                  <ToggleButton value="snack">
-                    <CookieIcon sx={{ fontSize: 16, mr: 0.5, color: MEAL_COLORS.snack }} /> Atıştırmalık
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
+              <MealTypeSelector
+                value={editFormData.mealType}
+                onChange={(mealType) => setEditFormData({ ...editFormData, mealType })}
+                label="Öğün"
+              />
 
               <TextField
                 label="Yemek Adı"

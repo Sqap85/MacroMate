@@ -399,6 +399,9 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                   startIcon={<QrCodeScannerIcon />}
                   onClick={() => setBarcodeScannerOpen(true)}
                   color="secondary"
+                  sx={{
+                    minHeight: 56,
+                  }}
                 >
                   Barkod Tara
                 </Button>
