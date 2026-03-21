@@ -34,6 +34,7 @@ import ScaleIcon from '@mui/icons-material/Scale';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import type { Food, FoodTemplate, MealType } from '../types';
 import { useMemo, useState } from 'react';
+import { formatGrams } from '../utils/numberUtils';
 
 // Öğün renk tanımları - HistoryModal ile aynı
 const MEAL_COLORS = {
@@ -198,7 +199,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
         fat = Math.round(template.fat * newAmount * 10) / 10;
       } else {
         // Gram bazında: 100g'a göre hesapla
-        displayName = `${template.name} (${newAmount}g)`;
+        displayName = `${template.name} (${formatGrams(newAmount)}g)`;
         const multiplier = newAmount / 100;
         calories = Math.round(template.calories * multiplier);
         protein = Math.round(template.protein * multiplier * 10) / 10;
@@ -424,7 +425,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                   />
                                   {food.protein > 0 && (
                                     <Chip 
-                                      label={`P: ${food.protein}g`} 
+                                      label={`P: ${formatGrams(food.protein)}g`} 
                                       size="small" 
                                       color="info"
                                       variant="outlined"
@@ -432,7 +433,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                   )}
                                   {food.carbs > 0 && (
                                     <Chip 
-                                      label={`K: ${food.carbs}g`} 
+                                      label={`K: ${formatGrams(food.carbs)}g`} 
                                       size="small" 
                                       color="success"
                                       variant="outlined"
@@ -440,7 +441,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
                                   )}
                                   {food.fat > 0 && (
                                     <Chip 
-                                      label={`Y: ${food.fat}g`} 
+                                      label={`Y: ${formatGrams(food.fat)}g`} 
                                       size="small" 
                                       color="warning"
                                       variant="outlined"

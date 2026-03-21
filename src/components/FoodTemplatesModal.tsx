@@ -32,6 +32,7 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import type { FoodTemplate, MeasurementUnit } from '../types';
+import { formatGrams } from '../utils/numberUtils';
 
 interface FoodTemplatesModalProps {
   open: boolean;
@@ -581,8 +582,8 @@ export function FoodTemplatesModal({
                             sx={{ textOverflow: 'ellipsis', overflow: 'hidden', width: '100%' }}
                           >
                             {template.unit === 'piece'
-                              ? `1 adet: ${template.calories} kcal | P: ${template.protein}g | K: ${template.carbs}g | Y: ${template.fat}g`
-                              : `100g: ${template.calories} kcal | P: ${template.protein}g | K: ${template.carbs}g | Y: ${template.fat}g`
+                              ? `1 adet: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
+                              : `100g: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
                             }
                           </Typography>
                         </Box>

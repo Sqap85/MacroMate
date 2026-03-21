@@ -24,6 +24,7 @@ import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import type { FoodFormData, MealType, FoodTemplate } from '../types';
+import { formatGrams } from '../utils/numberUtils';
 import { BarcodeScanner } from './BarcodeScanner';
 
 // Öğün renk tanımları - tüm bileşenlerle tutarlı
@@ -310,8 +311,8 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                         </Box>
                         <Typography variant="caption" color="text.secondary">
                           {option.unit === 'piece' 
-                            ? `1 adet: ${option.calories} kcal | P: ${option.protein}g`
-                            : `100g: ${option.calories} kcal | P: ${option.protein}g`
+                            ? `1 adet: ${option.calories} kcal | P: ${formatGrams(option.protein)}g`
+                            : `100g: ${option.calories} kcal | P: ${formatGrams(option.protein)}g`
                           }
                         </Typography>
                       </Box>
@@ -375,9 +376,9 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                     </Typography>
                     <Box display="flex" gap={2} flexWrap="wrap">
                       <Chip label={`${previewValues.calories} kcal`} size="small" color="error" variant="outlined" />
-                      <Chip label={`${previewValues.protein}g protein`} size="small" color="info" variant="outlined" />
-                      <Chip label={`${previewValues.carbs}g karb.`} size="small" color="success" variant="outlined" />
-                      <Chip label={`${previewValues.fat}g yağ`} size="small" color="warning" variant="outlined" />
+                      <Chip label={`${formatGrams(previewValues.protein)}g protein`} size="small" color="info" variant="outlined" />
+                      <Chip label={`${formatGrams(previewValues.carbs)}g karb.`} size="small" color="success" variant="outlined" />
+                      <Chip label={`${formatGrams(previewValues.fat)}g yağ`} size="small" color="warning" variant="outlined" />
                     </Box>
                   </Box>
                 )}

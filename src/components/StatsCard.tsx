@@ -15,6 +15,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import type { DailyStats, DailyGoal } from '../types';
+import { formatGrams } from '../utils/numberUtils';
 
 interface StatsCardProps {
   stats: DailyStats;
@@ -94,7 +95,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
-              {stats.totalProtein}g / {goal.protein}g
+              {formatGrams(stats.totalProtein)}g / {formatGrams(goal.protein)}g
             </Typography>
             <LinearProgress
               variant="determinate"
@@ -103,7 +104,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {proteinRemaining > 0 ? `Kalan: ${proteinRemaining}g` : proteinRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${Math.abs(proteinRemaining)}g`}
+              {proteinRemaining > 0 ? `Kalan: ${formatGrams(proteinRemaining)}g` : proteinRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${formatGrams(Math.abs(proteinRemaining))}g`}
             </Typography>
           </Box>
 
@@ -116,7 +117,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
-              {stats.totalCarbs}g / {goal.carbs}g
+              {formatGrams(stats.totalCarbs)}g / {formatGrams(goal.carbs)}g
             </Typography>
             <LinearProgress
               variant="determinate"
@@ -125,7 +126,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {carbsRemaining > 0 ? `Kalan: ${carbsRemaining}g` : carbsRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${Math.abs(carbsRemaining)}g`}
+              {carbsRemaining > 0 ? `Kalan: ${formatGrams(carbsRemaining)}g` : carbsRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${formatGrams(Math.abs(carbsRemaining))}g`}
             </Typography>
           </Box>
 
@@ -138,7 +139,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
-              {stats.totalFat}g / {goal.fat}g
+              {formatGrams(stats.totalFat)}g / {formatGrams(goal.fat)}g
             </Typography>
             <LinearProgress
               variant="determinate"
@@ -147,7 +148,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {fatRemaining > 0 ? `Kalan: ${fatRemaining}g` : fatRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${Math.abs(fatRemaining)}g`}
+              {fatRemaining > 0 ? `Kalan: ${formatGrams(fatRemaining)}g` : fatRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${formatGrams(Math.abs(fatRemaining))}g`}
             </Typography>
           </Box>
         </Stack>

@@ -28,6 +28,7 @@ import { BrowserMultiFormatReader } from '@zxing/browser';
 import { searchByBarcode } from '../services/openFoodFactsService';
 import type { OpenFoodFactsProduct } from '../services/openFoodFactsService';
 import type { FoodTemplate, MealType } from '../types';
+import { formatGrams } from '../utils/numberUtils';
 
 const MEAL_COLORS = {
   breakfast: '#FF6B35',
@@ -353,9 +354,9 @@ export function BarcodeScanner({
               <Typography variant="subtitle1" fontWeight="bold">{existingTemplate.name}</Typography>
               <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
                 <Chip label={`${existingTemplate.calories} kcal`} size="small" color="error" variant="outlined" />
-                <Chip label={`P: ${existingTemplate.protein}g`} size="small" color="info" variant="outlined" />
-                <Chip label={`K: ${existingTemplate.carbs}g`} size="small" color="success" variant="outlined" />
-                <Chip label={`Y: ${existingTemplate.fat}g`} size="small" color="warning" variant="outlined" />
+                <Chip label={`P: ${formatGrams(existingTemplate.protein)}g`} size="small" color="info" variant="outlined" />
+                <Chip label={`K: ${formatGrams(existingTemplate.carbs)}g`} size="small" color="success" variant="outlined" />
+                <Chip label={`Y: ${formatGrams(existingTemplate.fat)}g`} size="small" color="warning" variant="outlined" />
               </Stack>
             </Box>
             <Divider />

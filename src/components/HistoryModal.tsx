@@ -46,6 +46,7 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Food, DailyGoal, MealType, FoodTemplate } from '../types';
 import { calculateWeeklyStats, formatDate, getDayName } from '../utils/dateUtils';
+import { formatGrams } from '../utils/numberUtils';
 
 // Öğün renk tanımları - tüm uygulamada tutarlı
 const MEAL_COLORS = {
@@ -574,7 +575,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
         carbs = Math.round(selectedTemplate!.carbs * amount * 10) / 10;
         fat = Math.round(selectedTemplate!.fat * amount * 10) / 10;
       } else {
-        displayName = `${selectedTemplate!.name} (${amount}g)`;
+        displayName = `${selectedTemplate!.name} (${formatGrams(amount)}g)`;
         const multiplier = amount / 100;
         calories = Math.round(selectedTemplate!.calories * multiplier);
         protein = Math.round(selectedTemplate!.protein * multiplier * 10) / 10;
@@ -1327,21 +1328,21 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                             <Box mb={isMobile ? 0.75 : 1}>
                               <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                                 <Chip 
-                                  label={`P: ${day.totalProtein}g`} 
+                                  label={`P: ${formatGrams(day.totalProtein)}g`} 
                                   size="small" 
                                   variant="outlined"
                                   color="info"
                                   sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem', height: 20 }}
                                 />
                                 <Chip 
-                                  label={`K: ${day.totalCarbs}g`} 
+                                  label={`K: ${formatGrams(day.totalCarbs)}g`} 
                                   size="small" 
                                   variant="outlined"
                                   color="success"
                                   sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem', height: 20 }}
                                 />
                                 <Chip 
-                                  label={`Y: ${day.totalFat}g`} 
+                                  label={`Y: ${formatGrams(day.totalFat)}g`} 
                                   size="small" 
                                   variant="outlined"
                                   color="warning"
@@ -1754,8 +1755,8 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                       </Box>
                       <Typography variant="caption" color="text.secondary">
                         {option.unit === 'piece' 
-                          ? `1 adet: ${option.calories} kcal | P: ${option.protein}g`
-                          : `100g: ${option.calories} kcal | P: ${option.protein}g`
+                          ? `1 adet: ${option.calories} kcal | P: ${formatGrams(option.protein)}g`
+                          : `100g: ${option.calories} kcal | P: ${formatGrams(option.protein)}g`
                         }
                       </Typography>
                     </Box>
@@ -1813,19 +1814,19 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                       variant="outlined"
                     />
                     <Chip 
-                      label={`${templatePreview.protein}g protein`}
+                      label={`${formatGrams(templatePreview.protein)}g protein`}
                       size="small"
                       color="info"
                       variant="outlined"
                     />
                     <Chip 
-                      label={`${templatePreview.carbs}g karb.`}
+                      label={`${formatGrams(templatePreview.carbs)}g karb.`}
                       size="small"
                       color="success"
                       variant="outlined"
                     />
                     <Chip 
-                      label={`${templatePreview.fat}g yağ`}
+                      label={`${formatGrams(templatePreview.fat)}g yağ`}
                       size="small"
                       color="warning"
                       variant="outlined"
