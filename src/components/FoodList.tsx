@@ -32,7 +32,7 @@ import CookieIcon from '@mui/icons-material/Cookie';
 import ScaleIcon from '@mui/icons-material/Scale';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import type { Food, FoodTemplate, MealType } from '../types';
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { formatGrams } from '../utils/numberUtils';
 
 // Öğün renk tanımları - HistoryModal ile aynı
@@ -93,6 +93,258 @@ function MealTypeSelector({ value, onChange }: Readonly<MealTypeSelectorProps>) 
   );
 }
 
+const getMealInfo = (mealType: string) => {
+  switch (mealType) {
+    case 'breakfast':
+      return { icon: LocalCafeIcon, label: 'Kahvaltı', color: MEAL_COLORS.breakfast };
+    case 'lunch':
+      return { icon: LunchDiningIcon, label: 'Öğle Yemeği', color: MEAL_COLORS.lunch };
+    case 'dinner':
+      return { icon: DinnerDiningIcon, label: 'Akşam Yemeği', color: MEAL_COLORS.dinner };
+    case 'snack':
+      return { icon: CookieIcon, label: 'Atıştırmalık', color: MEAL_COLORS.snack };
+    default:
+      return { icon: RestaurantIcon, label: 'Diğer', color: '#9E9E9E' };
+  }
+};
+
+interface FoodRowProps {
+  food: Food;
+  isPlannedTimestamp: (timestamp: number) => boolean;
+  onEditClick: (food: Food) => void;
+  onDeleteClick: (food: Food) => void;
+  showDivider: boolean;
+}
+
+const FoodRow = memo(function FoodRow({
+  food,
+  isPlannedTimestamp,
+  onEditClick,
+  onDeleteClick,
+  showDivider,
+}: Readonly<FoodRowProps>) {
+  return (
+    <Box>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="flex-start"
+        gap={2}
+        sx={{
+          p: 1.5,
+          borderRadius: 1,
+          '&:hover': {
+            bgcolor: 'action.hover',
+          }
+        }}
+      >
+        <Box flex={1}>
+          <Box display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
+            <Typography variant="subtitle1" fontWeight="bold">
+              {food.name}
+            </Typography>
+            {isPlannedTimestamp(food.timestamp) && (
+              <Chip
+                icon={<EventAvailableIcon />}
+                label="Plan"
+                size="small"
+                color="success"
+                variant="outlined"
+                sx={{ height: 20, fontSize: '0.7rem' }}
+              />
+            )}
+          </Box>
+
+          <Stack
+            direction="row"
+            spacing={0.5}
+            useFlexGap
+            sx={{ flexWrap: 'nowrap' }}
+          >
+            <Chip
+              label={`${food.calories} kcal`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{
+                flex: { xs: 1, sm: '0 0 auto' },
+                minWidth: { xs: 0, sm: 'auto' },
+                height: { xs: 20, sm: 24 },
+                fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+              }}
+            />
+            {food.protein > 0 && (
+              <Chip
+                label={`P: ${formatGrams(food.protein)}g`}
+                size="small"
+                color="info"
+                variant="outlined"
+                sx={{
+                  flex: { xs: 1, sm: '0 0 auto' },
+                  minWidth: { xs: 0, sm: 'auto' },
+                  height: { xs: 20, sm: 24 },
+                  fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                  '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                }}
+              />
+            )}
+            {food.carbs > 0 && (
+              <Chip
+                label={`K: ${formatGrams(food.carbs)}g`}
+                size="small"
+                color="success"
+                variant="outlined"
+                sx={{
+                  flex: { xs: 1, sm: '0 0 auto' },
+                  minWidth: { xs: 0, sm: 'auto' },
+                  height: { xs: 20, sm: 24 },
+                  fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                  '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                }}
+              />
+            )}
+            {food.fat > 0 && (
+              <Chip
+                label={`Y: ${formatGrams(food.fat)}g`}
+                size="small"
+                color="warning"
+                variant="outlined"
+                sx={{
+                  flex: { xs: 1, sm: '0 0 auto' },
+                  minWidth: { xs: 0, sm: 'auto' },
+                  height: { xs: 20, sm: 24 },
+                  fontSize: { xs: '0.62rem', sm: '0.72rem' },
+                  '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
+                }}
+              />
+            )}
+          </Stack>
+        </Box>
+
+        <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Düzenle">
+            <IconButton
+              color="primary"
+              onClick={() => onEditClick(food)}
+              size="small"
+              sx={{
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                },
+              }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Sil">
+            <IconButton
+              color="error"
+              onClick={() => onDeleteClick(food)}
+              size="small"
+              sx={{
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </Box>
+
+      {showDivider && <Divider sx={{ mt: 1 }} />}
+    </Box>
+  );
+});
+
+interface MealSectionProps {
+  mealType: string;
+  mealFoods: Food[];
+  isExpanded: boolean;
+  onToggle: (meal: string) => void;
+  isPlannedTimestamp: (timestamp: number) => boolean;
+  onEditClick: (food: Food) => void;
+  onDeleteClick: (food: Food) => void;
+}
+
+const MealSection = memo(function MealSection({
+  mealType,
+  mealFoods,
+  isExpanded,
+  onToggle,
+  isPlannedTimestamp,
+  onEditClick,
+  onDeleteClick,
+}: Readonly<MealSectionProps>) {
+  const mealInfo = getMealInfo(mealType);
+  const MealIcon = mealInfo.icon;
+  const totalCalories = useMemo(
+    () => mealFoods.reduce((sum, food) => sum + food.calories, 0),
+    [mealFoods]
+  );
+
+  return (
+    <Paper
+      elevation={2}
+      sx={{
+        overflow: 'hidden',
+        transition: 'all 0.2s',
+      }}
+    >
+      <Box
+        onClick={() => onToggle(mealType)}
+        sx={{
+          p: 2,
+          bgcolor: 'background.default',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          '&:hover': {
+            bgcolor: `${mealInfo.color}11`,
+          },
+          transition: 'background-color 0.2s',
+        }}
+      >
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <MealIcon sx={{ color: mealInfo.color }} />
+          <Typography variant="subtitle1" fontWeight="bold">
+            {mealInfo.label}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            ({totalCalories} kcal)
+          </Typography>
+        </Box>
+        <IconButton size="small">
+          {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </IconButton>
+      </Box>
+
+      <Collapse in={isExpanded} timeout={200} mountOnEnter unmountOnExit>
+        <Box sx={{ p: 2, pt: 0 }}>
+          <Stack spacing={2}>
+            {mealFoods.map((food, index) => (
+              <FoodRow
+                key={food.id}
+                food={food}
+                isPlannedTimestamp={isPlannedTimestamp}
+                onEditClick={onEditClick}
+                onDeleteClick={onDeleteClick}
+                showDivider={index !== mealFoods.length - 1}
+              />
+            ))}
+          </Stack>
+        </Box>
+      </Collapse>
+    </Paper>
+  );
+});
+
 interface FoodListProps {
   foods: Food[];
   onDeleteFood: (id: string) => void;
@@ -123,17 +375,17 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     other: false, // Öğün belirtilmemiş yemekler için
   });
 
-  const toggleMeal = (meal: string) => {
+  const toggleMeal = useCallback((meal: string) => {
     setExpandedMeals(prev => ({
       ...prev,
       [meal]: !prev[meal as keyof typeof prev]
     }));
-  };
+  }, []);
 
-  const handleDeleteClick = (food: Food) => {
+  const handleDeleteClick = useCallback((food: Food) => {
     setSelectedFood(food);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
   const handleDeleteConfirm = () => {
     if (selectedFood) {
@@ -143,7 +395,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     }
   };
 
-  const handleEditClick = (food: Food) => {
+  const handleEditClick = useCallback((food: Food) => {
     setSelectedFood(food);
     
     if (food.fromTemplate) {
@@ -170,7 +422,7 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
       });
     }
     setEditDialogOpen(true);
-  };
+  }, []);
 
   const handleEditSave = () => {
     if (!selectedFood) return;
@@ -273,26 +525,11 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
     );
   }
 
-  const getMealInfo = (mealType: string) => {
-    switch (mealType) {
-      case 'breakfast':
-        return { icon: LocalCafeIcon, label: 'Kahvaltı', color: MEAL_COLORS.breakfast };
-      case 'lunch':
-        return { icon: LunchDiningIcon, label: 'Öğle Yemeği', color: MEAL_COLORS.lunch };
-      case 'dinner':
-        return { icon: DinnerDiningIcon, label: 'Akşam Yemeği', color: MEAL_COLORS.dinner };
-      case 'snack':
-        return { icon: CookieIcon, label: 'Atıştırmalık', color: MEAL_COLORS.snack };
-      default:
-        return { icon: RestaurantIcon, label: 'Diğer', color: '#9E9E9E' };
-    }
-  };
-
-  const isPlannedTimestamp = (timestamp: number) => {
+  const isPlannedTimestamp = useCallback((timestamp: number) => {
     const foodDate = new Date(timestamp);
     const foodDateOnly = new Date(foodDate.getFullYear(), foodDate.getMonth(), foodDate.getDate()).getTime();
     return foodDateOnly > todayDateOnly;
-  };
+  }, [todayDateOnly]);
 
   return (
     <Card 
@@ -316,206 +553,19 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Foo
         <Stack spacing={2} mt={2}>
           {Object.entries(groupedFoods).map(([mealType, mealFoods]) => {
             if (mealFoods.length === 0) return null;
-            
-            const mealInfo = getMealInfo(mealType);
-            const MealIcon = mealInfo.icon;
             const isExpanded = expandedMeals[mealType as keyof typeof expandedMeals];
-            const totalCalories = mealFoods.reduce((sum, food) => sum + food.calories, 0);
 
             return (
-              <Paper 
+              <MealSection
                 key={mealType} 
-                elevation={2}
-                sx={{ 
-                  overflow: 'hidden',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    elevation: 4,
-                  }
-                }}
-              >
-                {/* Öğün Başlığı - Tıklanabilir */}
-                <Box
-                  onClick={() => toggleMeal(mealType)}
-                  sx={{
-                    p: 2,
-                    bgcolor: 'background.default',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    '&:hover': {
-                      bgcolor: `${mealInfo.color}11`,
-                    },
-                    transition: 'background-color 0.2s',
-                  }}
-                >
-                  <Box display="flex" alignItems="center" gap={1.5}>
-                    <MealIcon sx={{ color: mealInfo.color }} />
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {mealInfo.label}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      ({totalCalories} kcal)
-                    </Typography>
-                  </Box>
-                  <IconButton size="small">
-                    {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                  </IconButton>
-                </Box>
-
-                {/* Yemekler Listesi - Açılır Kapanır */}
-                <Collapse
-                  in={isExpanded}
-                  timeout={220}
-                  mountOnEnter
-                  unmountOnExit
-                >
-                  <Box sx={{ p: 2, pt: 0 }}>
-                    <Stack spacing={2}>
-                      {mealFoods.map((food, index) => (
-                        <Box key={food.id}>
-                          <Box 
-                            display="flex" 
-                            justifyContent="space-between" 
-                            alignItems="flex-start"
-                            gap={2}
-                            sx={{
-                              p: 1.5,
-                              borderRadius: 1,
-                              '&:hover': {
-                                bgcolor: 'action.hover',
-                              }
-                            }}
-                          >
-                            <Box flex={1}>
-                              <Box display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
-                                <Typography variant="subtitle1" fontWeight="bold">
-                                  {food.name}
-                                </Typography>
-                                {isPlannedTimestamp(food.timestamp) && (
-                                  <Chip 
-                                    icon={<EventAvailableIcon />}
-                                    label="Plan" 
-                                    size="small" 
-                                    color="success" 
-                                    variant="outlined"
-                                    sx={{ height: 20, fontSize: '0.7rem' }}
-                                  />
-                                )}
-                              </Box>
-                              
-                              <Stack
-                                direction="row"
-                                spacing={0.5}
-                                useFlexGap
-                                sx={{ flexWrap: 'nowrap' }}
-                              >
-                                <Chip 
-                                  label={`${food.calories} kcal`} 
-                                  size="small" 
-                                  color="error"
-                                  variant="outlined"
-                                  sx={{
-                                    flex: { xs: 1, sm: '0 0 auto' },
-                                    minWidth: { xs: 0, sm: 'auto' },
-                                    height: { xs: 20, sm: 24 },
-                                    fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                                    '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                                  }}
-                                />
-                                {food.protein > 0 && (
-                                  <Chip 
-                                    label={`P: ${formatGrams(food.protein)}g`} 
-                                    size="small" 
-                                    color="info"
-                                    variant="outlined"
-                                    sx={{
-                                      flex: { xs: 1, sm: '0 0 auto' },
-                                      minWidth: { xs: 0, sm: 'auto' },
-                                      height: { xs: 20, sm: 24 },
-                                      fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                                      '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                                    }}
-                                  />
-                                )}
-                                {food.carbs > 0 && (
-                                  <Chip 
-                                    label={`K: ${formatGrams(food.carbs)}g`} 
-                                    size="small" 
-                                    color="success"
-                                    variant="outlined"
-                                    sx={{
-                                      flex: { xs: 1, sm: '0 0 auto' },
-                                      minWidth: { xs: 0, sm: 'auto' },
-                                      height: { xs: 20, sm: 24 },
-                                      fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                                      '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                                    }}
-                                  />
-                                )}
-                                {food.fat > 0 && (
-                                  <Chip 
-                                    label={`Y: ${formatGrams(food.fat)}g`} 
-                                    size="small" 
-                                    color="warning"
-                                    variant="outlined"
-                                    sx={{
-                                      flex: { xs: 1, sm: '0 0 auto' },
-                                      minWidth: { xs: 0, sm: 'auto' },
-                                      height: { xs: 20, sm: 24 },
-                                      fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                                      '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                                    }}
-                                  />
-                                )}
-                              </Stack>
-                            </Box>
-                            
-                            <Stack direction="row" spacing={0.5}>
-                              <Tooltip title="Düzenle">
-                                <IconButton 
-                                  color="primary" 
-                                  onClick={() => handleEditClick(food)}
-                                  size="small"
-                                  sx={{
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                      transform: 'scale(1.1)',
-                                    },
-                                  }}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Tooltip title="Sil">
-                                <IconButton 
-                                  color="error" 
-                                  onClick={() => handleDeleteClick(food)}
-                                  size="small"
-                                  sx={{
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                      transform: 'scale(1.1)',
-                                    },
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Stack>
-                          </Box>
-                          
-                          {index !== mealFoods.length - 1 && (
-                            <Divider sx={{ mt: 1 }} />
-                          )}
-                        </Box>
-                      ))}
-                    </Stack>
-                  </Box>
-                </Collapse>
-              </Paper>
+                mealType={mealType}
+                mealFoods={mealFoods}
+                isExpanded={isExpanded}
+                onToggle={toggleMeal}
+                isPlannedTimestamp={isPlannedTimestamp}
+                onEditClick={handleEditClick}
+                onDeleteClick={handleDeleteClick}
+              />
             );
           })}
         </Stack>
