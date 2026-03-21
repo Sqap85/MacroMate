@@ -22,14 +22,16 @@ import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
 import CookieIcon from '@mui/icons-material/Cookie';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import type { FoodFormData, MealType, FoodTemplate } from '../types';
+import { BarcodeScanner } from './BarcodeScanner';
 
 // Öğün renk tanımları - tüm bileşenlerle tutarlı
 const MEAL_COLORS = {
-  breakfast: '#FF6B35', // Turuncu
-  lunch: '#F7931E',     // Altın sarısı
-  dinner: '#9D4EDD',    // Mor
-  snack: '#06A77D',     // Yeşil
+  breakfast: '#FF6B35',
+  lunch: '#F7931E',
+  dinner: '#9D4EDD',
+  snack: '#06A77D',
 } as const;
 
 interface FoodFormProps {
@@ -44,10 +46,16 @@ interface FoodFormProps {
   foodTemplates: FoodTemplate[];
   onAddFromTemplate: (templateId: string, grams: number, mealType?: string) => void;
   onOpenTemplates: () => void;
+  onSaveTemplateAndAdd: (
+    template: Omit<FoodTemplate, 'id'>,
+    amount: number,
+    mealType?: MealType
+  ) => void;
 }
 
-export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTemplates }: FoodFormProps) {
+export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTemplates, onSaveTemplateAndAdd }: FoodFormProps) {
   const [tabValue, setTabValue] = useState(0);
+  const [barcodeScannerOpen, setBarcodeScannerOpen] = useState(false);
   const [formData, setFormData] = useState<FoodFormData>({
     name: '',
     calories: '',
@@ -66,12 +74,10 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Form validasyonu - tarayıcının native validasyonunu kullan
     if (!formData.name || !formData.calories) {
       return;
     }
 
-    // String'leri number'a çevir
     onAddFood({
       name: formData.name,
       calories: Number(formData.calories),
@@ -81,7 +87,6 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
       mealType: formData.mealType,
     });
 
-    // Formu temizle
     setFormData({
       name: '',
       calories: '',
@@ -101,7 +106,6 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
   const handleTemplateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Form validasyonu - tarayıcının native validasyonunu kullan
     if (!selectedTemplate) {
       return;
     }
@@ -109,29 +113,21 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
     let amountToAdd: number;
     
     if (selectedTemplate.unit === 'piece') {
-      if (!pieces) {
-        return;
-      }
-      // Adet bazında: direk adet sayısını gönder
+      if (!pieces) return;
       amountToAdd = Number(pieces);
     } else {
-      if (!grams) {
-        return;
-      }
-      // Gram bazında: gram miktarını gönder
+      if (!grams) return;
       amountToAdd = Number(grams);
     }
 
     onAddFromTemplate(selectedTemplate.id, amountToAdd, templateMealType);
 
-    // Formu temizle
     setSelectedTemplate(null);
     setGrams('');
     setPieces('');
     setTemplateMealType(undefined);
   };
 
-  // Seçili şablonun önizleme değerlerini hesapla
   const getPreviewValues = () => {
     if (!selectedTemplate) return null;
     if (selectedTemplate.unit === 'piece') {
@@ -161,322 +157,339 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
   const previewValues = getPreviewValues();
 
   return (
-    <Card 
-      elevation={3}
-      sx={{
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
-        },
-      }}
-    >
-      <CardContent>
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <RestaurantIcon color="primary" />
-            <Typography variant="h6">
-              Yemek Ekle
-            </Typography>
+    <>
+      <Card 
+        elevation={3}
+        sx={{
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: 6,
+          },
+        }}
+      >
+        <CardContent>
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <RestaurantIcon color="primary" />
+              <Typography variant="h6">
+                Yemek Ekle
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onOpenTemplates}
+              startIcon={<RestaurantMenuIcon />}
+            >
+              Besinlerim
+            </Button>
           </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={onOpenTemplates}
-            startIcon={<RestaurantMenuIcon />}
+
+          <Tabs 
+            value={tabValue} 
+            onChange={(_, newValue) => setTabValue(newValue)}
+            sx={{ mb: 2 }}
           >
-            Besinlerim
-          </Button>
-        </Box>
+            <Tab label="Kayıtlı Besinler" />
+            <Tab label="Manuel Giriş" />
+          </Tabs>
 
-        <Tabs 
-          value={tabValue} 
-          onChange={(_, newValue) => setTabValue(newValue)}
-          sx={{ mb: 2 }}
-        >
-          <Tab label="Kayıtlı Besinler" />
-          <Tab label="Manuel Giriş" />
-        </Tabs>
+          <Divider sx={{ mb: 2 }} />
 
-        <Divider sx={{ mb: 2 }} />
+          {/* TAB 0: Şablon Seçimi */}
+          {tabValue === 0 && (
+            <Box component="form" onSubmit={handleTemplateSubmit}>
+              <Stack spacing={2}>
+                {/* Öğün Seçimi */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                    Öğün Türü
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={templateMealType}
+                    exclusive
+                    onChange={(_, value) => setTemplateMealType(value as MealType)}
+                    fullWidth
+                    size="small"
+                  >
+                    <ToggleButton value="breakfast">
+                      <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
+                      Kahvaltı
+                    </ToggleButton>
+                    <ToggleButton value="lunch">
+                      <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
+                      Öğle
+                    </ToggleButton>
+                    <ToggleButton value="dinner">
+                      <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
+                      Akşam
+                    </ToggleButton>
+                    <ToggleButton value="snack">
+                      <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
+                      Atıştırma
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
 
-        {/* TAB 0: Şablon Seçimi */}
-        {tabValue === 0 && (
-          <Box component="form" onSubmit={handleTemplateSubmit}>
-            <Stack spacing={2}>
-              {/* Öğün Seçimi */}
-              <Box>
-                <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                  Öğün Türü
-                </Typography>
-                <ToggleButtonGroup
-                  value={templateMealType}
-                  exclusive
-                  onChange={(_, value) => setTemplateMealType(value as MealType)}
-                  fullWidth
-                  size="small"
-                >
-                  <ToggleButton value="breakfast">
-                    <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
-                    Kahvaltı
-                  </ToggleButton>
-                  <ToggleButton value="lunch">
-                    <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
-                    Öğle
-                  </ToggleButton>
-                  <ToggleButton value="dinner">
-                    <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
-                    Akşam
-                  </ToggleButton>
-                  <ToggleButton value="snack">
-                    <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
-                    Atıştırma
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
-
-              <Autocomplete
-                options={foodTemplates}
-                getOptionLabel={(option) => option.name}
-                value={selectedTemplate}
-                onChange={(_, newValue) => {
-                  setSelectedTemplate(newValue);
-                  // Sadece adet ise otomatik 1, gramda boş
-                  if (newValue) {
-                    if (newValue.unit === 'piece') {
-                      setPieces('1');
-                      setGrams('');
+                <Autocomplete
+                  options={foodTemplates}
+                  getOptionLabel={(option) => option.name}
+                  value={selectedTemplate}
+                  onChange={(_, newValue) => {
+                    setSelectedTemplate(newValue);
+                    if (newValue) {
+                      if (newValue.unit === 'piece') {
+                        setPieces('1');
+                        setGrams('');
+                      } else {
+                        setGrams('');
+                        setPieces('');
+                      }
                     } else {
                       setGrams('');
                       setPieces('');
                     }
-                  } else {
-                    setGrams('');
-                    setPieces('');
-                  }
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Besin Seç"
-                  />
-                )}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props}>
-                    <Box sx={{ width: '100%' }}>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="body2">{option.name}</Typography>
-                        {option.unit === 'piece' && (
-                          <Typography variant="caption" color="primary">
-                            (Adet)
-                          </Typography>
-                        )}
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Besin Seç"
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props}>
+                      <Box sx={{ width: '100%' }}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography variant="body2">{option.name}</Typography>
+                          {option.unit === 'piece' && (
+                            <Typography variant="caption" color="primary">
+                              (Adet)
+                            </Typography>
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.unit === 'piece' 
+                            ? `1 adet: ${option.calories} kcal | P: ${option.protein}g`
+                            : `100g: ${option.calories} kcal | P: ${option.protein}g`
+                          }
+                        </Typography>
                       </Box>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.unit === 'piece' 
-                          ? `1 adet: ${option.calories} kcal | P: ${option.protein}g`
-                          : `100g: ${option.calories} kcal | P: ${option.protein}g`
-                        }
+                    </Box>
+                  )}
+                  noOptionsText={
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Henüz besin eklemediniz
                       </Typography>
+                      <Button 
+                        size="small" 
+                        onClick={onOpenTemplates}
+                        sx={{ mt: 1 }}
+                      >
+                        Besin Ekle
+                      </Button>
+                    </Box>
+                  }
+                />
+
+                {/* Miktar Girişi */}
+                {selectedTemplate && (
+                  selectedTemplate.unit === 'piece' ? (
+                    <TextField
+                      fullWidth
+                      label={`Kaç Adet ${selectedTemplate.name}?`}
+                      type="number"
+                      value={pieces}
+                      onChange={(e) => setPieces(e.target.value)}
+                      inputProps={{ min: 0, step: 0.01 }}
+                    />
+                  ) : (
+                    <TextField
+                      fullWidth
+                      label="Miktar (gram)"
+                      type="number"
+                      value={grams}
+                      onChange={(e) => setGrams(e.target.value)}
+                      inputProps={{ min: 0, step: 1 }}
+                    />
+                  )
+                )}
+
+                {/* Önizleme */}
+                {previewValues && (
+                  <Box 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'action.hover', 
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                      {selectedTemplate?.unit === 'piece' 
+                        ? `Toplam Değerler (${pieces} adet)`
+                        : `Toplam Değerler (${grams}g)`
+                      }
+                    </Typography>
+                    <Box display="flex" gap={2} flexWrap="wrap">
+                      <Chip label={`${previewValues.calories} kcal`} size="small" color="error" variant="outlined" />
+                      <Chip label={`${previewValues.protein}g protein`} size="small" color="info" variant="outlined" />
+                      <Chip label={`${previewValues.carbs}g karb.`} size="small" color="success" variant="outlined" />
+                      <Chip label={`${previewValues.fat}g yağ`} size="small" color="warning" variant="outlined" />
                     </Box>
                   </Box>
                 )}
-                noOptionsText={
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Henüz besin eklemediniz
-                    </Typography>
-                    <Button 
-                      size="small" 
-                      onClick={onOpenTemplates}
-                      sx={{ mt: 1 }}
-                    >
-                      Besin Ekle
-                    </Button>
-                  </Box>
-                }
-              />
 
-              {/* Miktar Girişi - Gram veya Adet */}
-              {selectedTemplate && (
-                selectedTemplate.unit === 'piece' ? (
-                  <TextField
-                    fullWidth
-                    label={`Kaç Adet ${selectedTemplate.name}?`}
-                    type="number"
-                    value={pieces}
-                    onChange={(e) => setPieces(e.target.value)}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                ) : (
-                  <TextField
-                    fullWidth
-                    label="Miktar (gram)"
-                    type="number"
-                    value={grams}
-                    onChange={(e) => setGrams(e.target.value)}
-                    inputProps={{ min: 0, step: 1 }}
-                  />
-                )
-              )}
-
-              {/* Önizleme */}
-              {previewValues && (
-                <Box 
-                  sx={{ 
-                    p: 2, 
-                    bgcolor: 'action.hover', 
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'divider'
-                  }}
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  type="submit"
+                  startIcon={<AddIcon />}
+                  size="large"
+                  disabled={!selectedTemplate || (selectedTemplate.unit === 'piece' ? !pieces : !grams)}
                 >
+                  Ekle
+                </Button>
+              </Stack>
+            </Box>
+          )}
+
+          {/* TAB 1: Manuel Giriş */}
+          {tabValue === 1 && (
+            <Box component="form" onSubmit={handleSubmit}>
+              <Stack spacing={2}>
+                {/* Öğün Seçimi */}
+                <Box>
                   <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                    {selectedTemplate?.unit === 'piece' 
-                      ? `Toplam Değerler (${pieces} adet)`
-                      : `Toplam Değerler (${grams}g)`
-                    }
+                    Öğün Türü
                   </Typography>
-                  <Box display="flex" gap={2} flexWrap="wrap">
-                    <Chip 
-                      label={`${previewValues.calories} kcal`}
-                      size="small"
-                      color="error"
-                      variant="outlined"
-                    />
-                    <Chip 
-                      label={`${previewValues.protein}g protein`}
-                      size="small"
-                      color="info"
-                      variant="outlined"
-                    />
-                    <Chip 
-                      label={`${previewValues.carbs}g karb.`}
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                    />
-                    <Chip 
-                      label={`${previewValues.fat}g yağ`}
-                      size="small"
-                      color="warning"
-                      variant="outlined"
-                    />
-                  </Box>
+                  <ToggleButtonGroup
+                    value={formData.mealType}
+                    exclusive
+                    onChange={(_, value) => setFormData({ ...formData, mealType: value as MealType })}
+                    fullWidth
+                    size="small"
+                  >
+                    <ToggleButton value="breakfast">
+                      <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
+                      Kahvaltı
+                    </ToggleButton>
+                    <ToggleButton value="lunch">
+                      <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
+                      Öğle
+                    </ToggleButton>
+                    <ToggleButton value="dinner">
+                      <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
+                      Akşam
+                    </ToggleButton>
+                    <ToggleButton value="snack">
+                      <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
+                      Atıştırma
+                    </ToggleButton>
+                  </ToggleButtonGroup>
                 </Box>
-              )}
 
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                type="submit"
-                startIcon={<AddIcon />}
-                size="large"
-                disabled={!selectedTemplate || (selectedTemplate.unit === 'piece' ? !pieces : !grams)}
-              >
-                Ekle
-              </Button>
-            </Stack>
-          </Box>
-        )}
-
-        {/* TAB 1: Manuel Giriş */}
-        {tabValue === 1 && (
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              {/* Öğün Seçimi */}
-              <Box>
-                <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                  Öğün Türü
-                </Typography>
-                <ToggleButtonGroup
-                  value={formData.mealType}
-                  exclusive
-                  onChange={(_, value) => setFormData({ ...formData, mealType: value as MealType })}
+                {/* Barkod Tara Butonu */}
+                <Button
                   fullWidth
-                  size="small"
+                  variant="outlined"
+                  startIcon={<QrCodeScannerIcon />}
+                  onClick={() => setBarcodeScannerOpen(true)}
+                  color="secondary"
                 >
-                  <ToggleButton value="breakfast">
-                    <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
-                    Kahvaltı
-                  </ToggleButton>
-                  <ToggleButton value="lunch">
-                    <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
-                    Öğle
-                  </ToggleButton>
-                  <ToggleButton value="dinner">
-                    <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
-                    Akşam
-                  </ToggleButton>
-                  <ToggleButton value="snack">
-                    <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
-                    Atıştırma
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
+                  Barkod Tara
+                </Button>
 
-              <TextField
-                fullWidth
-                label="Yemek Adı"
-                value={formData.name}
-                onChange={handleChange('name')}
-                required
-              />
-              
-              <Box display="flex" gap={2}>
+                <Divider>
+                  <Typography variant="caption" color="text.secondary">
+                    veya elle gir
+                  </Typography>
+                </Divider>
+
                 <TextField
                   fullWidth
-                  label="Kalori"
-                  type="number"
-                  value={formData.calories}
-                  onChange={handleChange('calories')}
+                  label="Yemek Adı"
+                  value={formData.name}
+                  onChange={handleChange('name')}
                   required
-                  inputProps={{ min: 0 }}
                 />
-                <TextField
+                
+                <Box display="flex" gap={2}>
+                  <TextField
+                    fullWidth
+                    label="Kalori"
+                    type="number"
+                    value={formData.calories}
+                    onChange={handleChange('calories')}
+                    required
+                    inputProps={{ min: 0 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Protein (g)"
+                    type="number"
+                    value={formData.protein}
+                    onChange={handleChange('protein')}
+                    inputProps={{ min: 0 }}
+                  />
+                </Box>
+                
+                <Box display="flex" gap={2}>
+                  <TextField
+                    fullWidth
+                    label="Karbonhidrat (g)"
+                    type="number"
+                    value={formData.carbs}
+                    onChange={handleChange('carbs')}
+                    inputProps={{ min: 0 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Yağ (g)"
+                    type="number"
+                    value={formData.fat}
+                    onChange={handleChange('fat')}
+                    inputProps={{ min: 0 }}
+                  />
+                </Box>
+                
+                <Button
                   fullWidth
-                  label="Protein (g)"
-                  type="number"
-                  value={formData.protein}
-                  onChange={handleChange('protein')}
-                  inputProps={{ min: 0 }}
-                />
-              </Box>
-              
-              <Box display="flex" gap={2}>
-                <TextField
-                  fullWidth
-                  label="Karbonhidrat (g)"
-                  type="number"
-                  value={formData.carbs}
-                  onChange={handleChange('carbs')}
-                  inputProps={{ min: 0 }}
-                />
-                <TextField
-                  fullWidth
-                  label="Yağ (g)"
-                  type="number"
-                  value={formData.fat}
-                  onChange={handleChange('fat')}
-                  inputProps={{ min: 0 }}
-                />
-              </Box>
-              
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                type="submit"
-                startIcon={<AddIcon />}
-                size="large"
-              >
-                Ekle
-              </Button>
-            </Stack>
-          </Box>
-        )}
-      </CardContent>
-    </Card>
+                  variant="contained"
+                  color="primary"
+                  type="submit"
+                  startIcon={<AddIcon />}
+                  size="large"
+                >
+                  Ekle
+                </Button>
+              </Stack>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Barkod Scanner Modal */}
+      <BarcodeScanner
+        open={barcodeScannerOpen}
+        onClose={() => setBarcodeScannerOpen(false)}
+        existingTemplates={foodTemplates}
+        onAddFood={(food) => {
+          onAddFood(food);
+          setBarcodeScannerOpen(false);
+        }}
+        onSaveAndAdd={(template, amount, mealType) => {
+          onSaveTemplateAndAdd(template, amount, mealType);
+          setBarcodeScannerOpen(false);
+        }}
+        onAddFromTemplate={(templateId, amount, mealType) => {
+          onAddFromTemplate(templateId, amount, mealType);
+          setBarcodeScannerOpen(false);
+        }}
+      />
+    </>
   );
 }

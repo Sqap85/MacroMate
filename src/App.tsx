@@ -14,6 +14,7 @@ import { useFoodTracker } from './hooks/useFoodTracker';
 import { useAuth } from './contexts/AuthContext';
 import { migrateFromLocalStorage } from './services/firestoreService';
 import type { AlertColor } from '@mui/material';
+import type { FoodTemplate, MealType } from './types';
 import './App.css';
 import { formatDate } from './utils/dateUtils';
 
@@ -56,23 +57,24 @@ function App() {
     deleteFoodTemplatesBulk,
     deleteAllDayFoods,
   } = useFoodTracker();
-    // Toplu silme fonksiyonu
-    const handleBulkDeleteTemplates = async (ids: string[]) => {
-      try {
-        await deleteFoodTemplatesBulk(ids);
-        setToast({
-          open: true,
-          message: `${ids.length} besin silindi!`,
-          severity: 'info',
-        });
-      } catch (error: any) {
-        setToast({
-          open: true,
-          message: error.message || 'Toplu silme sırasında hata oluştu',
-          severity: 'error',
-        });
-      }
-    };
+
+  // Toplu silme fonksiyonu
+  const handleBulkDeleteTemplates = async (ids: string[]) => {
+    try {
+      await deleteFoodTemplatesBulk(ids);
+      setToast({
+        open: true,
+        message: `${ids.length} besin silindi!`,
+        severity: 'info',
+      });
+    } catch (error: any) {
+      setToast({
+        open: true,
+        message: error.message || 'Toplu silme sırasında hata oluştu',
+        severity: 'error',
+      });
+    }
+  };
   
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -85,13 +87,11 @@ function App() {
     message: '',
     severity: 'success',
   });
-  // Şifre ekleme işlemi başlatıldı mı?
   const [pendingPasswordAdd, setPendingPasswordAdd] = useState(false);
 
-  // Kullanıcı giriş yaptığında LocalStorage'dan migrate et (sadece misafir modundan gelenler için)
+  // Kullanıcı giriş yaptığında LocalStorage'dan migrate et
   useEffect(() => {
     if (currentUser) {
-      // Sadece misafir modundan gelen kullanıcılar için migration yap
       const wasGuest = sessionStorage.getItem('migrateFromGuest');
       
       if (wasGuest === 'true') {
@@ -108,7 +108,6 @@ function App() {
                 message: 'Verileriniz başarıyla hesabınıza aktarıldı!',
                 severity: 'success',
               });
-              // Migration sonrası LocalStorage'ı temizle
               localStorage.removeItem('macromate-foods');
               localStorage.removeItem('macromate-goal');
               localStorage.removeItem('macromate-templates');
@@ -122,7 +121,6 @@ function App() {
               });
             })
             .finally(() => {
-              // Migration flag'ini temizle
               sessionStorage.removeItem('migrateFromGuest');
             });
         } else {
@@ -131,8 +129,6 @@ function App() {
       }
     }
   }, [currentUser]);
-
-  // Auth modal'ı otomatik açma (kullanıcı butona tıklayarak açacak)
 
   const handleAddFood = async (food: any, customTimestamp?: number) => {
     try {
@@ -155,10 +151,7 @@ function App() {
     try {
       await addFoodFromTemplate(templateId, grams, mealType);
       const template = foodTemplates.find(t => t.id === templateId);
-      let miktarBirim = 'g';
-      if (template?.unit === 'piece') {
-        miktarBirim = 'adet';
-      }
+      const miktarBirim = template?.unit === 'piece' ? 'adet' : 'g';
       setToast({
         open: true,
         message: `${template?.name} (${grams} ${miktarBirim}) eklendi!`,
@@ -168,6 +161,41 @@ function App() {
       setToast({
         open: true,
         message: error.message || 'Şablondan yemek eklenirken hata oluştu',
+        severity: 'error',
+      });
+    }
+  };
+
+  // ✅ Barkoddan gelen ürünü besinlere kaydet ve yemeğe ekle
+  const handleSaveTemplateAndAdd = async (
+    template: Omit<FoodTemplate, 'id'>,
+    amount: number,
+    mealType?: MealType
+  ) => {
+    try {
+      // Önce şablonu kaydet (toast gösterme)
+      await addFoodTemplate(template);
+
+      // Gram bazında değerleri hesapla ve yemeği ekle
+      const multiplier = amount / 100;
+      await addFood({
+        name: `${template.name} (${amount}g)`,
+        calories: Math.round(template.calories * multiplier),
+        protein: Math.round(template.protein * multiplier * 10) / 10,
+        carbs: Math.round(template.carbs * multiplier * 10) / 10,
+        fat: Math.round(template.fat * multiplier * 10) / 10,
+        mealType,
+      });
+
+      setToast({
+        open: true,
+        message: `${template.name} besinlere kaydedildi ve eklendi!`,
+        severity: 'success',
+      });
+    } catch (error: any) {
+      setToast({
+        open: true,
+        message: error.message || 'İşlem sırasında hata oluştu',
         severity: 'error',
       });
     }
@@ -298,12 +326,10 @@ function App() {
   const handleLogout = async () => {
     setLogoutDialogOpen(false);
     try {
-      // Misafir modundaysa LocalStorage ve state verilerini temizle
       if (isGuest) {
         localStorage.removeItem('macromate-foods');
         localStorage.removeItem('macromate-goal');
         localStorage.removeItem('macromate-templates');
-        console.log('Misafir mod verileri temizlendi');
         window.location.reload();
       }
       await logout();
@@ -317,13 +343,8 @@ function App() {
     }
   };
 
-  const handleLogoutClick = () => {
-    setLogoutDialogOpen(true);
-  };
-
-  const handleCancelLogout = () => {
-    setLogoutDialogOpen(false);
-  };
+  const handleLogoutClick = () => setLogoutDialogOpen(true);
+  const handleCancelLogout = () => setLogoutDialogOpen(false);
 
   const handleOpenHistory = async () => {
     if (allFoodsLoading) return;
@@ -348,7 +369,6 @@ function App() {
     }
   };
 
-  // Veri yüklenirken loading göster (sadece kullanıcı giriş yaptıysa, misafir değilse)
   if (currentUser && !isGuest && dataLoading) {
     return (
       <Box
@@ -367,21 +387,20 @@ function App() {
     );
   }
 
-  // Sadece email/password ile giriş yapan ve emaili doğrulanmamış kullanıcılar için EmailVerificationScreen göster
-    const showEmailVerification = (
-      currentUser &&
-      !currentUser.emailVerified &&
-      !isGuest &&
-      currentUser.providerData.some(p => p.providerId === 'password')
-      && pendingPasswordAdd // sadece şifre ekleme başlatıldıysa göster
-    );
+  const showEmailVerification = (
+    currentUser &&
+    !currentUser.emailVerified &&
+    !isGuest &&
+    currentUser.providerData.some(p => p.providerId === 'password')
+    && pendingPasswordAdd
+  );
 
-    if (showEmailVerification) {
-      return <EmailVerificationScreen onCancelPasswordAdd={() => {
-        setPendingPasswordAdd(false);
-        setProfileOpen(false);
-      }} />;
-    }
+  if (showEmailVerification) {
+    return <EmailVerificationScreen onCancelPasswordAdd={() => {
+      setPendingPasswordAdd(false);
+      setProfileOpen(false);
+    }} />;
+  }
 
   return (
     <>
@@ -429,11 +448,7 @@ function App() {
                     </span>
                   </Tooltip>
                   <Tooltip title="Hesap Oluştur">
-                    <IconButton 
-                      color="inherit" 
-                      onClick={() => setAuthOpen(true)}
-                    
-                    >
+                    <IconButton color="inherit" onClick={() => setAuthOpen(true)}>
                       <PersonAddIcon />
                     </IconButton>
                   </Tooltip>
@@ -487,6 +502,7 @@ function App() {
                   foodTemplates={foodTemplates}
                   onAddFromTemplate={handleAddFromTemplate}
                   onOpenTemplates={() => setTemplatesOpen(true)}
+                  onSaveTemplateAndAdd={handleSaveTemplateAndAdd}
                 />
               </Box>
             </Fade>
@@ -512,7 +528,6 @@ function App() {
             minHeight="70vh"
             textAlign="center"
           >
-            {/* Ana Başlık */}
             <Typography 
               variant="h2" 
               fontWeight="bold" 
@@ -541,7 +556,6 @@ function App() {
               Kalori ve makrolarınızı takip edin
             </Typography>
 
-            {/* CTA Button */}
             <Button 
               variant="contained" 
               size="large"
@@ -688,32 +702,30 @@ function App() {
         </DialogActions>
       </Dialog>
 
-    {/* Profil Modal - EmailVerificationScreen açıksa DOM'dan kaldır */}
-  {!showEmailVerification && (
-      <Suspense fallback={null}>
-        <ProfileModal 
-          open={profileOpen}
-          onClose={() => {
-            setProfileOpen(false);
-            setPendingPasswordAdd(false);
-          }}
-          onSuccess={(message) => {
-            if (message === 'Şifre başarıyla güncellendi!') {
-              setToast({ open: true, message, severity: 'success' });
-            } else if (message === 'Hesabınız başarıyla silindi.') {
-              setToast({ open: true, message, severity: 'info' });
-            } else if (pendingPasswordAdd) {
-              setToast({ open: true, message, severity: 'success' });
+      {!showEmailVerification && (
+        <Suspense fallback={null}>
+          <ProfileModal 
+            open={profileOpen}
+            onClose={() => {
+              setProfileOpen(false);
               setPendingPasswordAdd(false);
-            } else if (message === 'İsim başarıyla güncellendi!') {
-              setToast({ open: true, message, severity: 'success' });
-            }
-          }}
-          onStartPasswordAdd={() => setPendingPasswordAdd(true)}
-        />
-      </Suspense>
-    )}
-    {/* EmailVerificationScreen'e iptal callback'i ilet */}
+            }}
+            onSuccess={(message) => {
+              if (message === 'Şifre başarıyla güncellendi!') {
+                setToast({ open: true, message, severity: 'success' });
+              } else if (message === 'Hesabınız başarıyla silindi.') {
+                setToast({ open: true, message, severity: 'info' });
+              } else if (pendingPasswordAdd) {
+                setToast({ open: true, message, severity: 'success' });
+                setPendingPasswordAdd(false);
+              } else if (message === 'İsim başarıyla güncellendi!') {
+                setToast({ open: true, message, severity: 'success' });
+              }
+            }}
+            onStartPasswordAdd={() => setPendingPasswordAdd(true)}
+          />
+        </Suspense>
+      )}
       {showEmailVerification && (
         <EmailVerificationScreen onCancelPasswordAdd={() => {
           setPendingPasswordAdd(false);

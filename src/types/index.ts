@@ -26,6 +26,7 @@ export interface FoodTemplate {
   protein: number;
   carbs: number;
   fat: number;
+  barcode?: string;
 }
 
 // Öğün türleri
