@@ -47,6 +47,7 @@ import type { ReactNode } from 'react';
 import type { Food, DailyGoal, MealType, FoodTemplate } from '../types';
 import { calculateWeeklyStats, formatDate, getDayName } from '../utils/dateUtils';
 import { formatGrams } from '../utils/numberUtils';
+import { StatsTab } from './StatsTab';
 
 // Öğün renk tanımları - tüm uygulamada tutarlı
 const MEAL_COLORS = {
@@ -108,7 +109,7 @@ function getMealInfoForHistory(mealType: string): MealInfo {
     case 'snack':
       return { label: 'Atıştırmalık', icon: <CookieIcon sx={{ color: MEAL_COLORS.snack }} />, color: MEAL_COLORS.snack };
     default:
-      return { label: 'Diğer', icon: '🍴', color: '#95a5a6' };
+      return { label: 'Diğer', icon: <RestaurantMenuIcon sx={{ color: '#95a5a6' }} />, color: '#95a5a6' };
   }
 }
 
@@ -645,28 +646,9 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
   // Farklı zaman aralıkları
   const monthlyStats = useMemo(() => calculateWeeklyStats(foods, 30), [foods]);
 
-  const allTimeStats = useMemo(() => {
-    if (foods.length === 0) return calculateWeeklyStats(foods, 0);
-    
-    const oldestFood = foods.reduce((oldest, food) => 
-      food.timestamp < oldest.timestamp ? food : oldest
-    );
-    
-    const oldestDate = new Date(oldestFood.timestamp);
-    oldestDate.setHours(0, 0, 0, 0);
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const daysDiff = Math.round((today.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    
-    return calculateWeeklyStats(foods, daysDiff);
-  }, [foods]);
-
   const futureStats = useMemo(() => getFutureDaysStats(foods), [foods]);
-  
-  const statsOptions = [monthlyStats, allTimeStats, futureStats];
-  const currentStats = statsOptions[tabValue];
+
+  const currentStats = tabValue === 2 ? futureStats : monthlyStats;
   const isFutureTab = tabValue === 2;
   const activeDays = currentStats.days.filter(d => d.foods.length > 0).length;
   const hasAnyData = isFutureTab ? true : activeDays > 0;
@@ -867,20 +849,9 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
               sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
             />
             <Tab
-              label={
-                <Box>
-                  <Typography variant="caption" display="block" sx={isMobile ? { fontSize: '0.85rem' } : {}}>
-                    {isMobile ? 'Tümü' : 'Tüm Geçmiş'}
-                  </Typography>
-                  {foods.length > 0 && (
-                    <Typography variant="caption" fontSize={isMobile ? '0.65rem' : '0.75rem'} color="text.secondary">
-                      {allTimeStats.totalDays} gün
-                    </Typography>
-                  )}
-                </Box>
-              }
+              label="İstatistikler"
               disableRipple
-              sx={{ flexGrow: 1, textAlign: 'center' }}
+              sx={{ flexGrow: 1, textAlign: 'center', fontSize: isMobile ? '0.85rem' : undefined }}
             />
             <Tab
               icon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
@@ -895,7 +866,9 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
             />
           </Tabs>
 
-          {hasAnyData ? (
+          {tabValue === 1 ? (
+            <StatsTab foods={foods} goal={goal} />
+          ) : hasAnyData ? (
             <>
               {/* Gelecek planları için özel başlık */}
               {isFutureTab && (

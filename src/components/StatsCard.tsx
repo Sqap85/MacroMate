@@ -165,7 +165,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
           <Box p={1.5} bgcolor="success.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
             <CheckCircleIcon fontSize="small" sx={{ color: 'success.contrastText' }} />
             <Typography variant="body2" color="success.contrastText" fontWeight="600">
-              Hedef Tamamlandı! 🎉
+              Hedef Tamamlandı!
             </Typography>
           </Box>
         ) : (
