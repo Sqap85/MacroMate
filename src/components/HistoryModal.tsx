@@ -642,27 +642,6 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
 
   const templatePreview = getTemplatePreviewValues();
   
-  // Yemekleri öğün türüne göre grupla
-  const groupFoodsByMeal = (foods: Food[]) => {
-    const groups: Record<MealType | 'other', Food[]> = {
-      breakfast: [],
-      lunch: [],
-      dinner: [],
-      snack: [],
-      other: [],
-    };
-
-    foods.forEach(food => {
-      if (food.mealType && food.mealType in groups) {
-        groups[food.mealType as MealType].push(food);
-      } else {
-        groups.other.push(food);
-      }
-    });
-
-    return groups;
-  };
-  
   // Farklı zaman aralıkları
   const monthlyStats = useMemo(() => calculateWeeklyStats(foods, 30), [foods]);
 
@@ -699,6 +678,20 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
     () => (isFutureTab ? orderedDays : orderedDays.slice(0, visibleDayCount)),
     [isFutureTab, orderedDays, visibleDayCount]
   );
+  const groupedFoodsByDay = useMemo(() => {
+    const result: Record<string, Record<string, Food[]>> = {};
+    visibleDays.forEach(day => {
+      const groups: Record<string, Food[]> = {
+        breakfast: [], lunch: [], dinner: [], snack: [], other: [],
+      };
+      day.foods.forEach(food => {
+        const key = (food.mealType && food.mealType in groups) ? food.mealType : 'other';
+        groups[key].push(food);
+      });
+      result[day.date] = groups;
+    });
+    return result;
+  }, [visibleDays]);
 
   const summaryTotals = useMemo(() => {
     const totals = currentStats.days.reduce(
@@ -731,7 +724,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
   }, [currentStats.days, currentStats.totalDays, goal]);
 
   // En iyi ve en kötü günleri bul
-  const getBestAndWorstDays = () => {
+  const bestWorst = useMemo(() => {
     const activeDaysData = currentStats.days.filter(d => d.foods.length > 0);
     if (activeDaysData.length === 0) return null;
 
@@ -749,12 +742,10 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
     });
 
     return { bestDay, worstDay };
-  };
-
-  const bestWorst = getBestAndWorstDays();
+  }, [currentStats.days, goal.calories]);
 
   // Trend hesaplama (önceki döneme göre değişim)
-  const calculateTrend = () => {
+  const trend = useMemo(() => {
     if (tabValue === 1 || activeDays < 3) return null; // Tüm zamanlar için trend gösterme
     
     const periodDays = 30;
@@ -777,9 +768,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
       change: Math.round(change),
       improving: Math.abs(currentAvg - goal.calories) < Math.abs(previousAvg - goal.calories)
     };
-  };
-
-  const trend = calculateTrend();
+  }, [tabValue, activeDays, currentStats.days, goal.calories]);
 
   const getDeleteDaySummary = (dateString: string): string => {
     const dateParts = dateString.split('-');
@@ -1385,7 +1374,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                             <Collapse in={isExpanded} timeout="auto">
                               <Divider sx={{ mb: isMobile ? 0.75 : 1 }} />
                               <Stack spacing={isMobile ? 0.75 : 1}>
-                                {Object.entries(groupFoodsByMeal(day.foods)).map(([mealType, mealFoods]) => {
+                                {Object.entries(groupedFoodsByDay[day.date] ?? {}).map(([mealType, mealFoods]) => {
                                   if (mealFoods.length === 0) return null;
 
                                   return (
