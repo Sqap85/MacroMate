@@ -29,10 +29,12 @@ import ScaleIcon from '@mui/icons-material/Scale';
 import EggIcon from '@mui/icons-material/Egg';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import type { FoodTemplate, MeasurementUnit } from '../types';
 import { formatGrams } from '../utils/numberUtils';
+import { BarcodeScanner } from './BarcodeScanner';
 
 interface FoodTemplatesModalProps {
   open: boolean;
@@ -53,6 +55,9 @@ export function FoodTemplatesModal({
   onEditTemplate,
   onBulkDelete,
 }: FoodTemplatesModalProps) {
+  // Barkod tarayıcı (save-only modu)
+  const [barcodeScannerOpen, setBarcodeScannerOpen] = useState(false);
+
   // Seçim modu
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -330,373 +335,341 @@ export function FoodTemplatesModal({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      aria-labelledby="templates-dialog-title"
-      PaperProps={{ sx: { borderRadius: 2, maxHeight: '90vh' } }}
-    >
-      <DialogTitle
-        sx={{
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          pb: 1,
-          flexWrap: 'wrap',
-          gap: 1,
-        }}
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+        aria-labelledby="templates-dialog-title"
+        PaperProps={{ sx: { borderRadius: 2, maxHeight: '90vh' } }}
       >
-        <Box display="flex" alignItems="center" gap={1}>
-          <RestaurantMenuIcon color="primary" />
-          <Typography variant="h6" component="div" id="templates-dialog-title" sx={{ mr: 1 }}>
-            Besin Şablonlarım
-          </Typography>
-        </Box>
-        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-          <Button variant="outlined" size="small" component="label" sx={{ minWidth: 0, px: 1 }}>
-            CSV Yükle
-            <input type="file" accept=".csv" hidden onChange={handleImportCSV} />
-          </Button>
-          <Button variant="outlined" size="small" onClick={handleExportCSV} sx={{ minWidth: 0, px: 1 }}>
-            CSV İndir
-          </Button>
-        </Box>
-        <IconButton
-          onClick={onClose}
-          size="small"
-          aria-label="Kapat"
-          sx={{ position: 'absolute', top: 8, right: 8, minWidth: 0 }}
+        <DialogTitle
+          sx={{
+            position: 'relative',
+            display: 'flex',
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            pb: 1,
+            flexWrap: 'wrap',
+            gap: 1,
+          }}
         >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-
-      <Divider />
-
-      <DialogContent sx={{ pt: 3 }}>
-        <Stack spacing={3}>
-          {/* Yeni Şablon Ekleme Formu */}
-          <Paper elevation={3} sx={{ p: 2, bgcolor: 'background.default' }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="subtitle1" fontWeight="600">
-                Yeni Besin Ekle
-              </Typography>
-            </Box>
-            <Box component="form" onSubmit={handleSubmit}>
-              <Stack spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Besin Adı"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Örn: Tavuk Göğsü, Yumurta, Elma"
-                  required
-                  size="small"
-                />
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                    Ölçü Birimi
-                  </Typography>
-                  <ToggleButtonGroup
-                    value={formData.unit}
-                    exclusive
-                    onChange={(_, value) => value && setFormData({ ...formData, unit: value as MeasurementUnit })}
-                    fullWidth
-                    size="small"
-                  >
-                    <ToggleButton value="gram">
-                      <ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />Gram
-                    </ToggleButton>
-                    <ToggleButton value="piece">
-                      <EggIcon fontSize="small" sx={{ mr: 0.5 }} />Adet
-                    </ToggleButton>
-                  </ToggleButtonGroup>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                  {formData.unit === 'piece' ? '1 adet için besin değerlerini giriniz' : '100 gram için besin değerlerini giriniz'}
-                </Typography>
-                <Box display="flex" gap={2}>
-                  <TextField fullWidth label={formData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
-                    type="number" value={formData.calories}
-                    onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
-                    required inputProps={{ min: 0, step: 1 }} size="small" />
-                  <TextField fullWidth label={formData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
-                    type="number" value={formData.protein}
-                    onChange={(e) => setFormData({ ...formData, protein: e.target.value })}
-                    inputProps={{ min: 0, step: 0.1 }} size="small" />
-                </Box>
-                <Box display="flex" gap={2}>
-                  <TextField fullWidth label={formData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
-                    type="number" value={formData.carbs}
-                    onChange={(e) => setFormData({ ...formData, carbs: e.target.value })}
-                    inputProps={{ min: 0, step: 0.1 }} size="small" />
-                  <TextField fullWidth label={formData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
-                    type="number" value={formData.fat}
-                    onChange={(e) => setFormData({ ...formData, fat: e.target.value })}
-                    inputProps={{ min: 0, step: 0.1 }} size="small" />
-                </Box>
-                <Button fullWidth variant="contained" color="primary" type="submit" startIcon={<AddIcon />}>
-                  Şablon Ekle
-                </Button>
-              </Stack>
-            </Box>
-          </Paper>
-
-          {/* Kayıtlı Şablonlar Listesi */}
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={1} flexWrap="wrap" gap={1}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Kayıtlı Besinler ({templates.length})
-              </Typography>
-
-              {templates.length > 0 && (
-                <Box>
-                  {/* Normal mod — Toplu Sil butonu */}
-                  {!selectionMode && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      startIcon={<DeleteSweepIcon />}
-                      onClick={handleEnterSelectionMode}
-                    >
-                      Toplu Sil
-                    </Button>
-                  )}
-
-                  {/* Seçim modu — Tümünü Seç + Sil + İptal */}
-                  {selectionMode && (
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Button
-                        size="small"
-                        variant={allSelected ? 'contained' : 'outlined'}
-                        onClick={handleSelectAll}
-                      >
-                        {allSelected ? 'Tümünü Bırak' : 'Tümünü Seç'}
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        disabled={selectedIds.length === 0}
-                        onClick={handleBulkDelete}
-                      >
-                        Sil ({selectedIds.length})
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="text"
-                        onClick={handleCancelSelectionMode}
-                      >
-                        İptal
-                      </Button>
-                    </Stack>
-                  )}
-                </Box>
-              )}
-            </Box>
-
-            {/* Toplu silme onay dialogu */}
-            <Dialog
-              open={bulkDeleteDialogOpen}
-              onClose={() => setBulkDeleteDialogOpen(false)}
-              maxWidth="xs"
-              fullWidth
-              PaperProps={{ sx: { borderRadius: 2, m: 2 } }}
-            >
-              <DialogTitle>
-                <Typography variant="h6">Seçili Besinleri Sil</Typography>
-              </DialogTitle>
-              <DialogContent sx={{ pt: 2 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {selectedIds.length} besini silmek istediğinizden emin misiniz?
-                </Typography>
-                <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
-                  <Typography variant="body2" fontWeight="medium">
-                    {templates.filter(t => selectedIds.includes(t.id)).map(t => t.name).join(', ')}
-                  </Typography>
-                </Box>
-              </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => setBulkDeleteDialogOpen(false)} variant="outlined">İptal</Button>
-                <Button onClick={handleBulkDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>Sil</Button>
-              </DialogActions>
-            </Dialog>
-
-            {templates.length === 0 ? (
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
-                <Typography color="text.secondary">
-                  Henüz kayıtlı besin yok. Yukarıdan ekleyebilirsiniz!
-                </Typography>
-              </Paper>
-            ) : (
-              <List sx={{
-                bgcolor: 'background.paper',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                maxHeight: '300px',
-                overflow: 'auto',
-              }}>
-                {templates.map((template) => (
-                  <ListItem
-                    key={template.id}
-                    divider
-                    sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-                  >
-                    {/* Seçim modunda checkbox göster */}
-                    {selectionMode && (
-                      <Checkbox
-                        checked={selectedIds.includes(template.id)}
-                        onChange={() => handleSelectOne(template.id)}
-                        size="small"
-                        sx={{ mr: 1, p: 0.5 }}
-                      />
-                    )}
-
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="body1" fontWeight="medium">
-                            {template.name}
-                          </Typography>
-                          <Chip
-                            label={template.unit === 'gram' ? 'Gram' : 'Adet'}
-                            size="small"
-                            color={template.unit === 'gram' ? 'default' : 'primary'}
-                            sx={{ height: 20, fontSize: '0.7rem' }}
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box sx={{ maxWidth: { xs: 180, sm: 320 }, width: '100%' }}>
-                          <Typography
-                            variant="caption"
-                            component="div"
-                            color="text.secondary"
-                            noWrap
-                            sx={{ textOverflow: 'ellipsis', overflow: 'hidden', width: '100%' }}
-                          >
-                            {template.unit === 'piece'
-                              ? `1 adet: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
-                              : `100g: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
-                            }
-                          </Typography>
-                        </Box>
-                      }
-                    />
-
-                    {/* Normal modda düzenle/sil, seçim modunda gizle */}
-                    {!selectionMode && (
-                      <ListItemSecondaryAction>
-                        <Box display="flex" gap={0.5}>
-                          <IconButton aria-label="edit" onClick={() => handleEdit(template)} color="primary" size="small">
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(template)} color="error" size="small">
-                            <DeleteIcon />
-                          </IconButton>
-                        </Box>
-                      </ListItemSecondaryAction>
-                    )}
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Box>
-        </Stack>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined">Kapat</Button>
-      </DialogActions>
-
-      {/* Besin Düzenleme Dialogu */}
-      <Dialog open={!!editingTemplate} onClose={() => setEditingTemplate(null)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { borderRadius: 2, m: 2 } }}>
-        <DialogTitle sx={{ pb: 3 }}>
           <Box display="flex" alignItems="center" gap={1}>
-            <EditIcon color="primary" />
-            <Typography variant="h6">Besin Düzenle</Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3, pb: 1, px: { xs: 2, sm: 3 }, overflow: 'visible' }}>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField fullWidth label="Besin Adı" value={editFormData.name}
-              onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-              placeholder="Örn: Tavuk Göğsü, Yumurta, Elma" required size="small" autoFocus />
-            <Box>
-              <Typography variant="caption" color="text.secondary" display="block" mb={1}>Ölçü Birimi</Typography>
-              <ToggleButtonGroup value={editFormData.unit} exclusive fullWidth size="small"
-                onChange={(_, value) => value && setEditFormData({ ...editFormData, unit: value as MeasurementUnit })}>
-                <ToggleButton value="gram"><ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />Gram</ToggleButton>
-                <ToggleButton value="piece"><EggIcon fontSize="small" sx={{ mr: 0.5 }} />Adet</ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-              {editFormData.unit === 'piece' ? '1 adet için besin değerlerini giriniz' : '100 gram için besin değerlerini giriniz'}
+            <RestaurantMenuIcon color="primary" />
+            <Typography variant="h6" component="div" id="templates-dialog-title" sx={{ mr: 1 }}>
+              Besin Şablonlarım
             </Typography>
-            <Box display="flex" gap={2}>
-              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
-                type="number" value={editFormData.calories}
-                onChange={(e) => setEditFormData({ ...editFormData, calories: e.target.value })}
-                required inputProps={{ min: 0, step: 1 }} size="small" />
-              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
-                type="number" value={editFormData.protein}
-                onChange={(e) => setEditFormData({ ...editFormData, protein: e.target.value })}
-                inputProps={{ min: 0, step: 0.1 }} size="small" />
-            </Box>
-            <Box display="flex" gap={2}>
-              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
-                type="number" value={editFormData.carbs}
-                onChange={(e) => setEditFormData({ ...editFormData, carbs: e.target.value })}
-                inputProps={{ min: 0, step: 0.1 }} size="small" />
-              <TextField fullWidth label={editFormData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
-                type="number" value={editFormData.fat}
-                onChange={(e) => setEditFormData({ ...editFormData, fat: e.target.value })}
-                inputProps={{ min: 0, step: 0.1 }} size="small" />
+          </Box>
+          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+            <Button variant="outlined" size="small" component="label" sx={{ minWidth: 0, px: 1 }}>
+              CSV Yükle
+              <input type="file" accept=".csv" hidden onChange={handleImportCSV} />
+            </Button>
+            <Button variant="outlined" size="small" onClick={handleExportCSV} sx={{ minWidth: 0, px: 1 }}>
+              CSV İndir
+            </Button>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            size="small"
+            aria-label="Kapat"
+            sx={{ position: 'absolute', top: 8, right: 8, minWidth: 0 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <Divider />
+
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack spacing={3}>
+            {/* Yeni Şablon Ekleme Formu */}
+            <Paper elevation={3} sx={{ p: 2, bgcolor: 'background.default' }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="subtitle1" fontWeight="600">
+                  Yeni Besin Ekle
+                </Typography>
+                {/* ✅ Barkod ile Ekle butonu */}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<QrCodeScannerIcon />}
+                  onClick={() => setBarcodeScannerOpen(true)}
+                >
+                  Barkod ile Ekle
+                </Button>
+              </Box>
+              <Box component="form" onSubmit={handleSubmit}>
+                <Stack spacing={2}>
+                  <TextField
+                    fullWidth
+                    label="Besin Adı"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Örn: Tavuk Göğsü, Yumurta, Elma"
+                    required
+                    size="small"
+                  />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                      Ölçü Birimi
+                    </Typography>
+                    <ToggleButtonGroup
+                      value={formData.unit}
+                      exclusive
+                      onChange={(_, value) => value && setFormData({ ...formData, unit: value as MeasurementUnit })}
+                      fullWidth
+                      size="small"
+                    >
+                      <ToggleButton value="gram">
+                        <ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />Gram
+                      </ToggleButton>
+                      <ToggleButton value="piece">
+                        <EggIcon fontSize="small" sx={{ mr: 0.5 }} />Adet
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                    {formData.unit === 'piece' ? '1 adet için besin değerlerini giriniz' : '100 gram için besin değerlerini giriniz'}
+                  </Typography>
+                  <Box display="flex" gap={2}>
+                    <TextField fullWidth label={formData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
+                      type="number" value={formData.calories}
+                      onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                      required inputProps={{ min: 0, step: 1 }} size="small" />
+                    <TextField fullWidth label={formData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
+                      type="number" value={formData.protein}
+                      onChange={(e) => setFormData({ ...formData, protein: e.target.value })}
+                      inputProps={{ min: 0, step: 0.1 }} size="small" />
+                  </Box>
+                  <Box display="flex" gap={2}>
+                    <TextField fullWidth label={formData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
+                      type="number" value={formData.carbs}
+                      onChange={(e) => setFormData({ ...formData, carbs: e.target.value })}
+                      inputProps={{ min: 0, step: 0.1 }} size="small" />
+                    <TextField fullWidth label={formData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
+                      type="number" value={formData.fat}
+                      onChange={(e) => setFormData({ ...formData, fat: e.target.value })}
+                      inputProps={{ min: 0, step: 0.1 }} size="small" />
+                  </Box>
+                  <Button fullWidth variant="contained" color="primary" type="submit" startIcon={<AddIcon />}>
+                    Şablon Ekle
+                  </Button>
+                </Stack>
+              </Box>
+            </Paper>
+
+            {/* Kayıtlı Şablonlar Listesi */}
+            <Box>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1} flexWrap="wrap" gap={1}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Kayıtlı Besinler ({templates.length})
+                </Typography>
+
+                {templates.length > 0 && (
+                  <Box>
+                    {!selectionMode && (
+                      <Button size="small" variant="outlined" color="error"
+                        startIcon={<DeleteSweepIcon />} onClick={handleEnterSelectionMode}>
+                        Toplu Sil
+                      </Button>
+                    )}
+                    {selectionMode && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Button size="small" variant={allSelected ? 'contained' : 'outlined'} onClick={handleSelectAll}>
+                          {allSelected ? 'Tümünü Bırak' : 'Tümünü Seç'}
+                        </Button>
+                        <Button size="small" variant="contained" color="error" startIcon={<DeleteIcon />}
+                          disabled={selectedIds.length === 0} onClick={handleBulkDelete}>
+                          Sil ({selectedIds.length})
+                        </Button>
+                        <Button size="small" variant="text" onClick={handleCancelSelectionMode}>İptal</Button>
+                      </Stack>
+                    )}
+                  </Box>
+                )}
+              </Box>
+
+              {/* Toplu silme onay dialogu */}
+              <Dialog open={bulkDeleteDialogOpen} onClose={() => setBulkDeleteDialogOpen(false)}
+                maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2, m: 2 } }}>
+                <DialogTitle><Typography variant="h6">Seçili Besinleri Sil</Typography></DialogTitle>
+                <DialogContent sx={{ pt: 2 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {selectedIds.length} besini silmek istediğinizden emin misiniz?
+                  </Typography>
+                  <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
+                    <Typography variant="body2" fontWeight="medium">
+                      {templates.filter(t => selectedIds.includes(t.id)).map(t => t.name).join(', ')}
+                    </Typography>
+                  </Box>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                  <Button onClick={() => setBulkDeleteDialogOpen(false)} variant="outlined">İptal</Button>
+                  <Button onClick={handleBulkDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>Sil</Button>
+                </DialogActions>
+              </Dialog>
+
+              {templates.length === 0 ? (
+                <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
+                  <Typography color="text.secondary">
+                    Henüz kayıtlı besin yok. Yukarıdan ekleyebilirsiniz!
+                  </Typography>
+                </Paper>
+              ) : (
+                <List sx={{
+                  bgcolor: 'background.paper', borderRadius: 1,
+                  border: '1px solid', borderColor: 'divider',
+                  maxHeight: '300px', overflow: 'auto',
+                }}>
+                  {templates.map((template) => (
+                    <ListItem key={template.id} divider sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                      {selectionMode && (
+                        <Checkbox checked={selectedIds.includes(template.id)}
+                          onChange={() => handleSelectOne(template.id)}
+                          size="small" sx={{ mr: 1, p: 0.5 }} />
+                      )}
+                      <ListItemText
+                        primary={
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="body1" fontWeight="medium">{template.name}</Typography>
+                            <Chip label={template.unit === 'gram' ? 'Gram' : 'Adet'} size="small"
+                              color={template.unit === 'gram' ? 'default' : 'primary'}
+                              sx={{ height: 20, fontSize: '0.7rem' }} />
+                          </Box>
+                        }
+                        secondary={
+                          <Box sx={{ maxWidth: { xs: 180, sm: 320 }, width: '100%' }}>
+                            <Typography variant="caption" component="div" color="text.secondary" noWrap
+                              sx={{ textOverflow: 'ellipsis', overflow: 'hidden', width: '100%' }}>
+                              {template.unit === 'piece'
+                                ? `1 adet: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
+                                : `100g: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
+                              }
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                      {!selectionMode && (
+                        <ListItemSecondaryAction>
+                          <Box display="flex" gap={0.5}>
+                            <IconButton aria-label="edit" onClick={() => handleEdit(template)} color="primary" size="small">
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(template)} color="error" size="small">
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        </ListItemSecondaryAction>
+                      )}
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </Box>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditingTemplate(null)} variant="outlined">İptal</Button>
-          <Button onClick={handleEditSave} color="primary" variant="contained" startIcon={<EditIcon />}>Kaydet</Button>
-        </DialogActions>
-      </Dialog>
 
-      {/* Tekil Silme Onay Dialogu */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: 2, m: 2 } }}>
-        <DialogTitle><Typography variant="h6">Besini Sil</Typography></DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Bu besini silmek istediğinizden emin misiniz?
-          </Typography>
-          {templateToDelete && (
-            <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
-              <Typography variant="body2" fontWeight="medium">{templateToDelete.name}</Typography>
-              <Typography variant="caption" color="text.secondary">{templateToDelete.calories} kcal</Typography>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={onClose} variant="outlined">Kapat</Button>
+        </DialogActions>
+
+        {/* Besin Düzenleme Dialogu */}
+        <Dialog open={!!editingTemplate} onClose={() => setEditingTemplate(null)} maxWidth="sm" fullWidth
+          PaperProps={{ sx: { borderRadius: 2, m: 2 } }}>
+          <DialogTitle sx={{ pb: 3 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <EditIcon color="primary" />
+              <Typography variant="h6">Besin Düzenle</Typography>
             </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined">İptal</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>Sil</Button>
-        </DialogActions>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3, pb: 1, px: { xs: 2, sm: 3 }, overflow: 'visible' }}>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField fullWidth label="Besin Adı" value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                placeholder="Örn: Tavuk Göğsü, Yumurta, Elma" required size="small" autoFocus />
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" mb={1}>Ölçü Birimi</Typography>
+                <ToggleButtonGroup value={editFormData.unit} exclusive fullWidth size="small"
+                  onChange={(_, value) => value && setEditFormData({ ...editFormData, unit: value as MeasurementUnit })}>
+                  <ToggleButton value="gram"><ScaleIcon fontSize="small" sx={{ mr: 0.5 }} />Gram</ToggleButton>
+                  <ToggleButton value="piece"><EggIcon fontSize="small" sx={{ mr: 0.5 }} />Adet</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                {editFormData.unit === 'piece' ? '1 adet için besin değerlerini giriniz' : '100 gram için besin değerlerini giriniz'}
+              </Typography>
+              <Box display="flex" gap={2}>
+                <TextField fullWidth label={editFormData.unit === 'piece' ? 'Kalori (1 adet)' : 'Kalori (100g)'}
+                  type="number" value={editFormData.calories}
+                  onChange={(e) => setEditFormData({ ...editFormData, calories: e.target.value })}
+                  required inputProps={{ min: 0, step: 1 }} size="small" />
+                <TextField fullWidth label={editFormData.unit === 'piece' ? 'Protein (1 adet)' : 'Protein (100g)'}
+                  type="number" value={editFormData.protein}
+                  onChange={(e) => setEditFormData({ ...editFormData, protein: e.target.value })}
+                  inputProps={{ min: 0, step: 0.1 }} size="small" />
+              </Box>
+              <Box display="flex" gap={2}>
+                <TextField fullWidth label={editFormData.unit === 'piece' ? 'Karbonhidrat (1 adet)' : 'Karbonhidrat (100g)'}
+                  type="number" value={editFormData.carbs}
+                  onChange={(e) => setEditFormData({ ...editFormData, carbs: e.target.value })}
+                  inputProps={{ min: 0, step: 0.1 }} size="small" />
+                <TextField fullWidth label={editFormData.unit === 'piece' ? 'Yağ (1 adet)' : 'Yağ (100g)'}
+                  type="number" value={editFormData.fat}
+                  onChange={(e) => setEditFormData({ ...editFormData, fat: e.target.value })}
+                  inputProps={{ min: 0, step: 0.1 }} size="small" />
+              </Box>
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setEditingTemplate(null)} variant="outlined">İptal</Button>
+            <Button onClick={handleEditSave} color="primary" variant="contained" startIcon={<EditIcon />}>Kaydet</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Tekil Silme Onay Dialogu */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth
+          PaperProps={{ sx: { borderRadius: 2, m: 2 } }}>
+          <DialogTitle><Typography variant="h6">Besini Sil</Typography></DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Bu besini silmek istediğinizden emin misiniz?
+            </Typography>
+            {templateToDelete && (
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'error.50', borderRadius: 1, borderLeft: 3, borderColor: 'error.main' }}>
+                <Typography variant="body2" fontWeight="medium">{templateToDelete.name}</Typography>
+                <Typography variant="caption" color="text.secondary">{templateToDelete.calories} kcal</Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined">İptal</Button>
+            <Button onClick={handleDeleteConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>Sil</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Toast */}
+        <Snackbar open={toast.open} autoHideDuration={6000} onClose={() => setToast({ ...toast, open: false })}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+          <MuiAlert elevation={6} variant="filled" onClose={() => setToast({ ...toast, open: false })}
+            severity={toast.severity} sx={{ width: '100%' }}>
+            {toast.message}
+          </MuiAlert>
+        </Snackbar>
       </Dialog>
 
-      {/* Toast */}
-      <Snackbar open={toast.open} autoHideDuration={6000} onClose={() => setToast({ ...toast, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <MuiAlert elevation={6} variant="filled" onClose={() => setToast({ ...toast, open: false })}
-          severity={toast.severity} sx={{ width: '100%' }}>
-          {toast.message}
-        </MuiAlert>
-      </Snackbar>
-    </Dialog>
+      {/* ✅ Barkod Tarayıcı — save-only modu */}
+      <BarcodeScanner
+        open={barcodeScannerOpen}
+        onClose={() => setBarcodeScannerOpen(false)}
+        existingTemplates={templates}
+        mode="save-only"
+        onSaveOnly={(template) => {
+          onAddTemplate(template);
+          setBarcodeScannerOpen(false);
+        }}
+      />
+    </>
   );
 }

@@ -41,7 +41,13 @@ interface BarcodeScannerProps {
   open: boolean;
   onClose: () => void;
   existingTemplates: FoodTemplate[];
-  onAddFood: (food: {
+  /**
+   * 'add' — normal mod: yemeğe ekle + besinlere kaydet seçenekleri
+   * 'save-only' — sadece besinlere kaydet (FoodTemplatesModal için)
+   */
+  mode?: 'add' | 'save-only';
+  // add modunda kullanılır
+  onAddFood?: (food: {
     name: string;
     calories: number;
     protein: number;
@@ -49,12 +55,14 @@ interface BarcodeScannerProps {
     fat: number;
     mealType?: MealType;
   }) => void;
-  onSaveAndAdd: (
+  onSaveAndAdd?: (
     template: Omit<FoodTemplate, 'id'>,
     amount: number,
     mealType?: MealType
   ) => void;
-  onAddFromTemplate: (templateId: string, amount: number, mealType?: MealType) => void;
+  onAddFromTemplate?: (templateId: string, amount: number, mealType?: MealType) => void;
+  // save-only modunda kullanılır
+  onSaveOnly?: (template: Omit<FoodTemplate, 'id'>) => void;
 }
 
 type ScanState = 'scanning' | 'loading' | 'found' | 'existing' | 'notfound' | 'error';
@@ -63,9 +71,11 @@ export function BarcodeScanner({
   open,
   onClose,
   existingTemplates,
+  mode = 'add',
   onAddFood,
   onSaveAndAdd,
   onAddFromTemplate,
+  onSaveOnly,
 }: Readonly<BarcodeScannerProps>) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
@@ -118,7 +128,7 @@ export function BarcodeScanner({
                 setEditedProduct(searchResult.product);
                 setScanState('found');
               } else {
-                setError(searchResult.error || 'Ürün veritabanında bulunamadı. Manuel giriş yapabilirsiniz.');
+                setError(searchResult.error || 'Ürün veritabanında bulunamadı.');
                 setScanState('notfound');
               }
             } catch {
@@ -131,7 +141,6 @@ export function BarcodeScanner({
 
       controlsRef.current = controls;
     } catch (err: any) {
-      console.error('Kamera hatası:', err);
       if (err?.name === 'NotAllowedError') {
         setError('Kamera izni reddedildi. Tarayıcı ayarlarından kamera iznini açın.');
       } else if (err?.name === 'NotFoundError') {
@@ -161,9 +170,7 @@ export function BarcodeScanner({
     readerRef.current = reader;
     startScanner(reader);
 
-    return () => {
-      controlsRef.current?.stop();
-    };
+    return () => { controlsRef.current?.stop(); };
   }, [open]);
 
   const handleClose = () => {
@@ -178,7 +185,6 @@ export function BarcodeScanner({
     setEditedProduct(null);
     setScanState('scanning');
     controlsRef.current?.stop();
-
     const reader = new BrowserMultiFormatReader();
     readerRef.current = reader;
     startScanner(reader);
@@ -189,8 +195,9 @@ export function BarcodeScanner({
     return !isNaN(n) && n > 0;
   };
 
+  // add modu — sadece ekle
   const handleAddOnly = () => {
-    if (!editedProduct || !isAmountValid()) return;
+    if (!editedProduct || !isAmountValid() || !onAddFood) return;
     const grams = Number(amount);
     const multiplier = grams / 100;
     onAddFood({
@@ -204,8 +211,9 @@ export function BarcodeScanner({
     handleClose();
   };
 
+  // add modu — kaydet ve ekle
   const handleSaveAndAdd = () => {
-    if (!editedProduct || !isAmountValid()) return;
+    if (!editedProduct || !isAmountValid() || !onSaveAndAdd) return;
     onSaveAndAdd(
       {
         name: editedProduct.name,
@@ -222,9 +230,25 @@ export function BarcodeScanner({
     handleClose();
   };
 
+  // add modu — mevcut şablondan ekle
   const handleAddFromExisting = () => {
-    if (!existingTemplate || !isAmountValid()) return;
+    if (!existingTemplate || !isAmountValid() || !onAddFromTemplate) return;
     onAddFromTemplate(existingTemplate.id, Number(amount), mealType);
+    handleClose();
+  };
+
+  // save-only modu — sadece besinlere kaydet
+  const handleSaveOnly = () => {
+    if (!editedProduct || !onSaveOnly) return;
+    onSaveOnly({
+      name: editedProduct.name,
+      unit: 'gram',
+      calories: editedProduct.calories,
+      protein: editedProduct.protein,
+      carbs: editedProduct.carbs,
+      fat: editedProduct.fat,
+      barcode: editedProduct.barcode,
+    });
     handleClose();
   };
 
@@ -245,32 +269,28 @@ export function BarcodeScanner({
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.breakfast}22`, color: MEAL_COLORS.breakfast, borderColor: MEAL_COLORS.breakfast },
           '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
         }}>
-          <LocalCafeIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.breakfast }} />
-          Kahvaltı
+          <LocalCafeIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.breakfast }} />Kahvaltı
         </ToggleButton>
         <ToggleButton value="lunch" sx={{
           fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.lunch}22`, color: MEAL_COLORS.lunch, borderColor: MEAL_COLORS.lunch },
           '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
         }}>
-          <LunchDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.lunch }} />
-          Öğle
+          <LunchDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.lunch }} />Öğle
         </ToggleButton>
         <ToggleButton value="dinner" sx={{
           fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.dinner}22`, color: MEAL_COLORS.dinner, borderColor: MEAL_COLORS.dinner },
           '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
         }}>
-          <DinnerDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.dinner }} />
-          Akşam
+          <DinnerDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.dinner }} />Akşam
         </ToggleButton>
         <ToggleButton value="snack" sx={{
           fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
           '&.Mui-selected': { bgcolor: `${MEAL_COLORS.snack}22`, color: MEAL_COLORS.snack, borderColor: MEAL_COLORS.snack },
           '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
         }}>
-          <CookieIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.snack }} />
-          Atıştırma
+          <CookieIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.snack }} />Atıştırma
         </ToggleButton>
       </ToggleButtonGroup>
     </Box>
@@ -298,7 +318,9 @@ export function BarcodeScanner({
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           <QrCodeScannerIcon color="primary" />
-          <Typography variant="h6">Barkod Tara</Typography>
+          <Typography variant="h6">
+            {mode === 'save-only' ? 'Barkod ile Besin Ekle' : 'Barkod Tara'}
+          </Typography>
         </Box>
       </DialogTitle>
 
@@ -348,67 +370,30 @@ export function BarcodeScanner({
         {scanState === 'existing' && existingTemplate && (
           <Stack spacing={2}>
             <Alert severity="info" icon={<CheckCircleIcon />}>
-              Bu ürünü daha önce besinlerinize kaydetmişsiniz!
+              {mode === 'save-only'
+                ? 'Bu ürün zaten besinlerinizde kayıtlı!'
+                : 'Bu ürünü daha önce besinlerinize kaydetmişsiniz!'}
             </Alert>
             <Box p={2} bgcolor="action.hover" borderRadius={2}>
               <Typography variant="subtitle1" fontWeight="bold">{existingTemplate.name}</Typography>
               <Stack direction="row" spacing={0.5} mt={1} useFlexGap sx={{ flexWrap: 'nowrap' }}>
-                <Chip
-                  label={`${existingTemplate.calories} kcal`}
-                  size="small"
-                  color="error"
-                  variant="outlined"
-                  sx={{
-                    flex: { xs: 1, sm: '0 0 auto' },
-                    minWidth: { xs: 0, sm: 'auto' },
-                    height: { xs: 20, sm: 24 },
-                    fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                    '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                  }}
-                />
-                <Chip
-                  label={`P: ${formatGrams(existingTemplate.protein)}g`}
-                  size="small"
-                  color="info"
-                  variant="outlined"
-                  sx={{
-                    flex: { xs: 1, sm: '0 0 auto' },
-                    minWidth: { xs: 0, sm: 'auto' },
-                    height: { xs: 20, sm: 24 },
-                    fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                    '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                  }}
-                />
-                <Chip
-                  label={`K: ${formatGrams(existingTemplate.carbs)}g`}
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                  sx={{
-                    flex: { xs: 1, sm: '0 0 auto' },
-                    minWidth: { xs: 0, sm: 'auto' },
-                    height: { xs: 20, sm: 24 },
-                    fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                    '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                  }}
-                />
-                <Chip
-                  label={`Y: ${formatGrams(existingTemplate.fat)}g`}
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                  sx={{
-                    flex: { xs: 1, sm: '0 0 auto' },
-                    minWidth: { xs: 0, sm: 'auto' },
-                    height: { xs: 20, sm: 24 },
-                    fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                    '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                  }}
-                />
+                <Chip label={`${existingTemplate.calories} kcal`} size="small" color="error" variant="outlined"
+                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
+                <Chip label={`P: ${formatGrams(existingTemplate.protein)}g`} size="small" color="info" variant="outlined"
+                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
+                <Chip label={`K: ${formatGrams(existingTemplate.carbs)}g`} size="small" color="success" variant="outlined"
+                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
+                <Chip label={`Y: ${formatGrams(existingTemplate.fat)}g`} size="small" color="warning" variant="outlined"
+                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
               </Stack>
             </Box>
-            <Divider />
-            {renderAmountAndMeal(existingTemplate.unit === 'piece' ? 'adet' : 'gram')}
+            {/* save-only modunda miktar/öğün gösterme */}
+            {mode === 'add' && (
+              <>
+                <Divider />
+                {renderAmountAndMeal(existingTemplate.unit === 'piece' ? 'adet' : 'gram')}
+              </>
+            )}
           </Stack>
         )}
 
@@ -416,68 +401,41 @@ export function BarcodeScanner({
         {scanState === 'found' && product && editedProduct && (
           <Stack spacing={2}>
             <Alert severity="success">
-              Ürün bulundu! Değerleri kontrol edip düzenleyebilirsiniz.
+              {mode === 'save-only'
+                ? 'Ürün bulundu! Değerleri kontrol edip besinlerinize kaydedebilirsiniz.'
+                : 'Ürün bulundu! Değerleri kontrol edip düzenleyebilirsiniz.'}
             </Alert>
-
             <Box p={2} bgcolor="action.hover" borderRadius={2}>
               <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
                 100g başına değerler
               </Typography>
-
-              <TextField
-                fullWidth
-                label="Ürün Adı"
-                value={editedProduct.name}
+              <TextField fullWidth label="Ürün Adı" value={editedProduct.name}
                 onChange={(e) => setEditedProduct({ ...editedProduct, name: e.target.value })}
-                size="small"
-                sx={{ mb: 1.5 }}
-              />
-
+                size="small" sx={{ mb: 1.5 }} />
               <Stack direction="row" spacing={1} mb={1}>
-                <TextField
-                  fullWidth
-                  label="Kalori (kcal)"
-                  type="number"
-                  value={editedProduct.calories}
+                <TextField fullWidth label="Kalori (kcal)" type="number" value={editedProduct.calories}
                   onChange={(e) => setEditedProduct({ ...editedProduct, calories: Number(e.target.value) })}
-                  size="small"
-                  inputProps={{ min: 0 }}
-                />
-                <TextField
-                  fullWidth
-                  label="Protein (g)"
-                  type="number"
-                  value={editedProduct.protein}
+                  size="small" inputProps={{ min: 0 }} />
+                <TextField fullWidth label="Protein (g)" type="number" value={editedProduct.protein}
                   onChange={(e) => setEditedProduct({ ...editedProduct, protein: Number(e.target.value) })}
-                  size="small"
-                  inputProps={{ min: 0 }}
-                />
+                  size="small" inputProps={{ min: 0 }} />
               </Stack>
-
               <Stack direction="row" spacing={1}>
-                <TextField
-                  fullWidth
-                  label="Karbonhidrat (g)"
-                  type="number"
-                  value={editedProduct.carbs}
+                <TextField fullWidth label="Karbonhidrat (g)" type="number" value={editedProduct.carbs}
                   onChange={(e) => setEditedProduct({ ...editedProduct, carbs: Number(e.target.value) })}
-                  size="small"
-                  inputProps={{ min: 0 }}
-                />
-                <TextField
-                  fullWidth
-                  label="Yağ (g)"
-                  type="number"
-                  value={editedProduct.fat}
+                  size="small" inputProps={{ min: 0 }} />
+                <TextField fullWidth label="Yağ (g)" type="number" value={editedProduct.fat}
                   onChange={(e) => setEditedProduct({ ...editedProduct, fat: Number(e.target.value) })}
-                  size="small"
-                  inputProps={{ min: 0 }}
-                />
+                  size="small" inputProps={{ min: 0 }} />
               </Stack>
             </Box>
-
-            <Divider />
-            {renderAmountAndMeal('gram')}
+            {/* save-only modunda miktar/öğün yok */}
+            {mode === 'add' && (
+              <>
+                <Divider />
+                {renderAmountAndMeal('gram')}
+              </>
+            )}
           </Stack>
         )}
 
@@ -498,16 +456,31 @@ export function BarcodeScanner({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2, flexDirection: 'column', gap: 1 }}>
-        {/* Mevcut şablondan ekle */}
-        {scanState === 'existing' && (
+
+        {/* ── SAVE-ONLY MODU ── */}
+        {mode === 'save-only' && scanState === 'found' && (
+          <Button fullWidth variant="contained" startIcon={<SaveIcon />}
+            onClick={handleSaveOnly} color="primary">
+            Besinlerime Kaydet
+          </Button>
+        )}
+
+        {/* save-only — zaten kayıtlı uyarısı, sadece kapat */}
+        {mode === 'save-only' && scanState === 'existing' && (
+          <Typography variant="body2" color="text.secondary" textAlign="center">
+            Bu ürün zaten listenizde. Başka bir ürün tarayabilirsiniz.
+          </Typography>
+        )}
+
+        {/* ── ADD MODU ── */}
+        {mode === 'add' && scanState === 'existing' && (
           <Button fullWidth variant="contained" startIcon={<AddIcon />}
             onClick={handleAddFromExisting} disabled={!isAmountValid()}>
             Ekle ({amount} {existingTemplate?.unit === 'piece' ? 'adet' : 'g'})
           </Button>
         )}
 
-        {/* Yeni ürün — iki seçenek yan yana */}
-        {scanState === 'found' && (
+        {mode === 'add' && scanState === 'found' && (
           <Stack direction="row" spacing={1} width="100%">
             <Button fullWidth variant="contained" startIcon={<SaveIcon />}
               onClick={handleSaveAndAdd} disabled={!isAmountValid()} color="primary"
