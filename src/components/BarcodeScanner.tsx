@@ -46,7 +46,6 @@ interface BarcodeScannerProps {
    * 'save-only' — sadece besinlere kaydet (FoodTemplatesModal için)
    */
   mode?: 'add' | 'save-only';
-  // add modunda kullanılır
   onAddFood?: (food: {
     name: string;
     calories: number;
@@ -61,7 +60,6 @@ interface BarcodeScannerProps {
     mealType?: MealType
   ) => void;
   onAddFromTemplate?: (templateId: string, amount: number, mealType?: MealType) => void;
-  // save-only modunda kullanılır
   onSaveOnly?: (template: Omit<FoodTemplate, 'id'>) => void;
 }
 
@@ -80,6 +78,7 @@ export function BarcodeScanner({
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
+  const streamRef = useRef<MediaStream | null>(null); // ✅ stream takibi
   const scannedOnceRef = useRef(false);
 
   const [scanState, setScanState] = useState<ScanState>('scanning');
@@ -89,6 +88,26 @@ export function BarcodeScanner({
   const [error, setError] = useState('');
   const [amount, setAmount] = useState('100');
   const [mealType, setMealType] = useState<MealType | undefined>(undefined);
+
+  // ✅ Kamerayı tamamen kapat — stream track'lerini da durdur
+  const stopCamera = () => {
+    // Barkod okumayı durdur
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+
+    // Video stream track'lerini kapat
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    // Video elementini temizle
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    readerRef.current = null;
+  };
 
   const startScanner = async (reader: BrowserMultiFormatReader) => {
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -106,23 +125,26 @@ export function BarcodeScanner({
         async (result, _err) => {
           if (result && !scannedOnceRef.current) {
             scannedOnceRef.current = true;
+            // Barkod okundu — sadece okumayı durdur, stream'i koru (loading gösterimi için)
             controlsRef.current?.stop();
 
             const barcode = result.getText();
             setScanState('loading');
 
-            // Önce mevcut şablonlarda ara
             const existing = existingTemplates.find(t => t.barcode === barcode);
             if (existing) {
+              // Artık kamera gerekmez, tamamen kapat
+              stopCamera();
               setExistingTemplate(existing);
               setAmount(existing.unit === 'piece' ? '1' : '100');
               setScanState('existing');
               return;
             }
 
-            // OpenFoodFacts'ten çek
             try {
               const searchResult = await searchByBarcode(barcode);
+              // Sonuç geldi, kamerayı tamamen kapat
+              stopCamera();
               if (searchResult.found && searchResult.product) {
                 setProduct(searchResult.product);
                 setEditedProduct(searchResult.product);
@@ -132,6 +154,7 @@ export function BarcodeScanner({
                 setScanState('notfound');
               }
             } catch {
+              stopCamera();
               setError('İnternet bağlantısı hatası. Lütfen bağlantınızı kontrol edin.');
               setScanState('error');
             }
@@ -140,7 +163,13 @@ export function BarcodeScanner({
       );
 
       controlsRef.current = controls;
+
+      // ✅ Stream'i kaydet
+      if (videoRef.current?.srcObject instanceof MediaStream) {
+        streamRef.current = videoRef.current.srcObject;
+      }
     } catch (err: any) {
+      stopCamera();
       if (err?.name === 'NotAllowedError') {
         setError('Kamera izni reddedildi. Tarayıcı ayarlarından kamera iznini açın.');
       } else if (err?.name === 'NotFoundError') {
@@ -155,7 +184,11 @@ export function BarcodeScanner({
   };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Modal kapandığında kamerayı tamamen durdur
+      stopCamera();
+      return;
+    }
 
     setScanState('scanning');
     setProduct(null);
@@ -170,21 +203,23 @@ export function BarcodeScanner({
     readerRef.current = reader;
     startScanner(reader);
 
-    return () => { controlsRef.current?.stop(); };
+    // ✅ Cleanup: component unmount veya open değişince
+    return () => { stopCamera(); };
   }, [open]);
 
   const handleClose = () => {
-    controlsRef.current?.stop();
+    stopCamera(); // ✅ kamerayı tamamen kapat
     onClose();
   };
 
   const handleRetry = () => {
+    stopCamera(); // ✅ önce kamerayı tamamen kapat
     scannedOnceRef.current = false;
     setError('');
     setProduct(null);
     setEditedProduct(null);
     setScanState('scanning');
-    controlsRef.current?.stop();
+
     const reader = new BrowserMultiFormatReader();
     readerRef.current = reader;
     startScanner(reader);
@@ -195,7 +230,6 @@ export function BarcodeScanner({
     return !isNaN(n) && n > 0;
   };
 
-  // add modu — sadece ekle
   const handleAddOnly = () => {
     if (!editedProduct || !isAmountValid() || !onAddFood) return;
     const grams = Number(amount);
@@ -211,7 +245,6 @@ export function BarcodeScanner({
     handleClose();
   };
 
-  // add modu — kaydet ve ekle
   const handleSaveAndAdd = () => {
     if (!editedProduct || !isAmountValid() || !onSaveAndAdd) return;
     onSaveAndAdd(
@@ -230,14 +263,12 @@ export function BarcodeScanner({
     handleClose();
   };
 
-  // add modu — mevcut şablondan ekle
   const handleAddFromExisting = () => {
     if (!existingTemplate || !isAmountValid() || !onAddFromTemplate) return;
     onAddFromTemplate(existingTemplate.id, Number(amount), mealType);
     handleClose();
   };
 
-  // save-only modu — sadece besinlere kaydet
   const handleSaveOnly = () => {
     if (!editedProduct || !onSaveOnly) return;
     onSaveOnly({
@@ -325,7 +356,6 @@ export function BarcodeScanner({
       </DialogTitle>
 
       <DialogContent>
-        {/* Kamera */}
         {(scanState === 'scanning' || scanState === 'loading') && (
           <Box>
             <Box sx={{
@@ -366,7 +396,6 @@ export function BarcodeScanner({
           </Box>
         )}
 
-        {/* Mevcut şablonda bulundu */}
         {scanState === 'existing' && existingTemplate && (
           <Stack spacing={2}>
             <Alert severity="info" icon={<CheckCircleIcon />}>
@@ -387,7 +416,6 @@ export function BarcodeScanner({
                   sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
               </Stack>
             </Box>
-            {/* save-only modunda miktar/öğün gösterme */}
             {mode === 'add' && (
               <>
                 <Divider />
@@ -397,7 +425,6 @@ export function BarcodeScanner({
           </Stack>
         )}
 
-        {/* Yeni ürün bulundu — düzenlenebilir */}
         {scanState === 'found' && product && editedProduct && (
           <Stack spacing={2}>
             <Alert severity="success">
@@ -429,7 +456,6 @@ export function BarcodeScanner({
                   size="small" inputProps={{ min: 0 }} />
               </Stack>
             </Box>
-            {/* save-only modunda miktar/öğün yok */}
             {mode === 'add' && (
               <>
                 <Divider />
@@ -439,7 +465,6 @@ export function BarcodeScanner({
           </Stack>
         )}
 
-        {/* Ürün bulunamadı */}
         {scanState === 'notfound' && (
           <Stack spacing={2}>
             <Alert severity="warning">{error || 'Ürün veritabanında bulunamadı.'}</Alert>
@@ -449,15 +474,12 @@ export function BarcodeScanner({
           </Stack>
         )}
 
-        {/* Hata */}
         {scanState === 'error' && (
           <Alert severity="error">{error || 'Bir hata oluştu.'}</Alert>
         )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2, flexDirection: 'column', gap: 1 }}>
-
-        {/* ── SAVE-ONLY MODU ── */}
         {mode === 'save-only' && scanState === 'found' && (
           <Button fullWidth variant="contained" startIcon={<SaveIcon />}
             onClick={handleSaveOnly} color="primary">
@@ -465,14 +487,12 @@ export function BarcodeScanner({
           </Button>
         )}
 
-        {/* save-only — zaten kayıtlı uyarısı, sadece kapat */}
         {mode === 'save-only' && scanState === 'existing' && (
           <Typography variant="body2" color="text.secondary" textAlign="center">
             Bu ürün zaten listenizde. Başka bir ürün tarayabilirsiniz.
           </Typography>
         )}
 
-        {/* ── ADD MODU ── */}
         {mode === 'add' && scanState === 'existing' && (
           <Button fullWidth variant="contained" startIcon={<AddIcon />}
             onClick={handleAddFromExisting} disabled={!isAmountValid()}>
@@ -495,7 +515,6 @@ export function BarcodeScanner({
           </Stack>
         )}
 
-        {/* Tekrar tara */}
         {(scanState === 'notfound' || scanState === 'error') && (
           <Button fullWidth variant="outlined" startIcon={<QrCodeScannerIcon />} onClick={handleRetry}>
             Tekrar Tara
