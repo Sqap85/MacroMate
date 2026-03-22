@@ -20,6 +20,8 @@ import {
   ToggleButton,
   Chip,
   Checkbox,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -62,6 +64,9 @@ export function FoodTemplatesModal({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const allSelected = templates.length > 0 && selectedIds.length === templates.length;
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleEnterSelectionMode = () => {
     setSelectionMode(true);
@@ -341,6 +346,7 @@ export function FoodTemplatesModal({
         onClose={onClose}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
         aria-labelledby="templates-dialog-title"
         PaperProps={{ sx: { borderRadius: 2, maxHeight: '90vh' } }}
       >
@@ -539,17 +545,15 @@ export function FoodTemplatesModal({
                               sx={{ height: 20, fontSize: '0.7rem' }} />
                           </Box>
                         }
-                        secondary={
-                          <Box sx={{ maxWidth: { xs: 180, sm: 320 }, width: '100%' }}>
-                            <Typography variant="caption" component="div" color="text.secondary" noWrap
-                              sx={{ textOverflow: 'ellipsis', overflow: 'hidden', width: '100%' }}>
+                          secondary={
+                            <Typography variant="caption" component="span" color="text.secondary" noWrap
+                              sx={{ textOverflow: 'ellipsis', overflow: 'hidden', display: 'block', maxWidth: { xs: 180, sm: 320 } }}>
                               {template.unit === 'piece'
                                 ? `1 adet: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
                                 : `100g: ${template.calories} kcal | P: ${formatGrams(template.protein)}g | K: ${formatGrams(template.carbs)}g | Y: ${formatGrams(template.fat)}g`
                               }
                             </Typography>
-                          </Box>
-                        }
+                          }
                       />
                       {!selectionMode && (
                         <ListItemSecondaryAction>
