@@ -27,5 +27,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# MCP (Model Context Protocol) files
 .mcp.json
-.claude
+.mcp/
+*-mcp/
+*-mcp.json
+.claude/
+.playwright-mcp/
+.browser-mcp/
+.filesystem-mcp/
+.git-mcp/
+mcp-*
