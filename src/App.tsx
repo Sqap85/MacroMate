@@ -3,6 +3,7 @@ import { Container, Typography, Box, AppBar, Toolbar, Stack, Link as MuiLink, Fa
 import GitHubIcon from '@mui/icons-material/GitHub';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LogoutIcon from '@mui/icons-material/Logout';
+import PersonIcon from '@mui/icons-material/Person';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { FoodForm } from './components/FoodForm';
@@ -433,7 +434,9 @@ function App() {
                 }}
               >
                 {isGuest ? (
-                  '👤 Misafir'
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                    <PersonIcon sx={{ fontSize: 16 }} /> Misafir
+                  </Box>
                 ) : (
                   `Merhaba, ${currentUser?.displayName || currentUser?.email}`
                 )}
@@ -586,7 +589,7 @@ function App() {
       {/* Footer */}
       <Box 
         component="footer"
-        py={3}
+        py={3.1}
         bgcolor="primary.main"
         display="flex" 
         alignItems="center" 
