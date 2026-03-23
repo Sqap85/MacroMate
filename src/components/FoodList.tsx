@@ -250,23 +250,24 @@ export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Rea
     return (
       <Card elevation={2}>
         <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
-          <Box textAlign="center" py={4}>
+          <Box textAlign="center" py={2.5} display="flex" alignItems="center" gap={2} justifyContent="center">
             <Box
               sx={{
-                width: 72, height: 72, borderRadius: '20px',
-                background: 'linear-gradient(135deg, rgba(24,24,27,0.12), rgba(63,63,70,0.12))',
+                width: 44, height: 44, borderRadius: '12px', flexShrink: 0,
+                background: 'rgba(0,0,0,0.06)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                mx: 'auto', mb: 2,
               }}
             >
-              <RestaurantIcon sx={{ fontSize: 36, color: 'primary.main', opacity: 0.7 }} />
+              <RestaurantIcon sx={{ fontSize: 22, color: 'text.disabled' }} />
             </Box>
-            <Typography variant="subtitle1" fontWeight={600} color="text.primary" gutterBottom>
-              Henüz yemek eklenmedi
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Yukarıdaki formdan yemek ekleyerek başlayın
-            </Typography>
+            <Box textAlign="left">
+              <Typography variant="body2" fontWeight={600} color="text.primary">
+                Henüz yemek eklenmedi
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Yukarıdaki formdan ekleyerek başlayın
+              </Typography>
+            </Box>
           </Box>
         </CardContent>
       </Card>

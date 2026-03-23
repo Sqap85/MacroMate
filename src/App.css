@@ -26,7 +26,17 @@ body {
   background: rgba(24, 24, 27, 0.55);
 }
 
-/* Gradient progress bars */
+/* Gradient progress bars — track background */
+.progress-protein,
+.progress-carbs,
+.progress-fat,
+.progress-calories,
+.progress-calories-warning,
+.progress-calories-error {
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+/* Bar fill colors */
 .progress-protein .MuiLinearProgress-bar {
   background: linear-gradient(90deg, #0369a1, #7dd3fc) !important;
 }

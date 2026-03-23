@@ -1,0 +1,36 @@
+# Build outputs
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Lock files (büyük, genellikle gereksiz)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# PWA generated files
+dist/sw.js
+dist/workbox-*.js
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.parcel-cache/

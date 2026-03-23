@@ -418,14 +418,14 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                             borderRadius: 2.5,
                             p: 1,
                             border: '1.5px solid',
-                            borderColor: selected ? color : 'rgba(0,0,0,0.1)',
-                            bgcolor: selected ? `${color}14` : 'rgba(255,255,255,0.6)',
+                            borderColor: selected ? color : 'rgba(0,0,0,0.12)',
+                            bgcolor: selected ? `${color}14` : 'rgba(0,0,0,0.02)',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
                             transition: 'all 0.18s ease',
                             '&:hover': { borderColor: color, bgcolor: `${color}0e` },
                           }}
                         >
-                          <Icon sx={{ fontSize: 18, color: selected ? color : 'text.secondary' }} />
+                          <Icon sx={{ fontSize: 20, color: selected ? color : 'text.disabled' }} />
                           <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: selected ? 700 : 500, color: selected ? color : 'text.secondary', lineHeight: 1.2, textAlign: 'center' }}>
                             {label}
                           </Typography>

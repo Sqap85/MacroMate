@@ -88,13 +88,7 @@ export const listenToUserFoods = (
     },
     (error) => {
       console.error('Error listening to foods:', error);
-      // Index eksikse boş array döndür
-      if (error.code === 'failed-precondition') {
-        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
-        callback([]);
-      } else {
-        callback([]);
-      }
+      callback([]);
     }
   );
 };
@@ -126,12 +120,7 @@ export const listenToUserFoodsLimited = (
     },
     (error) => {
       console.error('Error listening to limited foods:', error);
-      if (error.code === 'failed-precondition') {
-        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
-        callback([]);
-      } else {
-        callback([]);
-      }
+      callback([]);
     }
   );
 };
@@ -165,12 +154,7 @@ export const listenToUserFoodsInRange = (
     },
     (error) => {
       console.error('Error listening to foods in range:', error);
-      if (error.code === 'failed-precondition') {
-        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
-        callback([]);
-      } else {
-        callback([]);
-      }
+      callback([]);
     }
   );
 };
@@ -318,13 +302,7 @@ export const listenToUserTemplates = (
     },
     (error) => {
       console.error('Error listening to templates:', error);
-      // Index eksikse boş array döndür
-      if (error.code === 'failed-precondition') {
-        console.warn('[Firestore] Index gerekli. Boş veri dönüyorum.');
-        callback([]);
-      } else {
-        callback([]);
-      }
+      callback([]);
     }
   );
 };

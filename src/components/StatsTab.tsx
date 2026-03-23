@@ -315,8 +315,13 @@ export function StatsTab({ foods, goal }: Readonly<StatsTabProps>) {
     { label: 'Toplam', value: streak.totalActiveDays, unit: 'aktif gün', color: '#18181b' },
   ];
 
+  const avgCalRawPct = goal.calories > 0 ? (averageCalories / goal.calories) * 100 : 0;
+  const avgCalProgressClass = avgCalRawPct > 115 ? 'progress-calories-error'
+    : avgCalRawPct > 100 ? 'progress-calories-warning'
+    : 'progress-calories';
+
   const macroItems = [
-    { label: 'Kalori', value: averageCalories, goal: goal.calories, unit: 'kcal', color: '#18181b', progressClass: 'progress-calories' },
+    { label: 'Kalori', value: averageCalories, goal: goal.calories, unit: 'kcal', color: '#18181b', progressClass: avgCalProgressClass },
     { label: 'Protein', value: averageProtein, goal: goal.protein, unit: 'g', color: '#0369a1', progressClass: 'progress-protein' },
     { label: 'Karbonhidrat', value: averageCarbs, goal: goal.carbs, unit: 'g', color: '#15803d', progressClass: 'progress-carbs' },
     { label: 'Yağ', value: averageFat, goal: goal.fat, unit: 'g', color: '#b45309', progressClass: 'progress-fat' },

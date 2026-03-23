@@ -43,7 +43,7 @@ function CircularProgress({ value, size = 120, strokeWidth = 10, color = '#18181
       <circle
         cx={cx} cy={cy} r={radius}
         fill="none"
-        stroke="rgba(0,0,0,0.06)"
+        stroke="rgba(0,0,0,0.10)"
         strokeWidth={strokeWidth}
       />
       <circle
