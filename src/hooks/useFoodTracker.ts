@@ -65,9 +65,14 @@ export function useFoodTracker() {
       23, 59, 59, 999
     ).getTime();
 
-    const activeFoods = isGuest
-      ? localFoods
-      : (allFoodsLoaded ? historyFoods : foods);
+    let activeFoods: Food[];
+    if (isGuest) {
+      activeFoods = localFoods;
+    } else if (allFoodsLoaded) {
+      activeFoods = historyFoods;
+    } else {
+      activeFoods = foods;
+    }
     const dayFoods = activeFoods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
 
     if (dayFoods.length === 0) return;

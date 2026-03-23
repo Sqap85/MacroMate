@@ -47,6 +47,12 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
   const carbsRemaining = Math.round(goal.carbs - stats.totalCarbs);
   const fatRemaining = Math.round(goal.fat - stats.totalFat);
 
+  const getRemainingLabel = (remaining: number) => {
+    if (remaining > 0) return `Kalan: ${formatGrams(remaining)}g`;
+    if (remaining === 0) return 'Hedefte ✓';
+    return `Fazla: ${formatGrams(Math.abs(remaining))}g`;
+  };
+
   return (
     <Card elevation={3}>
       <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
@@ -104,7 +110,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {proteinRemaining > 0 ? `Kalan: ${formatGrams(proteinRemaining)}g` : proteinRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${formatGrams(Math.abs(proteinRemaining))}g`}
+              {getRemainingLabel(proteinRemaining)}
             </Typography>
           </Box>
 
@@ -126,7 +132,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {carbsRemaining > 0 ? `Kalan: ${formatGrams(carbsRemaining)}g` : carbsRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${formatGrams(Math.abs(carbsRemaining))}g`}
+              {getRemainingLabel(carbsRemaining)}
             </Typography>
           </Box>
 
@@ -148,7 +154,7 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
               sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
             />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {fatRemaining > 0 ? `Kalan: ${formatGrams(fatRemaining)}g` : fatRemaining === 0 ? 'Hedefte ✓' : `Fazla: ${formatGrams(Math.abs(fatRemaining))}g`}
+              {getRemainingLabel(fatRemaining)}
             </Typography>
           </Box>
         </Stack>

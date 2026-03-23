@@ -384,8 +384,8 @@ export function StatsTab({ foods, goal }: StatsTabProps) {
                   contentStyle={{ fontSize: isMobile ? 11 : 13 }}
                 />
                 <Bar dataKey="percentage" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                  {monthlyBars.map((entry: MonthlyBarData, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.percentage >= 70 ? '#4caf50' : entry.percentage >= 40 ? '#ff9800' : '#ef5350'} />
+                  {monthlyBars.map((entry: MonthlyBarData) => (
+                    <Cell key={entry.month} fill={entry.percentage >= 70 ? '#4caf50' : entry.percentage >= 40 ? '#ff9800' : '#ef5350'} />
                   ))}
                 </Bar>
               </BarChart>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import {
@@ -21,12 +21,6 @@ import {
 } from 'firebase/auth';
 import { deleteAllUserData } from '../services/firestoreService';
 import { auth, emailVerificationSettings, passwordResetSettings } from '../config/firebase';
-
-/**
- * Authentication Context
- * 
- * Kullanıcı authentication state'ini tüm uygulamada paylaşır
- */
 
 interface AuthContextType {
   currentUser: User | null;
@@ -51,7 +45,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Custom hook - Authentication context'i kullanmak için
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -69,82 +62,56 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
-  // currentUser değiştiğinde emailVerificationDismissed sıfırlansın
+
   useEffect(() => {
     if (currentUser) {
       setEmailVerificationDismissed(false);
     }
   }, [currentUser]);
 
-  // Email/Password ile kayıt
   const signup = async (email: string, password: string, displayName: string) => {
-    // Misafir modundan çıkış - veriler LocalStorage'da kalacak ve migrate edilecek
     if (isGuest) {
       setIsGuest(false);
       localStorage.removeItem('guestMode');
-      // Migration flag'ini set et
       sessionStorage.setItem('migrateFromGuest', 'true');
     }
-    
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // Kullanıcı adını güncelle
     if (userCredential.user) {
-      await updateProfile(userCredential.user, {
-        displayName: displayName,
-      });
-      
-      // Email doğrulama gönder
+      await updateProfile(userCredential.user, { displayName });
       await sendEmailVerification(userCredential.user, emailVerificationSettings);
-      
-      // State'i güncelle
-      setCurrentUser({...userCredential.user, displayName} as User);
+      setCurrentUser({ ...userCredential.user, displayName } as User);
     }
   };
 
-  // Email/Password ile giriş
   const login = async (email: string, password: string) => {
-    // Misafir modundan çıkış
     if (isGuest) {
       setIsGuest(false);
       localStorage.removeItem('guestMode');
-      // Migration flag'ini set et
       sessionStorage.setItem('migrateFromGuest', 'true');
     }
-    
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  // Google ile giriş
   const loginWithGoogle = async () => {
     try {
-      // Misafir modundan çıkış
       if (isGuest) {
         setIsGuest(false);
         localStorage.removeItem('guestMode');
-        // Migration flag'ini set et
         sessionStorage.setItem('migrateFromGuest', 'true');
       }
-      
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
+      provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error('Google giriş hatası:', error);
-      console.error('Hata kodu:', error.code);
-      console.error('Hata mesajı:', error.message);
       throw error;
     }
   };
 
-  // Çıkış
   const logout = async () => {
     setIsGuest(false);
-    setEmailVerificationDismissed(true); // Çıkışta email ekranı bir daha gösterilmesin
+    setEmailVerificationDismissed(true);
     localStorage.removeItem('guestMode');
-    // Eğer Firebase kullanıcısı varsa çıkış yap
     if (currentUser) {
       await signOut(auth);
     } else {
@@ -153,145 +120,90 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Misafir olarak devam et
   const continueAsGuest = () => {
     setIsGuest(true);
     localStorage.setItem('guestMode', 'true');
     setLoading(false);
   };
 
-  // Email doğrulama emailini tekrar gönder
   const resendVerificationEmail = async () => {
-    // Daima güncel user'ı kullan
     const user = auth.currentUser;
-    if (!user) {
-      throw new Error('Giriş yapılmamış');
-    }
-    if (user.emailVerified) {
-      throw new Error('Email zaten doğrulanmış');
-    }
+    if (!user) throw new Error('Giriş yapılmamış');
+    if (user.emailVerified) throw new Error('Email zaten doğrulanmış');
     await sendEmailVerification(user, emailVerificationSettings);
   };
 
-  // Kullanıcı bilgilerini yenile (email verified kontrolü için)
   const refreshUser = useCallback(async () => {
     try {
       if (auth.currentUser) {
         await auth.currentUser.reload();
-        // Sadece emailVerified değiştiyse state'i güncelle (infinite loop önleme)
         const wasVerified = currentUser?.emailVerified || false;
         const isNowVerified = auth.currentUser.emailVerified;
-        
         if (wasVerified !== isNowVerified) {
           setCurrentUser({ ...auth.currentUser });
         }
       }
     } catch (error) {
       console.error('Error refreshing user:', error);
-      // Hata durumunda sessizce devam et
     }
   }, [currentUser?.emailVerified]);
 
-  // Kullanıcı profil güncelleme (display name)
   const updateUserProfile = async (displayName: string) => {
     const user = auth.currentUser;
-    if (!user) {
-      throw new Error('Giriş yapılmamış');
-    }
-
+    if (!user) throw new Error('Giriş yapılmamış');
     await updateProfile(user, { displayName });
-    // State'i güncelle
     setCurrentUser({ ...user, displayName } as User);
   };
 
-  // Şifre güncelleme
   const updateUserPassword = async (currentPassword: string, newPassword: string) => {
     const user = auth.currentUser;
-    if (!user || !user.email) {
-      throw new Error('Giriş yapılmamış');
-    }
-
-    // Önce kullanıcıyı yeniden doğrula (güvenlik için)
-    const credential = EmailAuthProvider.credential(
-      user.email,
-      currentPassword
-    );
+    if (!user?.email) throw new Error('Giriş yapılmamış');
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
     await reauthenticateWithCredential(user, credential);
-
-    // Şifreyi güncelle
     await updatePassword(user, newPassword);
   };
 
-  // Şifre sıfırlama emaili gönder
   const resetPassword = async (email: string) => {
     await sendPasswordResetEmail(auth, email, passwordResetSettings);
   };
 
-  // Email ile kayıtlı giriş metodlarını kontrol et
   const checkSignInMethods = async (email: string): Promise<string[]> => {
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      return methods;
+      return await fetchSignInMethodsForEmail(auth, email);
     } catch (error) {
       console.error('Error checking sign-in methods:', error);
       return [];
     }
   };
 
-  // Google kullanıcısına şifre ekle (Account Linking)
   const addPasswordToAccount = async (password: string) => {
     const user = auth.currentUser;
-    if (!user || !user.email) {
-      throw new Error('Giriş yapılmamış');
-    }
-
-    // Email/password credential oluştur
+    if (!user?.email) throw new Error('Giriş yapılmamış');
     const credential = EmailAuthProvider.credential(user.email, password);
-    
-    // Mevcut hesaba link et
     await linkWithCredential(user, credential);
-    
-    // User state'ini güncelle
     await user.reload();
     setCurrentUser({ ...auth.currentUser } as User);
   };
 
-  // Hesabı sil (tüm veriler dahil)
   const deleteAccount = async (password?: string) => {
     const user = auth.currentUser;
-    if (!user) {
-      throw new Error('Giriş yapılmamış');
-    }
-
-    // Yeniden doğrulama (güvenlik için)
+    if (!user) throw new Error('Giriş yapılmamış');
     if (password && user.email) {
-      // Şifre ile doğrula
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
     } else {
-      // Google popup ile doğrula
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
+      provider.setCustomParameters({ prompt: 'select_account' });
       await reauthenticateWithPopup(user, provider);
     }
-
-    // Önce Firestore verilerini sil
     await deleteAllUserData(user.uid);
-
-    // Sonra Firebase Auth hesabını sil
     await deleteUser(user);
-
-    // State temizle
     setCurrentUser(null);
     setIsGuest(false);
     localStorage.removeItem('guestMode');
   };
 
-  // Auth state değişikliklerini dinle
   useEffect(() => {
-    // Misafir modunu kontrol et
     const guestMode = localStorage.getItem('guestMode');
     if (guestMode === 'true') {
       setIsGuest(true);
@@ -299,18 +211,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(false);
       return;
     }
-
-    // Misafir modu kapalıysa normal auth listener'ı çalıştır
     setIsGuest(false);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
-  const value: AuthContextType = {
+  // ✅ value objesi her render'da yeniden oluşturulmuyor
+  const value = useMemo<AuthContextType>(() => ({
     currentUser,
     loading,
     isGuest,
@@ -329,7 +239,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     deleteAccount,
     emailVerificationDismissed,
     setEmailVerificationDismissed,
-  };
+  }), [
+    currentUser,
+    loading,
+    isGuest,
+    emailVerificationDismissed,
+    refreshUser,
+  ]);
 
   return (
     <AuthContext.Provider value={value}>

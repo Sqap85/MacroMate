@@ -227,7 +227,7 @@ export function BarcodeScanner({
 
   const isAmountValid = () => {
     const n = Number(amount);
-    return !isNaN(n) && n > 0;
+    return !Number.isNaN(n) && n > 0;
   };
 
   const handleAddOnly = () => {
@@ -362,7 +362,9 @@ export function BarcodeScanner({
               position: 'relative', width: '100%', borderRadius: 2,
               overflow: 'hidden', bgcolor: 'black', aspectRatio: '4/3',
             }}>
-              <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
+                <track kind="captions" />
+              </video>
               {scanState === 'scanning' && (
                 <Box sx={{
                   position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

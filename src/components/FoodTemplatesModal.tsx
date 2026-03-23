@@ -226,7 +226,7 @@ export function FoodTemplatesModal({
     a.download = 'food_templates.csv';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -270,7 +270,7 @@ export function FoodTemplatesModal({
       const dangerous = (val: string) => /^[=+\-@]/.test(val);
       let validNewCount = 0;
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
+        const row = lines[i].split(',').map(cell => cell.replaceAll(/^"|"$/g, '').replaceAll(/""/g, '"'));
         if (row.length < 6) continue;
         const name = row[nameIdx]?.trim() || '';
         const unit = row[unitIdx]?.trim();
@@ -281,7 +281,7 @@ export function FoodTemplatesModal({
         if (
           !name || name.length > 50 || dangerous(name) ||
           !['piece', 'gram'].includes(unit) ||
-          isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
+          Number.isNaN(calories) || Number.isNaN(protein) || Number.isNaN(carbs) || Number.isNaN(fat) ||
           calories <= 0 || calories > 5000 ||
           protein < 0 || protein > 500 ||
           carbs < 0 || carbs > 1000 ||
@@ -299,7 +299,7 @@ export function FoodTemplatesModal({
       const skipped: string[] = [];
       let negativeSkipped = 0;
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
+        const row = lines[i].split(',').map(cell => cell.replaceAll(/^"|"$/g, '').replaceAll(/""/g, '"'));
         if (row.length < 6) continue;
         const name = row[nameIdx]?.trim() || '';
         const unit = row[unitIdx]?.trim();
@@ -311,7 +311,7 @@ export function FoodTemplatesModal({
         if (
           !name || name.length > 50 || dangerous(name) ||
           !['piece', 'gram'].includes(unit) ||
-          isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) ||
+          Number.isNaN(calories) || Number.isNaN(protein) || Number.isNaN(carbs) || Number.isNaN(fat) ||
           calories <= 0 || calories > 5000 || protein > 500 || carbs > 1000 || fat > 500
         ) continue;
         const exists = templates.some(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());

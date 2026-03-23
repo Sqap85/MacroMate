@@ -18,55 +18,36 @@ import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../config/firebase';
 import { unlink } from 'firebase/auth';
 
-/**
- * Email Verification Screen
- * Landing page tarzı modern email doğrulama ekranı
- */
+export function EmailVerificationScreen({ onCancelPasswordAdd }: Readonly<{ onCancelPasswordAdd?: () => void }>) {
+  const {
+    currentUser,
+    logout,
+    resendVerificationEmail,
+    refreshUser,
+    loading,
+    emailVerificationDismissed,
+    setEmailVerificationDismissed,
+  } = useAuth();
 
-export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPasswordAdd?: () => void }) {
-  const { currentUser, logout, resendVerificationEmail, refreshUser, loading, emailVerificationDismissed, setEmailVerificationDismissed } = useAuth();
-  // Kullanıcı ve loading kontrolü en başta yapılmalı
-  if (loading) {
-    return null;
-  }
-  if (!currentUser) {
-    return null;
-  }
-  if (emailVerificationDismissed) {
-    return null;
-  }
-  // Sadece email ile giriş yapan ve emaili doğrulanmamış kullanıcılar için göster
-  const isEmailProvider = currentUser.providerData.some(p => p.providerId === 'password');
-  if (!isEmailProvider || currentUser.emailVerified) {
-    return null;
-  }
+  // ✅ Tüm hook'lar erken return'lerden ÖNCE
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [verified, setVerified] = useState(false);
-
-  // Otomatik gönderim sadece bir kez tetiklensin diye ref kullan
   const initialMailSentRef = useRef(false);
 
-  // Kullanıcı ve loading kontrolü en başta yapılmalı
-  if (loading) {
-    return null;
-  }
-  if (!currentUser) {
-    return null;
-  }
+  const isEmailProvider = currentUser?.providerData.some(p => p.providerId === 'password') ?? false;
+  const shouldShow = !loading && currentUser && !emailVerificationDismissed && isEmailProvider && !currentUser.emailVerified;
 
+  // İlk yüklemede otomatik email gönder
   useEffect(() => {
-    if (loading) return;
-    if (!currentUser) return;
-    if (currentUser.emailVerified) return;
-    if (initialMailSentRef.current) return;
-    if (countdown > 0) return;
+    if (!shouldShow) return;
+    if (initialMailSentRef.current || countdown > 0) return;
 
     initialMailSentRef.current = true;
-    const sendVerification = async () => {
+    const send = async () => {
       setResending(true);
       try {
         await refreshUser();
@@ -79,33 +60,23 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
         setResending(false);
       }
     };
-    sendVerification();
-  }, [currentUser, resendVerificationEmail, countdown, loading, refreshUser]);
+    send();
+  }, [shouldShow, resendVerificationEmail, countdown, refreshUser]);
 
-  // Fonksiyonu önce tanımla
   const handleCheckVerification = useCallback(async (silent = false) => {
     if (!silent) setChecking(true);
     setError('');
-
     try {
       await refreshUser();
-      
-      // Auth'dan direkt kontrol et (state güncellemesi async olabilir)
-      const isVerified = auth.currentUser?.emailVerified || false;
-      
+      const isVerified = auth.currentUser?.emailVerified ?? false;
       if (isVerified) {
         setVerified(true);
         setSuccess('Email adresiniz başarıyla doğrulandı!');
-        
-        // 2 saniye sonra sayfayı yenile (ana uygulamaya geçiş)
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        setTimeout(() => { globalThis.location.reload(); }, 2000);
       } else if (!silent) {
         setError('Email henüz doğrulanmamış. Lütfen email kutunuzu kontrol edin.');
       }
     } catch (err: any) {
-      console.error('Verification check error:', err);
       if (!silent) {
         setError(`Kontrol edilirken bir hata oluştu: ${err.message || 'Bilinmeyen hata'}`);
       }
@@ -114,51 +85,45 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
     }
   }, [refreshUser]);
 
-  // SADECE periyodik kontrol - ilk yüklenme kontrolünü kaldırdık (infinite loop önleme)
-
   // Otomatik kontrol her 10 saniyede bir
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (!verified) {
-        await handleCheckVerification(true);
-      }
+      if (!verified) await handleCheckVerification(true);
     }, 10000);
-
     return () => clearInterval(interval);
   }, [verified, handleCheckVerification]);
 
   // Sayfa focus olduğunda kontrol et
   useEffect(() => {
-    const handleFocus = () => {
-      if (!verified) {
-        handleCheckVerification(true);
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    const handleFocus = () => { if (!verified) handleCheckVerification(true); };
+    globalThis.addEventListener('focus', handleFocus);
+    return () => globalThis.removeEventListener('focus', handleFocus);
   }, [verified, handleCheckVerification]);
 
   // Countdown timer
   useEffect(() => {
     if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  // ✅ Erken return'ler hook'lardan SONRA
+  if (loading) return null;
+  if (!currentUser) return null;
+  if (emailVerificationDismissed) return null;
+  if (!isEmailProvider || currentUser.emailVerified) return null;
 
   const handleResendEmail = async () => {
     setResending(true);
     setError('');
     setSuccess('');
-
     try {
       await refreshUser();
       await resendVerificationEmail();
       setSuccess('Doğrulama emaili tekrar gönderildi!');
-      setCountdown(60); // 60 saniye cooldown
+      setCountdown(60);
     } catch (err: any) {
-      console.error('Resend email error:', err);
       const errorMessages: Record<string, string> = {
         'Email zaten doğrulanmış': 'Email adresiniz zaten doğrulanmış!',
         'Giriş yapılmamış': 'Lütfen tekrar giriş yapın.',
@@ -172,7 +137,6 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
 
   const handleLogout = async () => {
     try {
-      // Eğer kullanıcıda hem Google hem de email/password provider varsa ve email doğrulanmamışsa, email/password provider'ı kaldır
       const user = auth.currentUser;
       let didUnlink = false;
       if (
@@ -181,7 +145,6 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
         user.providerData.some(p => p.providerId === 'google.com') &&
         user.providerData.some(p => p.providerId === 'password')
       ) {
-        // email/password provider'ı kaldır
         await unlink(user, 'password');
         await user.reload();
         didUnlink = true;
@@ -196,24 +159,15 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
 
   if (verified) {
     return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        }}
-      >
+      <Box sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      }}>
         <Container maxWidth="sm">
-          <Paper
-            elevation={6}
-            sx={{
-              p: 6,
-              textAlign: 'center',
-              borderRadius: 4,
-            }}
-          >
+          <Paper elevation={6} sx={{ p: 6, textAlign: 'center', borderRadius: 4 }}>
             <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
             <Typography variant="h4" fontWeight="bold" color="success.main" gutterBottom>
               Başarılı!
@@ -228,38 +182,31 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
     );
   }
 
+  const resendLabel = (() => {
+    if (countdown > 0) return `Tekrar Gönder (${countdown}s)`;
+    if (resending) return 'Gönderiliyor...';
+    return 'Tekrar Gönder';
+  })();
+
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        py: 4,
-      }}
-    >
+    <Box sx={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      py: 4,
+    }}>
       <Container maxWidth="sm">
-        <Paper
-          elevation={6}
-          sx={{
-            p: 5,
-            borderRadius: 4,
-          }}
-        >
-          {/* Header */}
+        <Paper elevation={6} sx={{ p: 5, borderRadius: 4 }}>
           <Box textAlign="center" mb={4}>
-            <Typography
-              variant="h3"
-              fontWeight="bold"
-              sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                mb: 1,
-              }}
-            >
+            <Typography variant="h3" fontWeight="bold" sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 1,
+            }}>
               MacroMate
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -269,49 +216,23 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
 
           <Divider sx={{ my: 3 }} />
 
-          {/* Main Content */}
           <Box textAlign="center" mb={4}>
             <EmailIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-            
             <Typography variant="h5" fontWeight="bold" gutterBottom>
               Email Adresinizi Doğrulayın
             </Typography>
-            
             <Typography variant="body1" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
               Size gönderilen doğrulama linkine tıklayın:
             </Typography>
-
-            <Paper
-              sx={{
-                p: 2,
-                backgroundColor: 'grey.100',
-                borderRadius: 2,
-                mb: 3,
-              }}
-            >
-              <Typography
-                variant="body1"
-                fontWeight="medium"
-                sx={{ wordBreak: 'break-word' }}
-              >
-                {currentUser?.email}
+            <Paper sx={{ p: 2, backgroundColor: 'grey.100', borderRadius: 2, mb: 3 }}>
+              <Typography variant="body1" fontWeight="medium" sx={{ wordBreak: 'break-word' }}>
+                {currentUser.email}
               </Typography>
             </Paper>
 
-            {/* Error/Success Messages */}
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
-            
-            {success && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                {success}
-              </Alert>
-            )}
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-            {/* Action Buttons */}
             <Stack spacing={2}>
               <Button
                 variant="contained"
@@ -323,14 +244,11 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
                 sx={{
                   py: 1.5,
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #5568d3 0%, #63418d 100%)',
-                  },
+                  '&:hover': { background: 'linear-gradient(135deg, #5568d3 0%, #63418d 100%)' },
                 }}
               >
                 {checking ? 'Kontrol Ediliyor...' : 'Email Doğrulandı mı? (Kontrol Et)'}
               </Button>
-
               <Button
                 variant="outlined"
                 size="large"
@@ -340,23 +258,15 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
                 fullWidth
                 sx={{ py: 1.5 }}
               >
-                {countdown > 0 
-                  ? `Tekrar Gönder (${countdown}s)` 
-                  : resending 
-                  ? 'Gönderiliyor...' 
-                  : 'Tekrar Gönder'
-                }
+                {resendLabel}
               </Button>
             </Stack>
           </Box>
 
           <Divider sx={{ my: 3 }} />
 
-          {/* Tips */}
           <Box sx={{ backgroundColor: 'info.lighter', p: 2, borderRadius: 2, mb: 3 }}>
-            <Typography variant="body2" fontWeight="bold" gutterBottom>
-              💡 İpuçları:
-            </Typography>
+            <Typography variant="body2" fontWeight="bold" gutterBottom>💡 İpuçları:</Typography>
             <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0 }}>
               <li>Spam/gereksiz klasörünü kontrol edin</li>
               <li>Email 5-10 dakika içinde gelecektir</li>
@@ -364,14 +274,7 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: { onCancelPassw
             </Typography>
           </Box>
 
-          {/* Logout */}
-          <Button
-            variant="text"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            fullWidth
-            sx={{ color: 'text.secondary' }}
-          >
+          <Button variant="text" startIcon={<LogoutIcon />} onClick={handleLogout} fullWidth sx={{ color: 'text.secondary' }}>
             Çıkış Yap
           </Button>
         </Paper>
