@@ -10,7 +10,6 @@ import {
   CircularProgress,
   Alert,
   Stack,
-  Chip,
   Divider,
   TextField,
   ToggleButtonGroup,
@@ -31,10 +30,10 @@ import type { FoodTemplate, MealType } from '../types';
 import { formatGrams } from '../utils/numberUtils';
 
 const MEAL_COLORS = {
-  breakfast: '#FF6B35',
-  lunch: '#F7931E',
-  dinner: '#9D4EDD',
-  snack: '#06A77D',
+  breakfast: '#d97706',
+  lunch: '#0284c7',
+  dinner: '#7c3aed',
+  snack: '#16a34a',
 } as const;
 
 interface BarcodeScannerProps {
@@ -408,14 +407,16 @@ export function BarcodeScanner({
             <Box p={2} bgcolor="action.hover" borderRadius={2}>
               <Typography variant="subtitle1" fontWeight="bold">{existingTemplate.name}</Typography>
               <Stack direction="row" spacing={0.5} mt={1} useFlexGap sx={{ flexWrap: 'nowrap' }}>
-                <Chip label={`${existingTemplate.calories} kcal`} size="small" color="error" variant="outlined"
-                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
-                <Chip label={`P: ${formatGrams(existingTemplate.protein)}g`} size="small" color="info" variant="outlined"
-                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
-                <Chip label={`K: ${formatGrams(existingTemplate.carbs)}g`} size="small" color="success" variant="outlined"
-                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
-                <Chip label={`Y: ${formatGrams(existingTemplate.fat)}g`} size="small" color="warning" variant="outlined"
-                  sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: { xs: 0, sm: 'auto' }, height: { xs: 20, sm: 24 }, fontSize: { xs: '0.62rem', sm: '0.72rem' }, '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } } }} />
+                {[
+                  { label: `${existingTemplate.calories} kcal`, color: '#52525b', bg: 'rgba(82,82,91,0.08)', border: 'rgba(82,82,91,0.2)' },
+                  { label: `P: ${formatGrams(existingTemplate.protein)}g`, color: '#0369a1', bg: 'rgba(3,105,161,0.08)', border: 'rgba(3,105,161,0.2)' },
+                  { label: `K: ${formatGrams(existingTemplate.carbs)}g`, color: '#15803d', bg: 'rgba(21,128,61,0.08)', border: 'rgba(21,128,61,0.2)' },
+                  { label: `Y: ${formatGrams(existingTemplate.fat)}g`, color: '#b45309', bg: 'rgba(180,83,9,0.08)', border: 'rgba(180,83,9,0.2)' },
+                ].map(({ label, color, bg, border }) => (
+                  <Box key={label} sx={{ flex: 1, minWidth: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', px: 0.75, py: 0.3, borderRadius: 1, bgcolor: bg, border: `1px solid ${border}` }}>
+                    <Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.68rem' }, fontWeight: 700, color, whiteSpace: 'nowrap', lineHeight: 1 }}>{label}</Typography>
+                  </Box>
+                ))}
               </Stack>
             </Box>
             {mode === 'add' && (

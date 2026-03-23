@@ -1,28 +1,3 @@
-/**
- * Çoklu yemek sil (batch)
- */
-export const deleteFoodsBulk = async (ids: string[]): Promise<void> => {
-  if (!ids || ids.length === 0) return;
-  const batch = writeBatch(db);
-  ids.forEach(id => {
-    const ref = doc(db, COLLECTIONS.FOODS, id);
-    batch.delete(ref);
-  });
-  await batch.commit();
-};
-
-/**
- * Çoklu şablon sil (batch)
- */
-export const deleteTemplatesBulk = async (ids: string[]): Promise<void> => {
-  if (!ids || ids.length === 0) return;
-  const batch = writeBatch(db);
-  ids.forEach(id => {
-    const ref = doc(db, COLLECTIONS.TEMPLATES, id);
-    batch.delete(ref);
-  });
-  await batch.commit();
-};
 import {
   collection,
   doc,
@@ -393,31 +368,56 @@ export const deleteTemplate = async (templateId: string): Promise<void> => {
 // ============================================
 
 /**
+ * Dökümanları 500'lük chunk'lar halinde sil (Firestore batch limiti)
+ */
+const deleteInBatches = async (refs: any[]): Promise<void> => {
+  const BATCH_SIZE = 490;
+  for (let i = 0; i < refs.length; i += BATCH_SIZE) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + BATCH_SIZE).forEach((ref: any) => batch.delete(ref));
+    await batch.commit();
+  }
+};
+
+/**
  * Kullanıcının tüm verilerini sil (hesap silme öncesi)
  */
 export const deleteAllUserData = async (userId: string): Promise<void> => {
-  const batch = writeBatch(db);
-
-  // Tüm yemekleri sil
   const foodsRef = collection(db, COLLECTIONS.FOODS);
-  const foodsQuery = query(foodsRef, where('userId', '==', userId));
-  const foodsSnapshot = await getDocs(foodsQuery);
-  foodsSnapshot.docs.forEach(d => batch.delete(d.ref));
-
-  // Tüm hedefleri sil
   const goalsRef = collection(db, COLLECTIONS.GOALS);
-  const goalsQuery = query(goalsRef, where('userId', '==', userId));
-  const goalsSnapshot = await getDocs(goalsQuery);
-  goalsSnapshot.docs.forEach(d => batch.delete(d.ref));
-
-  // Tüm şablonları sil
   const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
-  const templatesQuery = query(templatesRef, where('userId', '==', userId));
-  const templatesSnapshot = await getDocs(templatesQuery);
-  templatesSnapshot.docs.forEach(d => batch.delete(d.ref));
 
-  await batch.commit();
-  console.log('[Delete] Kullanıcının tüm verileri silindi:', userId);
+  const [foodsSnap, goalsSnap, templatesSnap] = await Promise.all([
+    getDocs(query(foodsRef, where('userId', '==', userId))),
+    getDocs(query(goalsRef, where('userId', '==', userId))),
+    getDocs(query(templatesRef, where('userId', '==', userId))),
+  ]);
+
+  const allRefs = [
+    ...foodsSnap.docs.map(d => d.ref),
+    ...goalsSnap.docs.map(d => d.ref),
+    ...templatesSnap.docs.map(d => d.ref),
+  ];
+
+  await deleteInBatches(allRefs);
+};
+
+/**
+ * Çoklu yemek sil (batch, 500 limit korumalı)
+ */
+export const deleteFoodsBulk = async (ids: string[]): Promise<void> => {
+  if (!ids || ids.length === 0) return;
+  const refs = ids.map(id => doc(db, COLLECTIONS.FOODS, id));
+  await deleteInBatches(refs);
+};
+
+/**
+ * Çoklu şablon sil (batch, 500 limit korumalı)
+ */
+export const deleteTemplatesBulk = async (ids: string[]): Promise<void> => {
+  if (!ids || ids.length === 0) return;
+  const refs = ids.map(id => doc(db, COLLECTIONS.TEMPLATES, id));
+  await deleteInBatches(refs);
 };
 
 // ============================================
@@ -430,57 +430,50 @@ export const deleteAllUserData = async (userId: string): Promise<void> => {
 export const migrateFromLocalStorage = async (userId: string): Promise<void> => {
   const batch = writeBatch(db);
   
+  const safeParse = <T>(key: string): T | null => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return null;
+    }
+  };
+
   try {
     // Foods migrate et
-    const localFoods = localStorage.getItem('macromate-foods');
-    if (localFoods) {
-      const foods: Food[] = JSON.parse(localFoods);
+    const foods = safeParse<Food[]>('macromate-foods');
+    if (Array.isArray(foods)) {
       const foodsRef = collection(db, COLLECTIONS.FOODS);
-      
       foods.forEach((food) => {
         const newFoodRef = doc(foodsRef);
-        batch.set(newFoodRef, removeUndefined({
-          ...food,
-          userId,
-        }));
+        batch.set(newFoodRef, removeUndefined({ ...food, userId }));
       });
     }
-    
+
     // Goal migrate et
-    const localGoal = localStorage.getItem('macromate-goal');
-    if (localGoal) {
-      const goal: DailyGoal = JSON.parse(localGoal);
+    const goal = safeParse<DailyGoal>('macromate-goal');
+    if (goal && typeof goal === 'object') {
       const goalsRef = collection(db, COLLECTIONS.GOALS);
-      const newGoalRef = doc(goalsRef);
-      batch.set(newGoalRef, removeUndefined({
-        ...goal,
-        userId,
-      }));
+      batch.set(doc(goalsRef), removeUndefined({ ...goal, userId }));
     }
-    
+
     // Templates migrate et
-    const localTemplates = localStorage.getItem('macromate-templates');
-    if (localTemplates) {
-      const templates: FoodTemplate[] = JSON.parse(localTemplates);
+    const templates = safeParse<FoodTemplate[]>('macromate-templates');
+    if (Array.isArray(templates)) {
       const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
-      
       templates.forEach((template) => {
         const newTemplateRef = doc(templatesRef);
-        batch.set(newTemplateRef, removeUndefined({
-          ...template,
-          userId,
-        }));
+        batch.set(newTemplateRef, removeUndefined({ ...template, userId }));
       });
     }
-    
+
     await batch.commit();
-    
+
     // Migration başarılı - LocalStorage'ı temizle
     localStorage.removeItem('macromate-foods');
     localStorage.removeItem('macromate-goal');
     localStorage.removeItem('macromate-templates');
-    
-    console.log('[Migration] LocalStorage veriler Firestore\'a taşındı!');
   } catch (error) {
     console.error('Migration hatası:', error);
     throw error;

@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
+import type React from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
   Stack,
-  Chip,
   useMediaQuery,
   useTheme,
   LinearProgress,
@@ -249,16 +249,54 @@ function getBarColor(percentage: number): string {
   return '#ef5350';
 }
 
+// ── Section header helper ──────────────────────────────────────────────────
+function SectionHeader({ icon, title, subtitle, isMobile }: { icon: React.ReactNode; title: string; subtitle?: string; isMobile: boolean }) {
+  return (
+    <Box display="flex" alignItems="center" gap={1.5} mb={isMobile ? 1.5 : 2}>
+      <Box sx={{
+        width: isMobile ? 32 : 36,
+        height: isMobile ? 32 : 36,
+        borderRadius: 2,
+        background: 'linear-gradient(135deg, #18181b22 0%, #3f3f4622 100%)',
+        border: '1.5px solid rgba(24,24,27,0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        {icon}
+      </Box>
+      <Box>
+        <Typography variant={isMobile ? 'subtitle2' : 'subtitle1'} fontWeight={700} lineHeight={1.2}>
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.62rem' : '0.7rem'}>
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 export function StatsTab({ foods, goal }: Readonly<StatsTabProps>) {
-  const theme   = useTheme();
+  const theme    = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const stats   = useMemo(() => calculateStats(foods, goal), [foods, goal]);
+  const stats    = useMemo(() => calculateStats(foods, goal), [foods, goal]);
 
   if (foods.length === 0) {
     return (
       <Box textAlign="center" py={isMobile ? 4 : 8}>
-        <TrendingUpIcon sx={{ fontSize: isMobile ? 60 : 80, color: 'text.secondary', mb: 2 }} />
-        <Typography variant={isMobile ? 'subtitle1' : 'h6'} color="text.secondary" gutterBottom>
+        <Box sx={{
+          width: 72, height: 72, borderRadius: '50%',
+          background: 'linear-gradient(135deg, #18181b22 0%, #3f3f4622 100%)',
+          border: '1.5px solid rgba(24,24,27,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2,
+        }}>
+          <TrendingUpIcon sx={{ fontSize: 32, color: '#18181b' }} />
+        </Box>
+        <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={700} gutterBottom>
           Henüz istatistik yok
         </Typography>
         <Typography variant="body2" color="text.secondary" px={isMobile ? 2 : 0}>
@@ -270,107 +308,127 @@ export function StatsTab({ foods, goal }: Readonly<StatsTabProps>) {
 
   const { streak, records, monthlyBars, averageCalories, averageProtein, averageCarbs, averageFat } = stats;
 
+  const streakItems = [
+    { label: 'Mevcut Seri', value: streak.current, unit: 'gün', color: streak.current > 0 ? '#ef4444' : '#94a3b8' },
+    { label: 'En Uzun Seri', value: streak.longest, unit: 'gün', color: '#b45309' },
+    { label: 'Bu Ay', value: streak.thisMonth, unit: 'aktif gün', color: '#15803d' },
+    { label: 'Toplam', value: streak.totalActiveDays, unit: 'aktif gün', color: '#18181b' },
+  ];
+
+  const macroItems = [
+    { label: 'Kalori', value: averageCalories, goal: goal.calories, unit: 'kcal', color: '#18181b', progressClass: 'progress-calories' },
+    { label: 'Protein', value: averageProtein, goal: goal.protein, unit: 'g', color: '#0369a1', progressClass: 'progress-protein' },
+    { label: 'Karbonhidrat', value: averageCarbs, goal: goal.carbs, unit: 'g', color: '#15803d', progressClass: 'progress-carbs' },
+    { label: 'Yağ', value: averageFat, goal: goal.fat, unit: 'g', color: '#b45309', progressClass: 'progress-fat' },
+  ];
+
   return (
-    <Stack spacing={isMobile ? 2 : 3}>
+    <Stack spacing={isMobile ? 2 : 2.5}>
 
-      {/* Streak */}
-      <Card sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      {/* ── Seri & Aktivite ── */}
+      <Card sx={{ bgcolor: 'background.paper', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 2.5 }}>
         <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-          <Box display="flex" alignItems="center" gap={1} mb={isMobile ? 1.5 : 2}>
-            <LocalFireDepartmentIcon color="error" sx={{ fontSize: isMobile ? 20 : 24 }} />
-            <Typography variant={isMobile ? 'subtitle2' : 'h6'} fontWeight="bold">
-              Seri & Aktivite
-            </Typography>
-          </Box>
+          <SectionHeader
+            icon={<LocalFireDepartmentIcon sx={{ fontSize: isMobile ? 16 : 18, color: '#18181b' }} />}
+            title="Seri & Aktivite"
+            subtitle="Günlük takip performansınız"
+            isMobile={isMobile}
+          />
           <Stack direction="row" spacing={isMobile ? 1 : 1.5} flexWrap="wrap" useFlexGap>
-            <Paper sx={{ flex: '1 1 calc(50% - 8px)', minWidth: 0, p: isMobile ? 1 : 1.5, textAlign: 'center', bgcolor: streak.current > 0 ? 'error.light' : 'background.default', border: '2px solid', borderColor: streak.current > 0 ? 'error.main' : 'divider' }}>
-              <Typography variant="caption" display="block" fontWeight="700" fontSize={isMobile ? '0.65rem' : '0.75rem'} sx={{ color: streak.current > 0 ? '#b71c1c' : 'text.secondary' }}>Mevcut Seri</Typography>
-              <Typography variant="h5" fontWeight="bold" fontSize={isMobile ? '1.5rem' : '2rem'}>{streak.current}</Typography>
-              <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>gün</Typography>
-            </Paper>
-            <Paper sx={{ flex: '1 1 calc(50% - 8px)', minWidth: 0, p: isMobile ? 1 : 1.5, textAlign: 'center', bgcolor: 'warning.light', border: '2px solid', borderColor: 'warning.main' }}>
-              <Typography variant="caption" display="block" fontWeight="700" fontSize={isMobile ? '0.65rem' : '0.75rem'} sx={{ color: '#e65100' }}>En Uzun Seri</Typography>
-              <Typography variant="h5" fontWeight="bold" fontSize={isMobile ? '1.5rem' : '2rem'}>{streak.longest}</Typography>
-              <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>gün</Typography>
-            </Paper>
-            <Paper sx={{ flex: '1 1 calc(50% - 8px)', minWidth: 0, p: isMobile ? 1 : 1.5, textAlign: 'center', bgcolor: 'success.light', border: '2px solid', borderColor: 'success.main' }}>
-              <Typography variant="caption" display="block" fontWeight="700" fontSize={isMobile ? '0.65rem' : '0.75rem'} sx={{ color: '#1b5e20' }}>Bu Ay</Typography>
-              <Typography variant="h5" fontWeight="bold" fontSize={isMobile ? '1.5rem' : '2rem'}>{streak.thisMonth}</Typography>
-              <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>aktif gün</Typography>
-            </Paper>
-            <Paper sx={{ flex: '1 1 calc(50% - 8px)', minWidth: 0, p: isMobile ? 1 : 1.5, textAlign: 'center', bgcolor: 'info.light', border: '2px solid', borderColor: 'info.main' }}>
-              <Typography variant="caption" display="block" fontWeight="700" fontSize={isMobile ? '0.65rem' : '0.75rem'} sx={{ color: '#01579b' }}>Toplam</Typography>
-              <Typography variant="h5" fontWeight="bold" fontSize={isMobile ? '1.5rem' : '2rem'}>{streak.totalActiveDays}</Typography>
-              <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>aktif gün</Typography>
-            </Paper>
+            {streakItems.map(({ label, value, unit, color }) => (
+              <Paper key={label} sx={{
+                flex: '1 1 calc(50% - 8px)',
+                minWidth: 0,
+                p: isMobile ? 1 : 1.5,
+                textAlign: 'center',
+                bgcolor: `${color}0d`,
+                border: `1px solid ${color}25`,
+                borderRadius: 2,
+              }}>
+                <Typography variant="caption" display="block" fontWeight={600} fontSize={isMobile ? '0.62rem' : '0.7rem'} color="text.secondary">
+                  {label}
+                </Typography>
+                <Typography variant="h5" fontWeight={800} fontSize={isMobile ? '1.4rem' : '1.75rem'} sx={{ color }}>
+                  {value}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.58rem' : '0.65rem'}>
+                  {unit}
+                </Typography>
+              </Paper>
+            ))}
           </Stack>
         </CardContent>
       </Card>
 
-      {/* Genel Ortalamalar */}
-      <Card sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      {/* ── Genel Ortalamalar ── */}
+      <Card sx={{ bgcolor: 'background.paper', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 2.5 }}>
         <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-          <Box display="flex" alignItems="center" gap={1} mb={isMobile ? 1.5 : 2}>
-            <TrendingUpIcon color="primary" sx={{ fontSize: isMobile ? 20 : 24 }} />
-            <Typography variant={isMobile ? 'subtitle2' : 'h6'} fontWeight="bold">Genel Ortalamalar</Typography>
-            <Chip label="Tüm zamanlar" size="small" variant="outlined" />
-          </Box>
-          <Stack spacing={isMobile ? 1 : 1.5}>
-            <Box>
-              <Box display="flex" justifyContent="space-between" mb={0.5}>
-                <Typography variant="body2" fontWeight="600" fontSize={isMobile ? '0.8rem' : undefined}>Kalori</Typography>
-                <Typography variant="caption" color="text.secondary">{averageCalories} / {goal.calories} kcal</Typography>
+          <SectionHeader
+            icon={<TrendingUpIcon sx={{ fontSize: isMobile ? 16 : 18, color: '#18181b' }} />}
+            title="Genel Ortalamalar"
+            subtitle="Tüm zamanlar ortalaması"
+            isMobile={isMobile}
+          />
+          <Stack spacing={isMobile ? 1.25 : 1.5}>
+            {macroItems.map(({ label, value, goal: g, unit, color, progressClass }) => (
+              <Box key={label}>
+                <Box display="flex" justifyContent="space-between" alignItems="baseline" mb={0.5}>
+                  <Typography variant="body2" fontWeight={600} fontSize={isMobile ? '0.78rem' : '0.85rem'}>
+                    {label}
+                  </Typography>
+                  <Typography variant="caption" fontWeight={700} sx={{ color }}>
+                    {value}{unit} <Typography component="span" variant="caption" color="text.secondary" fontWeight={400}>/ {g}{unit}</Typography>
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min((value / g) * 100, 100)}
+                  className={progressClass}
+                  sx={{ height: isMobile ? 6 : 7, borderRadius: 4, bgcolor: `${color}18` }}
+                />
               </Box>
-              <LinearProgress variant="determinate" value={Math.min((averageCalories / goal.calories) * 100, 100)} color="error" sx={{ height: isMobile ? 6 : 8, borderRadius: 4 }} />
-            </Box>
-            <Stack direction="row" spacing={isMobile ? 1 : 2}>
-              <Box flex={1}>
-                <Typography variant="caption" display="block" textAlign="center" mb={0.5} fontSize={isMobile ? '0.65rem' : '0.75rem'}>Protein</Typography>
-                <LinearProgress variant="determinate" value={Math.min((averageProtein / goal.protein) * 100, 100)} color="info" sx={{ height: 6, borderRadius: 3 }} />
-                <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">{averageProtein}g / {goal.protein}g</Typography>
-              </Box>
-              <Box flex={1}>
-                <Typography variant="caption" display="block" textAlign="center" mb={0.5} fontSize={isMobile ? '0.65rem' : '0.75rem'}>Karbonhidrat</Typography>
-                <LinearProgress variant="determinate" value={Math.min((averageCarbs / goal.carbs) * 100, 100)} color="success" sx={{ height: 6, borderRadius: 3 }} />
-                <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">{averageCarbs}g / {goal.carbs}g</Typography>
-              </Box>
-              <Box flex={1}>
-                <Typography variant="caption" display="block" textAlign="center" mb={0.5} fontSize={isMobile ? '0.65rem' : '0.75rem'}>Yağ</Typography>
-                <LinearProgress variant="determinate" value={Math.min((averageFat / goal.fat) * 100, 100)} color="warning" sx={{ height: 6, borderRadius: 3 }} />
-                <Typography variant="caption" display="block" textAlign="center" mt={0.5} fontSize={isMobile ? '0.6rem' : '0.7rem'} color="text.secondary">{averageFat}g / {goal.fat}g</Typography>
-              </Box>
-            </Stack>
+            ))}
           </Stack>
         </CardContent>
       </Card>
 
-      {/* Rekorlar */}
+      {/* ── Rekorlar ── */}
       {(records.bestDay ?? records.highestProtein) && (
-        <Card sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+        <Card sx={{ bgcolor: 'background.paper', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 2.5 }}>
           <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-            <Box display="flex" alignItems="center" gap={1} mb={isMobile ? 1.5 : 2}>
-              <EmojiEventsIcon sx={{ color: 'warning.main', fontSize: isMobile ? 20 : 24 }} />
-              <Typography variant={isMobile ? 'subtitle2' : 'h6'} fontWeight="bold">Rekorlar</Typography>
-            </Box>
-            <Stack spacing={1}>
+            <SectionHeader
+              icon={<EmojiEventsIcon sx={{ fontSize: isMobile ? 16 : 18, color: '#18181b' }} />}
+              title="Rekorlar"
+              subtitle="En iyi performans günleri"
+              isMobile={isMobile}
+            />
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1}>
               {records.bestDay && (
-                <Paper sx={{ p: isMobile ? 1 : 1.5, bgcolor: 'success.light', border: '1px solid', borderColor: 'success.main' }}>
-                  <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
-                    <EmojiEventsIcon sx={{ fontSize: 16, color: 'success.dark' }} />
-                    <Typography variant="caption" color="success.dark" fontWeight="600" fontSize={isMobile ? '0.65rem' : '0.75rem'}>Hedefe En Yakın Gün</Typography>
+                <Paper sx={{ flex: 1, p: isMobile ? 1 : 1.5, bgcolor: 'rgba(21,128,61,0.06)', border: '1px solid rgba(21,128,61,0.2)', borderRadius: 2 }}>
+                  <Stack direction="row" spacing={0.75} alignItems="center" mb={0.75}>
+                    <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'rgba(21,128,61,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <EmojiEventsIcon sx={{ fontSize: 13, color: '#15803d' }} />
+                    </Box>
+                    <Typography variant="caption" fontWeight={700} fontSize={isMobile ? '0.65rem' : '0.72rem'} sx={{ color: '#15803d' }}>
+                      Hedefe En Yakın Gün
+                    </Typography>
                   </Stack>
-                  <Typography variant="body2" fontWeight="bold" fontSize={isMobile ? '0.75rem' : '0.85rem'}>{formatDate(records.bestDay.date)}</Typography>
-                  <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>{records.bestDay.calories} kcal (hedef: {goal.calories})</Typography>
+                  <Typography variant="body2" fontWeight={700} fontSize={isMobile ? '0.78rem' : '0.85rem'}>{formatDate(records.bestDay.date)}</Typography>
+                  <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.68rem'}>{records.bestDay.calories} kcal · hedef {goal.calories}</Typography>
                 </Paper>
               )}
               {records.highestProtein && (
-                <Paper sx={{ p: isMobile ? 1 : 1.5, bgcolor: 'info.light', border: '1px solid', borderColor: 'info.main' }}>
-                  <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
-                    <TrendingUpIcon sx={{ fontSize: 16, color: 'info.dark' }} />
-                    <Typography variant="caption" color="info.dark" fontWeight="600" fontSize={isMobile ? '0.65rem' : '0.75rem'}>En Yüksek Protein</Typography>
+                <Paper sx={{ flex: 1, p: isMobile ? 1 : 1.5, bgcolor: 'rgba(3,105,161,0.06)', border: '1px solid rgba(3,105,161,0.2)', borderRadius: 2 }}>
+                  <Stack direction="row" spacing={0.75} alignItems="center" mb={0.75}>
+                    <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'rgba(3,105,161,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TrendingUpIcon sx={{ fontSize: 13, color: '#0369a1' }} />
+                    </Box>
+                    <Typography variant="caption" fontWeight={700} fontSize={isMobile ? '0.65rem' : '0.72rem'} sx={{ color: '#0369a1' }}>
+                      En Yüksek Protein
+                    </Typography>
                   </Stack>
-                  <Typography variant="body2" fontWeight="bold" fontSize={isMobile ? '0.75rem' : '0.85rem'}>{formatDate(records.highestProtein.date)}</Typography>
-                  <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>{records.highestProtein.protein}g protein</Typography>
+                  <Typography variant="body2" fontWeight={700} fontSize={isMobile ? '0.78rem' : '0.85rem'}>{formatDate(records.highestProtein.date)}</Typography>
+                  <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.68rem'}>{records.highestProtein.protein}g protein</Typography>
                 </Paper>
               )}
             </Stack>
@@ -378,49 +436,46 @@ export function StatsTab({ foods, goal }: Readonly<StatsTabProps>) {
         </Card>
       )}
 
-      {/* Aylık Bar Chart */}
+      {/* ── Aylık Bar Chart ── */}
       {monthlyBars.length > 0 && (
-        <Card sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+        <Card sx={{ bgcolor: 'background.paper', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 2.5 }}>
           <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-            <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-              <CalendarMonthIcon color="primary" sx={{ fontSize: isMobile ? 20 : 24 }} />
-              <Typography variant={isMobile ? 'subtitle2' : 'h6'} fontWeight="bold">Aylık Özet</Typography>
-            </Box>
-            <Typography variant="caption" color="text.secondary" display="block" mb={isMobile ? 1.5 : 2}>
-              Son 6 ay — hedefe ulaşılan gün yüzdesi
-            </Typography>
-            <ResponsiveContainer width="100%" height={isMobile ? 160 : 200}>
-              <BarChart data={monthlyBars} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                <XAxis dataKey="month" tick={{ fontSize: isMobile ? 11 : 13 }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: isMobile ? 10 : 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+            <SectionHeader
+              icon={<CalendarMonthIcon sx={{ fontSize: isMobile ? 16 : 18, color: '#18181b' }} />}
+              title="Aylık Özet"
+              subtitle="Son 6 ay — hedefe ulaşılan gün yüzdesi"
+              isMobile={isMobile}
+            />
+            <ResponsiveContainer width="100%" height={isMobile ? 150 : 190}>
+              <BarChart data={monthlyBars} margin={{ top: 4, right: 4, left: -22, bottom: 4 }}>
+                <XAxis dataKey="month" tick={{ fontSize: isMobile ? 11 : 12 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: isMobile ? 10 : 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                 <Tooltip
                   formatter={(value, _name, props) => [
                     `${typeof value === 'number' ? value : 0}% (${props.payload.daysOnTarget}/${props.payload.totalDays} gün)`,
                     'Hedefe Ulaşılan',
                   ]}
-                  contentStyle={{ fontSize: isMobile ? 11 : 13 }}
+                  contentStyle={{ fontSize: isMobile ? 11 : 12, borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)' }}
+                  cursor={{ fill: 'rgba(24,24,27,0.06)' }}
                 />
-                <Bar dataKey="percentage" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                  {/* ✅ index yerine entry.month key olarak kullanılıyor */}
+                <Bar dataKey="percentage" radius={[6, 6, 0, 0]} maxBarSize={48}>
                   {monthlyBars.map((entry: MonthlyBarData) => (
                     <Cell key={entry.month} fill={getBarColor(entry.percentage)} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <Stack direction="row" spacing={2} justifyContent="center" mt={1}>
-              <Box display="flex" alignItems="center" gap={0.5}>
-                <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#4caf50' }} />
-                <Typography variant="caption" fontSize={isMobile ? '0.6rem' : '0.7rem'}>≥70%</Typography>
-              </Box>
-              <Box display="flex" alignItems="center" gap={0.5}>
-                <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#ff9800' }} />
-                <Typography variant="caption" fontSize={isMobile ? '0.6rem' : '0.7rem'}>40-70%</Typography>
-              </Box>
-              <Box display="flex" alignItems="center" gap={0.5}>
-                <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#ef5350' }} />
-                <Typography variant="caption" fontSize={isMobile ? '0.6rem' : '0.7rem'}>{'<'}40%</Typography>
-              </Box>
+            <Stack direction="row" spacing={isMobile ? 1.5 : 2} justifyContent="center" mt={1}>
+              {[
+                { color: '#15803d', label: '≥70%' },
+                { color: '#b45309', label: '40–70%' },
+                { color: '#ef4444', label: '<40%' },
+              ].map(({ color, label }) => (
+                <Box key={label} display="flex" alignItems="center" gap={0.5}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: 0.75, bgcolor: color }} />
+                  <Typography variant="caption" fontSize={isMobile ? '0.6rem' : '0.68rem'} color="text.secondary">{label}</Typography>
+                </Box>
+              ))}
             </Stack>
           </CardContent>
         </Card>

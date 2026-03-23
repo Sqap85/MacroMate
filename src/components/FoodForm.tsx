@@ -7,13 +7,10 @@ import {
   Typography,
   Box,
   Stack,
-  ToggleButtonGroup,
-  ToggleButton,
   Autocomplete,
   Tabs,
   Tab,
   Divider,
-  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LocalCafeIcon from '@mui/icons-material/LocalCafe';
@@ -29,10 +26,10 @@ import { BarcodeScanner } from './BarcodeScanner';
 
 // Öğün renk tanımları - tüm bileşenlerle tutarlı
 const MEAL_COLORS = {
-  breakfast: '#FF6B35',
-  lunch: '#F7931E',
-  dinner: '#9D4EDD',
-  snack: '#06A77D',
+  breakfast: '#d97706',
+  lunch: '#0284c7',
+  dinner: '#7c3aed',
+  snack: '#16a34a',
 } as const;
 
 interface FoodFormProps {
@@ -159,118 +156,98 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
 
   return (
     <>
-      <Card 
-        elevation={3}
-        sx={{
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: 6,
-          },
-        }}
-      >
-        <CardContent>
-          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Card elevation={2}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
+          <Box sx={{ mb: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box display="flex" alignItems="center" gap={1}>
-              <RestaurantIcon color="primary" />
-              <Typography variant="h6">
-                Yemek Ekle
-              </Typography>
+              <Box
+                sx={{
+                  width: 32, height: 32, borderRadius: '9px',
+                  background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(24,24,27,0.35)',
+                }}
+              >
+                <RestaurantIcon sx={{ fontSize: 17, color: '#fff' }} />
+              </Box>
+              <Typography variant="subtitle1" fontWeight={700}>Yemek Ekle</Typography>
             </Box>
             <Button
               size="small"
               variant="outlined"
               onClick={onOpenTemplates}
               startIcon={<RestaurantMenuIcon />}
+              sx={{
+                borderRadius: 8,
+                borderColor: 'rgba(24,24,27,0.35)',
+                color: 'primary.main',
+                '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(24,24,27,0.06)' },
+              }}
             >
               Besinlerim
             </Button>
           </Box>
 
-          <Tabs 
-            value={tabValue} 
+          <Tabs
+            value={tabValue}
             onChange={(_, newValue) => setTabValue(newValue)}
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2.5,
+              '& .MuiTabs-indicator': {
+                background: 'linear-gradient(90deg, #18181b, #3f3f46)',
+                borderRadius: 2,
+                height: 3,
+              },
+              '& .Mui-selected': { color: 'primary.main !important' },
+            }}
           >
             <Tab label="Kayıtlı Besinler" />
             <Tab label="Manuel Giriş" />
           </Tabs>
 
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ mb: 2.5, borderColor: 'rgba(0,0,0,0.06)' }} />
 
           {/* TAB 0: Şablon Seçimi */}
           {tabValue === 0 && (
             <Box component="form" onSubmit={handleTemplateSubmit}>
-              <Stack spacing={2}>
-                {/* Öğün Seçimi */}
+              <Stack spacing={2.5}>
+                {/* Öğün Seçimi - Card style */}
                 <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                  <Typography variant="caption" color="text.secondary" display="block" mb={1} fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
                     Öğün Türü
                   </Typography>
-                  <ToggleButtonGroup
-                    value={templateMealType}
-                    exclusive
-                    onChange={(_, value) => setTemplateMealType(value as MealType)}
-                    fullWidth
-                    size="small"
-                  >
-                    <ToggleButton
-                      value="breakfast"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.breakfast}22`,
-                          color: MEAL_COLORS.breakfast,
-                          borderColor: MEAL_COLORS.breakfast,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
-                      }}
-                    >
-                      <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
-                      Kahvaltı
-                    </ToggleButton>
-                    <ToggleButton
-                      value="lunch"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.lunch}22`,
-                          color: MEAL_COLORS.lunch,
-                          borderColor: MEAL_COLORS.lunch,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
-                      }}
-                    >
-                      <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
-                      Öğle
-                    </ToggleButton>
-                    <ToggleButton
-                      value="dinner"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.dinner}22`,
-                          color: MEAL_COLORS.dinner,
-                          borderColor: MEAL_COLORS.dinner,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
-                      }}
-                    >
-                      <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
-                      Akşam
-                    </ToggleButton>
-                    <ToggleButton
-                      value="snack"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.snack}22`,
-                          color: MEAL_COLORS.snack,
-                          borderColor: MEAL_COLORS.snack,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
-                      }}
-                    >
-                      <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
-                      Atıştırma
-                    </ToggleButton>
-                  </ToggleButtonGroup>
+                  <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={1}>
+                    {([
+                      { value: 'breakfast', icon: LocalCafeIcon, label: 'Kahvaltı', color: MEAL_COLORS.breakfast },
+                      { value: 'lunch', icon: LunchDiningIcon, label: 'Öğle', color: MEAL_COLORS.lunch },
+                      { value: 'dinner', icon: DinnerDiningIcon, label: 'Akşam', color: MEAL_COLORS.dinner },
+                      { value: 'snack', icon: CookieIcon, label: 'Atıştırma', color: MEAL_COLORS.snack },
+                    ] as const).map(({ value, icon: Icon, label, color }) => {
+                      const selected = templateMealType === value;
+                      return (
+                        <Box
+                          key={value}
+                          onClick={() => setTemplateMealType(selected ? undefined : value as MealType)}
+                          sx={{
+                            cursor: 'pointer',
+                            borderRadius: 2.5,
+                            p: 1,
+                            border: '1.5px solid',
+                            borderColor: selected ? color : 'rgba(0,0,0,0.1)',
+                            bgcolor: selected ? `${color}14` : 'rgba(255,255,255,0.6)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
+                            transition: 'all 0.18s ease',
+                            '&:hover': { borderColor: color, bgcolor: `${color}0e` },
+                          }}
+                        >
+                          <Icon sx={{ fontSize: 18, color: selected ? color : 'text.secondary' }} />
+                          <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: selected ? 700 : 500, color: selected ? color : 'text.secondary', lineHeight: 1.2, textAlign: 'center' }}>
+                            {label}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
                 </Box>
 
                 <Autocomplete
@@ -359,13 +336,12 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
 
                 {/* Önizleme */}
                 {previewValues && (
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'action.hover', 
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'divider'
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      bgcolor: 'rgba(24,24,27,0.04)',
+                      borderRadius: 2.5,
+                      border: '1px solid rgba(24,24,27,0.15)',
                     }}
                   >
                     <Typography variant="caption" color="text.secondary" display="block" mb={1}>
@@ -375,58 +351,22 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                       }
                     </Typography>
                     <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'nowrap' }}>
-                      <Chip
-                        label={`${previewValues.calories} kcal`}
-                        size="small"
-                        color="error"
-                        variant="outlined"
-                        sx={{
-                          flex: { xs: 1, sm: '0 0 auto' },
-                          minWidth: { xs: 0, sm: 'auto' },
-                          height: { xs: 20, sm: 24 },
-                          fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                          '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                        }}
-                      />
-                      <Chip
-                        label={`${formatGrams(previewValues.protein)}g protein`}
-                        size="small"
-                        color="info"
-                        variant="outlined"
-                        sx={{
-                          flex: { xs: 1, sm: '0 0 auto' },
-                          minWidth: { xs: 0, sm: 'auto' },
-                          height: { xs: 20, sm: 24 },
-                          fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                          '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                        }}
-                      />
-                      <Chip
-                        label={`${formatGrams(previewValues.carbs)}g karb.`}
-                        size="small"
-                        color="success"
-                        variant="outlined"
-                        sx={{
-                          flex: { xs: 1, sm: '0 0 auto' },
-                          minWidth: { xs: 0, sm: 'auto' },
-                          height: { xs: 20, sm: 24 },
-                          fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                          '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                        }}
-                      />
-                      <Chip
-                        label={`${formatGrams(previewValues.fat)}g yağ`}
-                        size="small"
-                        color="warning"
-                        variant="outlined"
-                        sx={{
-                          flex: { xs: 1, sm: '0 0 auto' },
-                          minWidth: { xs: 0, sm: 'auto' },
-                          height: { xs: 20, sm: 24 },
-                          fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                          '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                        }}
-                      />
+                      {[
+                        { label: `${previewValues.calories} kcal`, color: '#18181b' },
+                        { label: `${formatGrams(previewValues.protein)}g P`, color: '#0369a1' },
+                        { label: `${formatGrams(previewValues.carbs)}g K`, color: '#15803d' },
+                        { label: `${formatGrams(previewValues.fat)}g Y`, color: '#b45309' },
+                      ].map(({ label, color }) => (
+                        <Box key={label} sx={{
+                          flex: 1, minWidth: 0, textAlign: 'center',
+                          px: 0.75, py: 0.4, borderRadius: 1.5,
+                          bgcolor: `${color}12`, border: `1px solid ${color}28`,
+                        }}>
+                          <Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.68rem' }, fontWeight: 700, color, lineHeight: 1.2 }}>
+                            {label}
+                          </Typography>
+                        </Box>
+                      ))}
                     </Stack>
                   </Box>
                 )}
@@ -434,11 +374,17 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                 <Button
                   fullWidth
                   variant="contained"
-                  color="primary"
                   type="submit"
                   startIcon={<AddIcon />}
                   size="large"
                   disabled={!selectedTemplate || (selectedTemplate.unit === 'piece' ? !pieces : !grams)}
+                  sx={{
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+                    boxShadow: 'none',
+                    '&:hover': { boxShadow: '0 4px 12px rgba(24,24,27,0.35)' },
+                    '&.Mui-disabled': { background: 'rgba(0,0,0,0.12)' },
+                  }}
                 >
                   Ekle
                 </Button>
@@ -449,76 +395,44 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
           {/* TAB 1: Manuel Giriş */}
           {tabValue === 1 && (
             <Box component="form" onSubmit={handleSubmit}>
-              <Stack spacing={2}>
-                {/* Öğün Seçimi */}
+              <Stack spacing={2.5}>
+                {/* Öğün Seçimi - Card style */}
                 <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                  <Typography variant="caption" color="text.secondary" display="block" mb={1} fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
                     Öğün Türü
                   </Typography>
-                  <ToggleButtonGroup
-                    value={formData.mealType}
-                    exclusive
-                    onChange={(_, value) => setFormData({ ...formData, mealType: value as MealType })}
-                    fullWidth
-                    size="small"
-                  >
-                    <ToggleButton
-                      value="breakfast"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.breakfast}22`,
-                          color: MEAL_COLORS.breakfast,
-                          borderColor: MEAL_COLORS.breakfast,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
-                      }}
-                    >
-                      <LocalCafeIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.breakfast }} />
-                      Kahvaltı
-                    </ToggleButton>
-                    <ToggleButton
-                      value="lunch"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.lunch}22`,
-                          color: MEAL_COLORS.lunch,
-                          borderColor: MEAL_COLORS.lunch,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
-                      }}
-                    >
-                      <LunchDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.lunch }} />
-                      Öğle
-                    </ToggleButton>
-                    <ToggleButton
-                      value="dinner"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.dinner}22`,
-                          color: MEAL_COLORS.dinner,
-                          borderColor: MEAL_COLORS.dinner,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
-                      }}
-                    >
-                      <DinnerDiningIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.dinner }} />
-                      Akşam
-                    </ToggleButton>
-                    <ToggleButton
-                      value="snack"
-                      sx={{
-                        '&.Mui-selected': {
-                          bgcolor: `${MEAL_COLORS.snack}22`,
-                          color: MEAL_COLORS.snack,
-                          borderColor: MEAL_COLORS.snack,
-                        },
-                        '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
-                      }}
-                    >
-                      <CookieIcon fontSize="small" sx={{ mr: 0.5, color: MEAL_COLORS.snack }} />
-                      Atıştırma
-                    </ToggleButton>
-                  </ToggleButtonGroup>
+                  <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={1}>
+                    {([
+                      { value: 'breakfast', icon: LocalCafeIcon, label: 'Kahvaltı', color: MEAL_COLORS.breakfast },
+                      { value: 'lunch', icon: LunchDiningIcon, label: 'Öğle', color: MEAL_COLORS.lunch },
+                      { value: 'dinner', icon: DinnerDiningIcon, label: 'Akşam', color: MEAL_COLORS.dinner },
+                      { value: 'snack', icon: CookieIcon, label: 'Atıştırma', color: MEAL_COLORS.snack },
+                    ] as const).map(({ value, icon: Icon, label, color }) => {
+                      const selected = formData.mealType === value;
+                      return (
+                        <Box
+                          key={value}
+                          onClick={() => setFormData({ ...formData, mealType: selected ? undefined : value as MealType })}
+                          sx={{
+                            cursor: 'pointer',
+                            borderRadius: 2.5,
+                            p: 1,
+                            border: '1.5px solid',
+                            borderColor: selected ? color : 'rgba(0,0,0,0.1)',
+                            bgcolor: selected ? `${color}14` : 'rgba(255,255,255,0.6)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
+                            transition: 'all 0.18s ease',
+                            '&:hover': { borderColor: color, bgcolor: `${color}0e` },
+                          }}
+                        >
+                          <Icon sx={{ fontSize: 18, color: selected ? color : 'text.secondary' }} />
+                          <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: selected ? 700 : 500, color: selected ? color : 'text.secondary', lineHeight: 1.2, textAlign: 'center' }}>
+                            {label}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
                 </Box>
 
                 {/* Barkod Tara Butonu */}
@@ -591,10 +505,15 @@ export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTe
                 <Button
                   fullWidth
                   variant="contained"
-                  color="primary"
                   type="submit"
                   startIcon={<AddIcon />}
                   size="large"
+                  sx={{
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+                    boxShadow: 'none',
+                    '&:hover': { boxShadow: '0 4px 12px rgba(24,24,27,0.35)' },
+                  }}
                 >
                   Ekle
                 </Button>

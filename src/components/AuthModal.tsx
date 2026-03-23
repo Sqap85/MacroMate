@@ -13,7 +13,6 @@ import {
   Tab,
   Tabs,
   InputAdornment,
-  Paper,
   Stack,
   Chip,
   DialogTitle,
@@ -25,6 +24,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import LockResetIcon from '@mui/icons-material/LockReset';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -64,15 +64,8 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
           .required('Şifre zorunlu')
           .min(8, 'Şifre en az 8 karakter olmalı')
           .max(128, 'Şifre en fazla 128 karakter olabilir')
-          .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
-          .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-          .matches(/\d/, 'En az bir rakam içermelidir')
-          .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
-    displayName: !isLogin
-      ? Yup.string()
-          .required('İsim boş olamaz')
-          .max(30, 'İsim en fazla 30 karakter olabilir')
-      : Yup.string(),
+          .matches(/[a-zA-Z]/, 'En az bir harf içermelidir')
+          .matches(/\d/, 'En az bir rakam içermelidir'),
     confirmPassword: !isLogin
       ? Yup.string()
           .oneOf([Yup.ref('password')], 'Şifreler eşleşmiyor')
@@ -84,7 +77,6 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
     initialValues: {
       email: '',
       password: '',
-      displayName: '',
       confirmPassword: '',
     },
     validationSchema,
@@ -97,7 +89,7 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
         if (isLogin) {
           await login(values.email, values.password);
         } else {
-          await signup(values.email, values.password, values.displayName);
+          await signup(values.email, values.password, '');
         }
         onClose();
         formik.resetForm();
@@ -198,48 +190,73 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
     setError('');
   };
 
+  const darkFieldSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 2,
+      bgcolor: 'rgba(255,255,255,0.06)',
+      color: '#fff',
+      '& fieldset': { borderColor: 'rgba(255,255,255,0.12)' },
+      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
+      '&.Mui-focused fieldset': { borderColor: '#18181b', borderWidth: 2 },
+    },
+    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
+    '& .MuiInputLabel-root.Mui-focused': { color: '#a8b8ff' },
+    '& .MuiFormHelperText-root': { color: '#fca5a5' },
+    '& input': { color: '#fff' },
+  };
+
   return (
     <>
-    <Dialog 
-      open={open} 
-      onClose={handleClose} 
-      maxWidth="sm" 
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="xs"
       fullWidth
       aria-labelledby="auth-dialog-title"
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          p: 0.5,
+          borderRadius: 4,
+          overflowY: 'auto',
+          maxHeight: '95vh',
+          background: 'linear-gradient(145deg, #09090b 0%, #18181b 60%, #27272a 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.4)',
         }
       }}
     >
-      <Paper sx={{ borderRadius: 2.5, p: 4 }}>
-        {/* Header */}
+      <Box sx={{ p: { xs: 3, sm: 4 }, position: 'relative' }}>
+        {/* Close button */}
+        <IconButton
+          onClick={handleClose}
+          size="small"
+          sx={{
+            position: 'absolute', right: 16, top: 16,
+            color: 'rgba(255,255,255,0.5)',
+            bgcolor: 'rgba(255,255,255,0.06)',
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.12)', color: '#fff' },
+          }}
+          aria-label="Kapat"
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+
+        {/* Logo + Header */}
         <Box textAlign="center" mb={4}>
-          <IconButton 
-            onClick={handleClose} 
-            sx={{ position: 'absolute', right: 16, top: 16 }}
-            aria-label="Kapat"
-          >
-            <CloseIcon />
-          </IconButton>
-          
-          <Typography 
-            id="auth-dialog-title" 
-            variant="h4" 
-            fontWeight="bold" 
+          <Typography
+            id="auth-dialog-title"
+            variant="h5"
+            fontWeight={800}
             sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              mb: 1,
+              mb: 0.5,
             }}
           >
             MacroMate
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem' }}>
             Kalori ve makrolarınızı takip edin
           </Typography>
         </Box>
@@ -247,83 +264,59 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
         {/* Tabs */}
         <Tabs
           value={tabValue}
-          onChange={(_, newValue) => {
-            setTabValue(newValue);
-            setError('');
-          }}
-          sx={{ 
-            mb: 3,
-            '& .MuiTab-root': {
-              fontSize: '1rem',
-              fontWeight: 600,
-            }
-          }}
+          onChange={(_, newValue) => { setTabValue(newValue); setError(''); }}
           variant="fullWidth"
+          sx={{
+            mb: 3,
+            bgcolor: 'rgba(255,255,255,0.06)',
+            borderRadius: 2,
+            p: 0.5,
+            minHeight: 38,
+            '& .MuiTabs-indicator': {
+              height: '100%', borderRadius: 1.5,
+              background: 'linear-gradient(135deg, #18181b, #3f3f46)',
+              zIndex: 0,
+            },
+            '& .MuiTab-root': {
+              minHeight: 34, fontSize: '0.85rem', fontWeight: 600, zIndex: 1,
+              color: 'rgba(255,255,255,0.45)',
+              transition: 'color 0.2s',
+            },
+            '& .Mui-selected': { color: '#fff !important' },
+          }}
         >
           <Tab label="Giriş Yap" />
           <Tab label="Kayıt Ol" />
         </Tabs>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2, bgcolor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', '& .MuiAlert-icon': { color: '#f87171' } }}>
             {error}
           </Alert>
         )}
 
-
         <Box component="form" onSubmit={formik.handleSubmit}>
-          {!isLogin && (
-            <TextField
-              fullWidth
-              label="Adınız"
-              name="displayName"
-              value={formik.values.displayName}
-              onChange={formik.handleChange}
-              error={formik.touched.displayName && Boolean(formik.errors.displayName)}
-              helperText={formik.touched.displayName && formik.errors.displayName}
-              margin="normal"
-              autoFocus={!isLogin}
-              disabled={loading}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            />
-          )}
-
           <TextField
-            fullWidth
-            label="E-posta"
-            type="email"
-            name="email"
-            value={formik.values.email}
-            onChange={formik.handleChange}
+            fullWidth label="E-posta" type="email" name="email"
+            value={formik.values.email} onChange={formik.handleChange}
             error={formik.touched.email && Boolean(formik.errors.email)}
             helperText={formik.touched.email && formik.errors.email}
-            margin="normal"
-            autoFocus={isLogin}
-            disabled={loading}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            margin="dense" autoFocus disabled={loading}
+            sx={darkFieldSx}
           />
-
           <TextField
-            fullWidth
-            label="Şifre"
-            type={showPassword ? 'text' : 'password'}
-            name="password"
-            value={formik.values.password}
-            onChange={formik.handleChange}
+            fullWidth label="Şifre" type={showPassword ? 'text' : 'password'} name="password"
+            value={formik.values.password} onChange={formik.handleChange}
             error={formik.touched.password && Boolean(formik.errors.password)}
             helperText={formik.touched.password && formik.errors.password}
-            margin="normal"
-            disabled={loading}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            margin="dense" disabled={loading}
+            sx={darkFieldSx}
             slotProps={{
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -332,19 +325,11 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
           />
 
           {isLogin && (
-            <Box textAlign="right" mt={1}>
+            <Box textAlign="right" mt={0.5}>
               <Button
-                variant="text"
-                size="small"
-                onClick={() => {
-                  setForgotPasswordOpen(true);
-                  setForgotPasswordEmail(formik.values.email);
-                }}
-                sx={{ 
-                  textTransform: 'none',
-                  fontSize: '0.875rem',
-                  p: 0.5,
-                }}
+                variant="text" size="small"
+                onClick={() => { setForgotPasswordOpen(true); setForgotPasswordEmail(formik.values.email); }}
+                sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', '&:hover': { color: 'rgba(255,255,255,0.9)' } }}
               >
                 Şifremi unuttum?
               </Button>
@@ -353,103 +338,67 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
 
           {!isLogin && (
             <TextField
-              fullWidth
-              label="Şifre Tekrar"
-              type={showPassword ? 'text' : 'password'}
-              name="confirmPassword"
-              value={formik.values.confirmPassword}
-              onChange={formik.handleChange}
+              fullWidth label="Şifre Tekrar" type={showPassword ? 'text' : 'password'} name="confirmPassword"
+              value={formik.values.confirmPassword} onChange={formik.handleChange}
               error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
               helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
-              margin="normal"
-              disabled={loading}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              margin="dense" disabled={loading}
+              sx={darkFieldSx}
             />
           )}
 
           <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            size="large"
-            sx={{ 
-              mt: 3, 
-              mb: 2, 
-              borderRadius: 2,
-              py: 1.5,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5568d3 0%, #6a4190 100%)',
-              }
-            }}
+            type="submit" fullWidth variant="contained" size="large"
+            sx={{ mt: 2.5, mb: 1.5, py: 1.4, borderRadius: 2.5, fontWeight: 700, fontSize: '0.95rem' }}
             disabled={loading}
           >
             {loading ? 'Lütfen bekleyin...' : isLogin ? 'Giriş Yap' : 'Kayıt Ol'}
           </Button>
         </Box>
 
-        <Divider sx={{ my: 3 }}>
-          <Chip label="veya" size="small" />
+        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.08)' }}>
+          <Chip label="veya" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.08)' }} />
         </Divider>
 
-        {/* Social Login */}
-        <Stack spacing={2}>
+        <Stack spacing={1.5}>
           <Button
-            fullWidth
-            variant="outlined"
-            size="large"
-            startIcon={<GoogleIcon />}
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            sx={{ 
-              borderRadius: 2,
-              py: 1.2,
-              borderColor: '#e0e0e0',
-              '&:hover': {
-                borderColor: '#b0b0b0',
-                bgcolor: '#f5f5f5',
-              }
+            fullWidth variant="outlined" size="large" startIcon={<GoogleIcon />}
+            onClick={handleGoogleLogin} disabled={loading}
+            sx={{
+              py: 1.2, borderRadius: 2.5, fontWeight: 600,
+              borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)',
+              '&:hover': { borderColor: 'rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.06)' },
             }}
           >
             Google ile devam et
           </Button>
-
           <Button
-            fullWidth
-            variant="outlined"
-            size="large"
-            startIcon={<PersonOutlineIcon />}
-            onClick={handleGuestLogin}
-            disabled={loading}
-            sx={{ 
-              borderRadius: 2,
-              py: 1.2,
-              borderColor: '#e0e0e0',
-              color: 'text.secondary',
-              '&:hover': {
-                borderColor: '#b0b0b0',
-                bgcolor: '#f5f5f5',
-              }
+            fullWidth variant="outlined" size="large" startIcon={<PersonOutlineIcon />}
+            onClick={handleGuestLogin} disabled={loading}
+            sx={{
+              py: 1.2, borderRadius: 2.5, fontWeight: 600,
+              borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)',
+              '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: 'rgba(255,255,255,0.04)' },
             }}
           >
             Misafir olarak devam et
           </Button>
         </Stack>
 
-        <Box textAlign="center" mt={3}>
-          <Typography variant="caption" color="text.secondary">
+        <Box textAlign="center" mt={2.5}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)' }}>
             {isLogin ? 'Hesabınız yok mu?' : 'Zaten hesabınız var mı?'}{' '}
             <Button
               size="small"
               onClick={() => setTabValue(isLogin ? 1 : 0)}
               disabled={loading}
-              sx={{ fontWeight: 600 }}
+              sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)', p: 0.5, minWidth: 0, '&:hover': { color: '#fff' } }}
             >
               {isLogin ? 'Kayıt Ol' : 'Giriş Yap'}
             </Button>
           </Typography>
         </Box>
-      </Paper>
+      </Box>
     </Dialog>
 
     {/* Forgot Password Dialog */}
@@ -458,17 +407,36 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
       onClose={handleCloseForgotPassword}
       maxWidth="xs"
       fullWidth
+      PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
     >
-      <DialogTitle>Şifremi Unuttum</DialogTitle>
-      <DialogContent>
+      <DialogTitle sx={{ pb: 1.5, pt: 2.5, px: 3 }}>
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Box sx={{
+            width: 40, height: 40, borderRadius: 2, flexShrink: 0,
+            bgcolor: 'rgba(24,24,27,0.06)',
+            border: '1.5px solid rgba(24,24,27,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <LockResetIcon sx={{ fontSize: 20, color: 'text.primary' }} />
+          </Box>
+          <Box>
+            <Typography variant="h6" fontWeight={700} lineHeight={1.2}>Şifremi Unuttum</Typography>
+            <Typography variant="caption" color="text.secondary">Sıfırlama bağlantısı gönderilecek</Typography>
+          </Box>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent sx={{ px: 3, pb: 1 }}>
         {forgotPasswordSuccess ? (
-          <Alert severity="success" sx={{ mt: 1 }}>
-            Şifre sıfırlama linki e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.
-          </Alert>
+          <Box sx={{ py: 1, px: 1.5, borderRadius: 2, bgcolor: 'rgba(21,128,61,0.06)', border: '1px solid rgba(21,128,61,0.2)' }}>
+            <Typography variant="body2" color="#15803d" fontWeight={500}>
+              Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Gelen kutunuzu kontrol edin.
+            </Typography>
+          </Box>
         ) : (
           <>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 1 }}>
-              E-posta adresinizi girin, size şifre sıfırlama linki gönderelim.
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Kayıtlı e-posta adresinizi girin, size sıfırlama bağlantısı gönderelim.
             </Typography>
             <TextField
               fullWidth
@@ -478,30 +446,43 @@ export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
               onChange={(e) => setForgotPasswordEmail(e.target.value)}
               disabled={loading}
               autoFocus
-              sx={{ mb: 2 }}
+              size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
+              <Box sx={{ mt: 1.5, px: 1.5, py: 1.25, borderRadius: 2, bgcolor: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                <Typography variant="body2" color="error" fontSize="0.8rem">{error}</Typography>
+              </Box>
             )}
           </>
         )}
       </DialogContent>
-      <DialogActions>
+
+      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, gap: 1 }}>
         {forgotPasswordSuccess ? (
-          <Button onClick={handleCloseForgotPassword} variant="contained">
+          <Button
+            onClick={handleCloseForgotPassword}
+            variant="contained"
+            fullWidth
+            sx={{ borderRadius: 2, background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)', boxShadow: 'none' }}
+          >
             Tamam
           </Button>
         ) : (
           <>
-            <Button onClick={handleCloseForgotPassword} disabled={loading}>
+            <Button
+              onClick={handleCloseForgotPassword}
+              disabled={loading}
+              variant="outlined"
+              sx={{ borderRadius: 2, flex: 1, borderColor: 'rgba(0,0,0,0.18)', color: 'text.secondary' }}
+            >
               İptal
             </Button>
-            <Button 
-              onClick={handleForgotPassword} 
+            <Button
+              onClick={handleForgotPassword}
               variant="contained"
               disabled={loading || !forgotPasswordEmail}
+              sx={{ borderRadius: 2, flex: 1, background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)', boxShadow: 'none', '&.Mui-disabled': { background: 'rgba(0,0,0,0.12)' } }}
             >
               {loading ? 'Gönderiliyor...' : 'Gönder'}
             </Button>

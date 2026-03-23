@@ -9,7 +9,6 @@ import {
   CardContent,
   LinearProgress,
   Stack,
-  Chip,
   Divider,
   Tabs,
   Tab,
@@ -21,8 +20,6 @@ import {
   Collapse,
   TextField,
   DialogActions,
-  ToggleButtonGroup,
-  ToggleButton,
   Autocomplete,
   CircularProgress,
 } from '@mui/material';
@@ -51,10 +48,10 @@ import { StatsTab } from './StatsTab';
 
 // Öğün renk tanımları - tüm uygulamada tutarlı
 const MEAL_COLORS = {
-  breakfast: '#FF6B35', // Turuncu
-  lunch: '#F7931E',     // Altın sarısı
-  dinner: '#9D4EDD',    // Mor
-  snack: '#06A77D',     // Yeşil
+  breakfast: '#d97706', // amber-600
+  lunch: '#0284c7',     // sky-600
+  dinner: '#7c3aed',    // violet-600
+  snack: '#16a34a',     // green-600
 } as const;
 
 interface HistoryModalProps {
@@ -101,15 +98,15 @@ interface MealTypeSelectorProps {
 function getMealInfoForHistory(mealType: string): MealInfo {
   switch (mealType) {
     case 'breakfast':
-      return { label: 'Kahvaltı', icon: <LocalCafeIcon sx={{ color: MEAL_COLORS.breakfast }} />, color: MEAL_COLORS.breakfast };
+      return { label: 'Kahvaltı', icon: <LocalCafeIcon sx={{ color: MEAL_COLORS.breakfast, fontSize: 'inherit' }} />, color: MEAL_COLORS.breakfast };
     case 'lunch':
-      return { label: 'Öğle Yemeği', icon: <LunchDiningIcon sx={{ color: MEAL_COLORS.lunch }} />, color: MEAL_COLORS.lunch };
+      return { label: 'Öğle Yemeği', icon: <LunchDiningIcon sx={{ color: MEAL_COLORS.lunch, fontSize: 'inherit' }} />, color: MEAL_COLORS.lunch };
     case 'dinner':
-      return { label: 'Akşam Yemeği', icon: <DinnerDiningIcon sx={{ color: MEAL_COLORS.dinner }} />, color: MEAL_COLORS.dinner };
+      return { label: 'Akşam Yemeği', icon: <DinnerDiningIcon sx={{ color: MEAL_COLORS.dinner, fontSize: 'inherit' }} />, color: MEAL_COLORS.dinner };
     case 'snack':
-      return { label: 'Atıştırmalık', icon: <CookieIcon sx={{ color: MEAL_COLORS.snack }} />, color: MEAL_COLORS.snack };
+      return { label: 'Atıştırmalık', icon: <CookieIcon sx={{ color: MEAL_COLORS.snack, fontSize: 'inherit' }} />, color: MEAL_COLORS.snack };
     default:
-      return { label: 'Diğer', icon: <RestaurantMenuIcon sx={{ color: '#95a5a6' }} />, color: '#95a5a6' };
+      return { label: 'Diğer', icon: <RestaurantMenuIcon sx={{ color: '#95a5a6', fontSize: 'inherit' }} />, color: '#95a5a6' };
   }
 }
 
@@ -201,106 +198,104 @@ function HistoryFoodRow({ food, isMobile, onEdit, onDelete }: Readonly<HistoryFo
 
 function HistoryMealSection({ mealType, mealFoods, isMobile, onEdit, onDelete }: Readonly<HistoryMealSectionProps>) {
   const mealInfo = getMealInfoForHistory(mealType);
+  const [open, setOpen] = useState(false);
+  const totalCal = mealFoods.reduce((sum, f) => sum + f.calories, 0);
 
   return (
     <Paper
-      key={mealType}
       variant="outlined"
-      sx={{
-        p: isMobile ? 0.75 : 1,
-        bgcolor: 'background.default',
-        borderLeft: 3,
-        borderColor: mealInfo.color,
-      }}
+      sx={{ bgcolor: 'background.default', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 1.5, overflow: 'hidden' }}
     >
-      <Box display="flex" alignItems="center" gap={0.5} mb={isMobile ? 0.4 : 0.5}>
-        <Box sx={{ color: mealInfo.color, display: 'flex', fontSize: isMobile ? 14 : 16 }}>
+      <Box
+        onClick={() => setOpen(o => !o)}
+        sx={{
+          display: 'flex', alignItems: 'center', gap: 0.75,
+          p: isMobile ? '6px 8px' : '7px 10px',
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'action.hover' },
+        }}
+      >
+        <Box sx={{
+          width: isMobile ? 20 : 22,
+          height: isMobile ? 20 : 22,
+          borderRadius: '50%',
+          bgcolor: `${mealInfo.color}15`,
+          border: `1.5px solid ${mealInfo.color}30`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+          fontSize: isMobile ? 11 : 12,
+          color: mealInfo.color,
+        }}>
           {mealInfo.icon}
         </Box>
-        <Typography
-          variant="caption"
-          fontWeight="600"
-          sx={{
-            color: mealInfo.color,
-            fontSize: isMobile ? '0.65rem' : '0.75rem',
-          }}
-        >
+        <Typography variant="caption" fontWeight={600} sx={{ color: mealInfo.color, fontSize: isMobile ? '0.65rem' : '0.72rem', flex: 1 }}>
           {mealInfo.label}
         </Typography>
+        <Typography variant="caption" sx={{ fontSize: isMobile ? '0.6rem' : '0.65rem', fontWeight: 600, color: 'text.secondary', mr: 0.25 }}>
+          {totalCal} kcal · {mealFoods.length} öğe
+        </Typography>
+        {open ? <ExpandLessIcon sx={{ fontSize: 14, color: 'text.secondary' }} /> : <ExpandMoreIcon sx={{ fontSize: 14, color: 'text.secondary' }} />}
       </Box>
-      <Stack spacing={0.4}>
-        {mealFoods.map((food) => (
-          <HistoryFoodRow
-            key={food.id}
-            food={food}
-            isMobile={isMobile}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ))}
-      </Stack>
+      <Collapse in={open} timeout="auto">
+        <Box sx={{ px: isMobile ? 0.75 : 1, pb: isMobile ? 0.5 : 0.75 }}>
+          <Divider sx={{ mb: 0.5 }} />
+          <Stack spacing={0.4}>
+            {mealFoods.map((food) => (
+              <HistoryFoodRow
+                key={food.id}
+                food={food}
+                isMobile={isMobile}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </Stack>
+        </Box>
+      </Collapse>
     </Paper>
   );
 }
 
+const MEAL_OPTIONS = [
+  { value: 'breakfast' as MealType, icon: LocalCafeIcon, label: 'Kahvaltı', color: MEAL_COLORS.breakfast },
+  { value: 'lunch' as MealType, icon: LunchDiningIcon, label: 'Öğle', color: MEAL_COLORS.lunch },
+  { value: 'dinner' as MealType, icon: DinnerDiningIcon, label: 'Akşam', color: MEAL_COLORS.dinner },
+  { value: 'snack' as MealType, icon: CookieIcon, label: 'Atıştırma', color: MEAL_COLORS.snack },
+] as const;
+
 function MealTypeSelector({ value, onChange, label = 'Öğün (opsiyonel)' }: Readonly<MealTypeSelectorProps>) {
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+      <Typography variant="caption" color="text.secondary" display="block" mb={1} fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
         {label}
       </Typography>
-      <ToggleButtonGroup
-        value={value}
-        exclusive
-        onChange={(_, selectedValue) => onChange((selectedValue ?? undefined) as MealType | undefined)}
-        fullWidth
-        size="small"
-      >
-        <ToggleButton
-          value="breakfast"
-          sx={{
-            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
-            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.breakfast}22`, color: MEAL_COLORS.breakfast, borderColor: MEAL_COLORS.breakfast },
-            '&:hover': { bgcolor: `${MEAL_COLORS.breakfast}11` },
-          }}
-        >
-          <LocalCafeIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.breakfast }} />
-          Kahvaltı
-        </ToggleButton>
-        <ToggleButton
-          value="lunch"
-          sx={{
-            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
-            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.lunch}22`, color: MEAL_COLORS.lunch, borderColor: MEAL_COLORS.lunch },
-            '&:hover': { bgcolor: `${MEAL_COLORS.lunch}11` },
-          }}
-        >
-          <LunchDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.lunch }} />
-          Öğle
-        </ToggleButton>
-        <ToggleButton
-          value="dinner"
-          sx={{
-            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
-            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.dinner}22`, color: MEAL_COLORS.dinner, borderColor: MEAL_COLORS.dinner },
-            '&:hover': { bgcolor: `${MEAL_COLORS.dinner}11` },
-          }}
-        >
-          <DinnerDiningIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.dinner }} />
-          Akşam
-        </ToggleButton>
-        <ToggleButton
-          value="snack"
-          sx={{
-            fontSize: '0.6rem', py: 0.5, px: 0.5, minWidth: 0,
-            '&.Mui-selected': { bgcolor: `${MEAL_COLORS.snack}22`, color: MEAL_COLORS.snack, borderColor: MEAL_COLORS.snack },
-            '&:hover': { bgcolor: `${MEAL_COLORS.snack}11` },
-          }}
-        >
-          <CookieIcon sx={{ fontSize: 14, mr: 0.3, color: MEAL_COLORS.snack }} />
-          Atıştırma
-        </ToggleButton>
-      </ToggleButtonGroup>
+      <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={1}>
+        {MEAL_OPTIONS.map(({ value: opt, icon: Icon, label: optLabel, color }) => {
+          const selected = value === opt;
+          return (
+            <Box
+              key={opt}
+              onClick={() => onChange(selected ? undefined : opt)}
+              sx={{
+                cursor: 'pointer',
+                borderRadius: 2,
+                p: 1,
+                border: '1.5px solid',
+                borderColor: selected ? color : 'rgba(0,0,0,0.1)',
+                bgcolor: selected ? `${color}14` : 'rgba(255,255,255,0.6)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
+                transition: 'all 0.15s ease',
+                '&:hover': { borderColor: color, bgcolor: `${color}0e` },
+              }}
+            >
+              <Icon sx={{ fontSize: 17, color: selected ? color : 'text.secondary' }} />
+              <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: selected ? 700 : 500, color: selected ? color : 'text.secondary', lineHeight: 1.2, textAlign: 'center' }}>
+                {optLabel}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -309,11 +304,10 @@ function getPercentage(current: number, target: number) {
   return Math.min((current / target) * 100, 100);
 }
 
-function getColor(percentage: number): "primary" | "success" | "warning" | "error" {
-  if (percentage < 70) return "primary";
-  if (percentage < 90) return "success";
-  if (percentage < 110) return "warning";
-  return "error";
+function getCalorieProgressClass(rawPct: number): string {
+  if (rawPct > 115) return 'progress-calories-error';
+  if (rawPct > 100) return 'progress-calories-warning';
+  return 'progress-calories';
 }
 
 function getFutureDaysStats(foods: Food[]) {
@@ -699,7 +693,6 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
       totals,
       goals,
       caloriePercentage: Math.round(getPercentage(totals.calories, goals.calories)),
-      calorieProgressColor: getColor(getPercentage(totals.calories, goals.calories)),
       proteinPercentage: getPercentage(totals.protein, goals.protein),
       carbsPercentage: getPercentage(totals.carbs, goals.carbs),
       fatPercentage: getPercentage(totals.fat, goals.fat),
@@ -801,20 +794,35 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
           }
         }}
       >
-        <DialogTitle id="history-dialog-title" sx={{ pb: isMobile ? 1 : 2 }}>
+        <DialogTitle id="history-dialog-title" sx={{ pb: isMobile ? 1 : 1.5, pt: isMobile ? 1.5 : 2 }}>
           <Box display="flex" alignItems="center" justifyContent="space-between">
             <Box display="flex" alignItems="center" gap={1}>
-              <CalendarMonthIcon sx={{ fontSize: isMobile ? 20 : 24 }} />
-              <Typography variant={isMobile ? 'subtitle1' : 'h6'}>
-                Kayıtlar & Planlama
-              </Typography>
+              <Box sx={{
+                width: isMobile ? 30 : 36,
+                height: isMobile ? 30 : 36,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #18181b22 0%, #3f3f4622 100%)',
+                border: '1.5px solid rgba(24,24,27,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <CalendarMonthIcon sx={{ fontSize: isMobile ? 16 : 20, color: '#18181b' }} />
+              </Box>
+              <Box>
+                <Typography variant={isMobile ? 'subtitle1' : 'h6'} sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                  Kayıtlar & Planlama
+                </Typography>
+              </Box>
             </Box>
-            <IconButton 
-              onClick={onClose} 
+            <IconButton
+              onClick={onClose}
               size="small"
               aria-label="Kapat"
+              sx={{ color: 'text.secondary' }}
             >
-              <CloseIcon />
+              <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
         </DialogTitle>
@@ -905,36 +913,21 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                      <Chip 
-                        icon={<LocalFireDepartmentIcon />}
-                        label={`${activeDays} aktif gün`}
-                        size="small"
-                        color="primary"
-                        variant="filled"
-                      />
-
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1, py: 0.3, borderRadius: 1.5, bgcolor: 'rgba(24,24,27,0.1)', border: '1px solid rgba(24,24,27,0.25)' }}>
+                        <LocalFireDepartmentIcon sx={{ fontSize: 13, color: '#18181b' }} />
+                        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#18181b' }}>{activeDays} aktif gün</Typography>
+                      </Box>
                       {activeDays > 0 && (
-                        <Chip 
-                          label={`${currentStats.averageCalories} kcal/gün ort.`}
-                          size="small"
-                          variant="outlined"
-                          color="secondary"
-                        />
+                        <Box sx={{ px: 1, py: 0.3, borderRadius: 1.5, bgcolor: 'rgba(24,24,27,0.06)', border: '1px solid rgba(24,24,27,0.15)' }}>
+                          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary' }}>{currentStats.averageCalories} kcal/gün ort.</Typography>
+                        </Box>
                       )}
                       {trend && (
                         <Tooltip title={trend.improving ? 'Hedefe yaklaşıyorsun!' : 'Hedeften uzaklaşıyorsun'}>
-                          <Chip 
-                            icon={trend.improving ? <TrendingUpIcon /> : <TrendingDownIcon />}
-                            label={`${trend.change > 0 ? '+' : ''}${trend.change}%`}
-                            size="small"
-                            sx={{
-                              bgcolor: trend.improving ? 'success.main' : 'warning.main',
-                              color: 'white',
-                              '& .MuiChip-icon': {
-                                color: 'white'
-                              }
-                            }}
-                          />
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1, py: 0.3, borderRadius: 1.5, bgcolor: trend.improving ? 'rgba(21,128,61,0.1)' : 'rgba(180,83,9,0.1)', border: trend.improving ? '1px solid rgba(21,128,61,0.3)' : '1px solid rgba(180,83,9,0.3)' }}>
+                            {trend.improving ? <TrendingUpIcon sx={{ fontSize: 13, color: '#15803d' }} /> : <TrendingDownIcon sx={{ fontSize: 13, color: '#b45309' }} />}
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: trend.improving ? '#15803d' : '#b45309' }}>{trend.change > 0 ? '+' : ''}{trend.change}%</Typography>
+                          </Box>
                         </Tooltip>
                       )}
                     </Stack>
@@ -942,126 +935,76 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
 
                   {/* İstatistik Özet Grid */}
                   <Stack direction="row" spacing={isMobile ? 1 : 1.5} mb={isMobile ? 1.5 : 2} flexWrap="wrap" useFlexGap>
-                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
-                      <Paper sx={{ 
-                        p: 1, 
-                        textAlign: 'center', 
-                        bgcolor: 'error.light',
-                        border: '2px solid',
-                        borderColor: 'error.main'
-                      }}>
-                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#b71c1c' }}>
-                          Ort. Kalori
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
-                          {currentStats.averageCalories}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
-                          / {goal.calories} kcal
-                        </Typography>
-                      </Paper>
-                    </Box>
-                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
-                      <Paper sx={{ 
-                        p: 1, 
-                        textAlign: 'center', 
-                        bgcolor: 'info.light',
-                        border: '2px solid',
-                        borderColor: 'info.main'
-                      }}>
-                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#01579b' }}>
-                          Ort. Protein
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
-                          {currentStats.averageProtein}g
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
-                          / {goal.protein}g
-                        </Typography>
-                      </Paper>
-                    </Box>
-                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
-                      <Paper sx={{ 
-                        p: 1, 
-                        textAlign: 'center', 
-                        bgcolor: 'success.light',
-                        border: '2px solid',
-                        borderColor: 'success.main'
-                      }}>
-                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#1b5e20' }}>
-                          Ort. Karb
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
-                          {currentStats.averageCarbs}g
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
-                          / {goal.carbs}g
-                        </Typography>
-                      </Paper>
-                    </Box>
-                    <Box sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
-                      <Paper sx={{ 
-                        p: 1, 
-                        textAlign: 'center', 
-                        bgcolor: 'warning.light',
-                        border: '2px solid',
-                        borderColor: 'warning.main'
-                      }}>
-                        <Typography variant="caption" display="block" fontSize={isMobile ? '0.65rem' : '0.75rem'} fontWeight="700" sx={{ color: '#e65100' }}>
-                          Ort. Yağ
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold" fontSize={isMobile ? '1rem' : '1.25rem'}>
-                          {currentStats.averageFat}g
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
-                          / {goal.fat}g
-                        </Typography>
-                      </Paper>
-                    </Box>
+                    {[
+                      { label: 'Ort. Kalori', value: `${currentStats.averageCalories}`, sub: `/ ${goal.calories} kcal`, color: '#18181b' },
+                      { label: 'Ort. Protein', value: `${currentStats.averageProtein}g`, sub: `/ ${goal.protein}g`, color: '#0369a1' },
+                      { label: 'Ort. Karb', value: `${currentStats.averageCarbs}g`, sub: `/ ${goal.carbs}g`, color: '#15803d' },
+                      { label: 'Ort. Yağ', value: `${currentStats.averageFat}g`, sub: `/ ${goal.fat}g`, color: '#b45309' },
+                    ].map(({ label, value, sub, color }) => (
+                      <Box key={label} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(25% - 12px)' }, minWidth: 0 }}>
+                        <Paper sx={{
+                          p: isMobile ? 1 : 1.25,
+                          textAlign: 'center',
+                          bgcolor: `${color}0d`,
+                          border: `1px solid ${color}25`,
+                          borderRadius: 2,
+                        }}>
+                          <Typography variant="caption" display="block" fontSize={isMobile ? '0.62rem' : '0.7rem'} fontWeight="600" color="text.secondary">
+                            {label}
+                          </Typography>
+                          <Typography variant="h6" fontWeight="800" fontSize={isMobile ? '1rem' : '1.2rem'} sx={{ color }}>
+                            {value}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.58rem' : '0.65rem'}>
+                            {sub}
+                          </Typography>
+                        </Paper>
+                      </Box>
+                    ))}
                   </Stack>
 
                   {/* En İyi ve En Kötü Günler */}
                   {bestWorst && activeDays > 2 && (
                     <Stack direction="row" spacing={isMobile ? 1 : 1.5} mt={isMobile ? 1.5 : 2} flexWrap="wrap" useFlexGap>
                       <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 6px)' }, minWidth: 0 }}>
-                        <Paper sx={{ 
-                          p: 1, 
-                          bgcolor: 'success.light',
-                          border: '1px solid',
-                          borderColor: 'success.main'
+                        <Paper sx={{
+                          p: 1.25,
+                          bgcolor: 'rgba(21,128,61,0.06)',
+                          border: '1px solid rgba(21,128,61,0.2)',
+                          borderRadius: 2,
                         }}>
                           <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
-                            <EmojiEventsIcon sx={{ fontSize: 16, color: 'success.dark' }} />
-                            <Typography variant="caption" color="success.dark" fontWeight="600" fontSize={isMobile ? '0.65rem' : '0.75rem'}>
+                            <EmojiEventsIcon sx={{ fontSize: 15, color: '#15803d' }} />
+                            <Typography variant="caption" fontWeight="700" fontSize={isMobile ? '0.65rem' : '0.72rem'} sx={{ color: '#15803d' }}>
                               En İyi Gün
                             </Typography>
                           </Stack>
-                          <Typography variant="body2" fontWeight="bold" fontSize={isMobile ? '0.75rem' : '0.85rem'}>
+                          <Typography variant="body2" fontWeight="700" fontSize={isMobile ? '0.75rem' : '0.85rem'}>
                             {formatDate(bestWorst.bestDay.date)}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
-                            {bestWorst.bestDay.totalCalories} kcal (hedef: {goal.calories})
+                          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.68rem'}>
+                            {bestWorst.bestDay.totalCalories} kcal · hedef {goal.calories}
                           </Typography>
                         </Paper>
                       </Box>
                       <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 6px)' }, minWidth: 0 }}>
-                        <Paper sx={{ 
-                          p: 1, 
-                          bgcolor: 'error.light',
-                          border: '1px solid',
-                          borderColor: 'error.main'
+                        <Paper sx={{
+                          p: 1.25,
+                          bgcolor: 'rgba(239,68,68,0.06)',
+                          border: '1px solid rgba(239,68,68,0.2)',
+                          borderRadius: 2,
                         }}>
                           <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
-                            <TrendingDownIcon sx={{ fontSize: 16, color: 'error.dark' }} />
-                            <Typography variant="caption" color="error.dark" fontWeight="600" fontSize={isMobile ? '0.65rem' : '0.75rem'}>
+                            <TrendingDownIcon sx={{ fontSize: 15, color: '#dc2626' }} />
+                            <Typography variant="caption" fontWeight="700" fontSize={isMobile ? '0.65rem' : '0.72rem'} sx={{ color: '#dc2626' }}>
                               En Uzak Gün
                             </Typography>
                           </Stack>
-                          <Typography variant="body2" fontWeight="bold" fontSize={isMobile ? '0.75rem' : '0.85rem'}>
+                          <Typography variant="body2" fontWeight="700" fontSize={isMobile ? '0.75rem' : '0.85rem'}>
                             {formatDate(bestWorst.worstDay.date)}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.7rem'}>
-                            {bestWorst.worstDay.totalCalories} kcal (hedef: {goal.calories})
+                          <Typography variant="caption" color="text.secondary" fontSize={isMobile ? '0.6rem' : '0.68rem'}>
+                            {bestWorst.worstDay.totalCalories} kcal · hedef {goal.calories}
                           </Typography>
                         </Paper>
                       </Box>
@@ -1090,7 +1033,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                       <LinearProgress
                         variant="determinate"
                         value={summaryTotals.caloriePercentage}
-                        color={summaryTotals.calorieProgressColor}
+                        className={getCalorieProgressClass(summaryTotals.goals.calories > 0 ? (summaryTotals.totals.calories / summaryTotals.goals.calories) * 100 : 0)}
                         sx={{ height: isMobile ? 6 : 8, borderRadius: 4 }}
                       />
                     </Box>
@@ -1168,23 +1111,22 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
               >
                 {visibleDays.map((day) => {
                   const percentage = getPercentage(day.totalCalories, goal.calories);
+                  const rawCalPct = goal.calories > 0 ? (day.totalCalories / goal.calories) * 100 : 0;
                   const hasData = day.foods.length > 0;
                   const isExpanded = expandedDays[day.date];
-                  const borderColor = isFutureTab
-                    ? (hasData ? 'success.main' : 'grey.300')
-                    : (hasData ? 'primary.main' : 'grey.400');
                   const cardBgColor = (isFutureTab && hasData) ? 'success.50' : 'background.paper';
                   
                   return (
-                    <Card 
-                      key={day.date} 
+                    <Card
+                      key={day.date}
                       variant="outlined"
                       sx={{
                         opacity: hasData ? 1 : 0.7,
-                        borderLeft: 3,
-                        borderLeftColor: borderColor,
+                        border: '1px solid rgba(0,0,0,0.08)',
+                        borderRadius: 2,
                         overflow: 'visible',
                         bgcolor: cardBgColor,
+                        ...(hasData && isFutureTab && { bgcolor: 'rgba(21,128,61,0.04)', border: '1px solid rgba(21,128,61,0.18)' }),
                       }}
                     >
                       <CardContent sx={{ 
@@ -1260,20 +1202,25 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                               </Tooltip>
                             )}
                             {hasData ? (
-                              <Chip
-                                label={`${day.totalCalories} kcal`}
-                                color={isFutureTab ? "success" : getColor(percentage)}
-                                size="small"
-                                sx={{ fontSize: isMobile ? '0.7rem' : undefined }}
-                              />
+                              <Box sx={{
+                                px: 1, py: 0.3, borderRadius: 1.5,
+                                bgcolor: isFutureTab ? 'rgba(21,128,61,0.1)' : 'rgba(24,24,27,0.1)',
+                                border: `1px solid ${isFutureTab ? 'rgba(21,128,61,0.3)' : 'rgba(24,24,27,0.25)'}`,
+                              }}>
+                                <Typography sx={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700, color: isFutureTab ? '#15803d' : '#18181b' }}>
+                                  {day.totalCalories} kcal
+                                </Typography>
+                              </Box>
                             ) : (
-                              <Chip
-                                label={isFutureTab ? "Plan yok" : "Veri yok"}
-                                size="small"
-                                variant="outlined"
-                                color="default"
-                                sx={{ fontSize: isMobile ? '0.7rem' : undefined }}
-                              />
+                              <Box sx={{
+                                px: 1, py: 0.3, borderRadius: 1.5,
+                                bgcolor: 'rgba(0,0,0,0.04)',
+                                border: '1px solid rgba(0,0,0,0.1)',
+                              }}>
+                                <Typography sx={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 500, color: 'text.secondary' }}>
+                                  {isFutureTab ? 'Plan yok' : 'Veri yok'}
+                                </Typography>
+                              </Box>
                             )}
                           </Stack>
                         </Box>
@@ -1286,65 +1233,30 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                               <LinearProgress
                                 variant="determinate"
                                 value={percentage}
-                                color={getColor(percentage)}
+                                className={getCalorieProgressClass(rawCalPct)}
                                 sx={{ height: isMobile ? 5 : 6, borderRadius: 4 }}
                               />
                             </Box>
                             
-                            {/* Makro chipler */}
+                            {/* Makro kutucuklar */}
                             <Box mb={isMobile ? 0.75 : 1}>
                               <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'nowrap' }}>
-                                <Chip 
-                                  label={`P: ${formatGrams(day.totalProtein)}g`} 
-                                  size="small" 
-                                  variant="outlined"
-                                  color="info"
-                                  sx={{
-                                    flex: { xs: 1, sm: '0 0 auto' },
-                                    minWidth: { xs: 0, sm: 'auto' },
-                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
-                                    height: isMobile ? 20 : 22,
-                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
-                                  }}
-                                />
-                                <Chip 
-                                  label={`K: ${formatGrams(day.totalCarbs)}g`} 
-                                  size="small" 
-                                  variant="outlined"
-                                  color="success"
-                                  sx={{
-                                    flex: { xs: 1, sm: '0 0 auto' },
-                                    minWidth: { xs: 0, sm: 'auto' },
-                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
-                                    height: isMobile ? 20 : 22,
-                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
-                                  }}
-                                />
-                                <Chip 
-                                  label={`Y: ${formatGrams(day.totalFat)}g`} 
-                                  size="small" 
-                                  variant="outlined"
-                                  color="warning"
-                                  sx={{
-                                    flex: { xs: 1, sm: '0 0 auto' },
-                                    minWidth: { xs: 0, sm: 'auto' },
-                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
-                                    height: isMobile ? 20 : 22,
-                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
-                                  }}
-                                />
-                                <Chip 
-                                  label={`${day.foods.length} öğe`} 
-                                  size="small" 
-                                  variant="outlined"
-                                  sx={{
-                                    flex: { xs: 1, sm: '0 0 auto' },
-                                    minWidth: { xs: 0, sm: 'auto' },
-                                    fontSize: isMobile ? '0.62rem' : '0.75rem',
-                                    height: isMobile ? 20 : 22,
-                                    '& .MuiChip-label': { px: isMobile ? 0.6 : 1 },
-                                  }}
-                                />
+                                {[
+                                  { label: `P: ${formatGrams(day.totalProtein)}g`, color: '#0369a1' },
+                                  { label: `K: ${formatGrams(day.totalCarbs)}g`, color: '#15803d' },
+                                  { label: `Y: ${formatGrams(day.totalFat)}g`, color: '#b45309' },
+                                  { label: `${day.foods.length} öğe`, color: '#94a3b8' },
+                                ].map(({ label, color }) => (
+                                  <Box key={label} sx={{
+                                    flex: 1, minWidth: 0, textAlign: 'center',
+                                    px: 0.5, py: 0.3, borderRadius: 1,
+                                    bgcolor: `${color}12`, border: `1px solid ${color}28`,
+                                  }}>
+                                    <Typography sx={{ fontSize: isMobile ? '0.6rem' : '0.68rem', fontWeight: 700, color, lineHeight: 1.3 }}>
+                                      {label}
+                                    </Typography>
+                                  </Box>
+                                ))}
                               </Stack>
                             </Box>
 
@@ -1453,46 +1365,50 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
           }
         }}
       >
-        <DialogTitle>
-          <Typography variant="h6">
-            Yemeği Sil
-          </Typography>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DeleteIcon sx={{ fontSize: 16, color: '#dc2626' }} />
+            </Box>
+            <Typography variant="h6" fontWeight={700}>Yemeği Sil</Typography>
+          </Box>
         </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
+        <DialogContent sx={{ pt: 1.5 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Bu yemeği geçmişten silmek istediğinizden emin misiniz?
           </Typography>
-          
           {foodToDelete && (
-            <Box sx={{ 
-              mt: 2,
-              p: 1.5,
-              bgcolor: 'error.50',
-              borderRadius: 1,
-              borderLeft: 3,
-              borderColor: 'error.main'
+            <Box sx={{
+              mt: 1.5, p: 1.5,
+              bgcolor: 'rgba(239,68,68,0.05)',
+              borderRadius: 1.5,
+              border: '1px solid rgba(239,68,68,0.18)',
             }}>
-              <Typography variant="body2" fontWeight="medium">
-                {foodToDelete.name}
-              </Typography>
+              <Typography variant="body2" fontWeight={600}>{foodToDelete.name}</Typography>
               <Typography variant="caption" color="text.secondary">
-                {foodToDelete.calories} kcal • {new Date(foodToDelete.timestamp).toLocaleDateString('tr-TR')}
+                {foodToDelete.calories} kcal · {new Date(foodToDelete.timestamp).toLocaleDateString('tr-TR')}
               </Typography>
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button 
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, gap: 1 }}>
+          <Button
             onClick={() => setDeleteDialogOpen(false)}
             variant="outlined"
+            sx={{ borderRadius: 2, flex: 1 }}
           >
             İptal
           </Button>
-          <Button 
+          <Button
             onClick={handleDeleteConfirm}
             variant="contained"
-            color="error"
             startIcon={<DeleteIcon />}
+            sx={{
+              borderRadius: 2, flex: 1,
+              bgcolor: '#dc2626',
+              boxShadow: 'none',
+              '&:hover': { bgcolor: '#b91c1c', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' },
+            }}
           >
             Sil
           </Button>
@@ -1514,27 +1430,27 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
           }
         }}
       >
-        <DialogTitle>
-          <Typography variant="h6">
-            Günün Tüm Yemeklerini Sil
-          </Typography>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DeleteIcon sx={{ fontSize: 16, color: '#dc2626' }} />
+            </Box>
+            <Typography variant="h6" fontWeight={700}>Günün Tüm Yemeklerini Sil</Typography>
+          </Box>
         </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
+        <DialogContent sx={{ pt: 1.5 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Bu güne ait tüm yemekleri silmek istediğinizden emin misiniz?
           </Typography>
-          
           {dayToDeleteAll && (
-            <Box sx={{ 
-              mt: 2,
-              p: 1.5,
-              bgcolor: 'error.50',
-              borderRadius: 1,
-              borderLeft: 3,
-              borderColor: 'error.main'
+            <Box sx={{
+              mt: 1.5, p: 1.5,
+              bgcolor: 'rgba(239,68,68,0.05)',
+              borderRadius: 1.5,
+              border: '1px solid rgba(239,68,68,0.18)',
             }}>
-              <Typography variant="body2" fontWeight="medium">
-                {formatDate(dayToDeleteAll)} - {getDayName(dayToDeleteAll)}
+              <Typography variant="body2" fontWeight={600}>
+                {formatDate(dayToDeleteAll)} · {getDayName(dayToDeleteAll)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {getDeleteDaySummary(dayToDeleteAll)}
@@ -1542,18 +1458,24 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button 
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, gap: 1 }}>
+          <Button
             onClick={() => setDeleteAllDayDialogOpen(false)}
             variant="outlined"
+            sx={{ borderRadius: 2, flex: 1 }}
           >
             İptal
           </Button>
-          <Button 
+          <Button
             onClick={handleDeleteAllDayConfirm}
             variant="contained"
-            color="error"
             startIcon={<DeleteIcon />}
+            sx={{
+              borderRadius: 2, flex: 1,
+              bgcolor: '#dc2626',
+              boxShadow: 'none',
+              '&:hover': { bgcolor: '#b91c1c', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' },
+            }}
           >
             Tümünü Sil
           </Button>
@@ -1561,14 +1483,25 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
       </Dialog>
 
       {/* Düzenleme Dialog'u */}
-      <Dialog 
-        open={!!editingFood} 
+      <Dialog
+        open={!!editingFood}
         onClose={() => setEditingFood(null)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle>
-          Yemek Düzenle
+        <DialogTitle sx={{ pb: 1, pt: 2.5 }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Box sx={{ width: 36, height: 36, borderRadius: 2, background: 'linear-gradient(135deg, #18181b22 0%, #3f3f4622 100%)', border: '1.5px solid rgba(24,24,27,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <EditIcon sx={{ fontSize: 18, color: '#18181b' }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight={700} lineHeight={1.2}>Yemek Düzenle</Typography>
+              {editingFood && (
+                <Typography variant="caption" color="text.secondary">{editingFood.name}</Typography>
+              )}
+            </Box>
+          </Box>
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1646,34 +1579,38 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditingFood(null)} variant="outlined">
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setEditingFood(null)} variant="outlined" sx={{ borderRadius: 2, flex: 1 }}>
             İptal
           </Button>
-          <Button onClick={handleEditSave} color="primary" variant="contained" startIcon={<EditIcon />}>
+          <Button onClick={handleEditSave} variant="contained" startIcon={<EditIcon />} sx={{ borderRadius: 2, flex: 1, background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)', boxShadow: 'none', '&:hover': { boxShadow: '0 4px 12px rgba(24,24,27,0.35)' } }}>
             Kaydet
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Geçmiş Güne Yemek Ekleme Dialog'u */}
-      <Dialog 
-        open={!!addingToDate} 
+      <Dialog
+        open={!!addingToDate}
         onClose={() => setAddingToDate(null)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { borderRadius: 3, maxHeight: '90vh' } }}
       >
-        <DialogTitle>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Box>
-              <Typography variant="h6">
-                Geçmiş Güne Yemek Ekle
-              </Typography>
-              {addingToDate && (
-                <Typography variant="caption" color="text.secondary">
-                  Tarih: {formatDate(addingToDate)} - {getDayName(addingToDate)}
-                </Typography>
-              )}
+        <DialogTitle sx={{ pb: 1, pt: 2.5 }}>
+          <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <Box sx={{ width: 36, height: 36, borderRadius: 2, background: 'linear-gradient(135deg, #18181b22 0%, #3f3f4622 100%)', border: '1.5px solid rgba(24,24,27,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AddIcon sx={{ fontSize: 18, color: '#18181b' }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" fontWeight={700} lineHeight={1.2}>Yemek Ekle</Typography>
+                {addingToDate && (
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(addingToDate)} · {getDayName(addingToDate)}
+                  </Typography>
+                )}
+              </Box>
             </Box>
             {addFoodTabValue === 0 && (
               <Button
@@ -1681,6 +1618,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                 variant="outlined"
                 onClick={onOpenTemplates}
                 startIcon={<RestaurantMenuIcon />}
+                sx={{ borderRadius: 1.5, flexShrink: 0 }}
               >
                 Besinlerim
               </Button>
@@ -1787,71 +1725,32 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
 
               {/* Önizleme */}
               {templatePreview && (
-                <Box 
-                  sx={{ 
-                    p: 2, 
-                    bgcolor: 'action.hover', 
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
+                <Box sx={{
+                  p: 1.5,
+                  bgcolor: 'rgba(24,24,27,0.04)',
+                  borderRadius: 2,
+                  border: '1px solid rgba(24,24,27,0.15)',
+                }}>
                   <Typography variant="caption" color="text.secondary" display="block" mb={1}>
                     Toplam Değerler ({templatePreview.amount} {templatePreview.unit})
                   </Typography>
                   <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'nowrap' }}>
-                    <Chip 
-                      label={`${templatePreview.calories} kcal`}
-                      size="small"
-                      color="error"
-                      variant="outlined"
-                      sx={{
-                        flex: { xs: 1, sm: '0 0 auto' },
-                        minWidth: { xs: 0, sm: 'auto' },
-                        height: { xs: 20, sm: 24 },
-                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                      }}
-                    />
-                    <Chip 
-                      label={`${formatGrams(templatePreview.protein)}g protein`}
-                      size="small"
-                      color="info"
-                      variant="outlined"
-                      sx={{
-                        flex: { xs: 1, sm: '0 0 auto' },
-                        minWidth: { xs: 0, sm: 'auto' },
-                        height: { xs: 20, sm: 24 },
-                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                      }}
-                    />
-                    <Chip 
-                      label={`${formatGrams(templatePreview.carbs)}g karb.`}
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                      sx={{
-                        flex: { xs: 1, sm: '0 0 auto' },
-                        minWidth: { xs: 0, sm: 'auto' },
-                        height: { xs: 20, sm: 24 },
-                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                      }}
-                    />
-                    <Chip 
-                      label={`${formatGrams(templatePreview.fat)}g yağ`}
-                      size="small"
-                      color="warning"
-                      variant="outlined"
-                      sx={{
-                        flex: { xs: 1, sm: '0 0 auto' },
-                        minWidth: { xs: 0, sm: 'auto' },
-                        height: { xs: 20, sm: 24 },
-                        fontSize: { xs: '0.62rem', sm: '0.72rem' },
-                        '& .MuiChip-label': { px: { xs: 0.6, sm: 1 } },
-                      }}
-                    />
+                    {[
+                      { label: `${templatePreview.calories} kcal`, color: '#18181b' },
+                      { label: `${formatGrams(templatePreview.protein)}g P`, color: '#0369a1' },
+                      { label: `${formatGrams(templatePreview.carbs)}g K`, color: '#15803d' },
+                      { label: `${formatGrams(templatePreview.fat)}g Y`, color: '#b45309' },
+                    ].map(({ label, color }) => (
+                      <Box key={label} sx={{
+                        flex: 1, minWidth: 0, textAlign: 'center',
+                        px: 0.75, py: 0.4, borderRadius: 1.5,
+                        bgcolor: `${color}12`, border: `1px solid ${color}28`,
+                      }}>
+                        <Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.68rem' }, fontWeight: 700, color, lineHeight: 1.2 }}>
+                          {label}
+                        </Typography>
+                      </Box>
+                    ))}
                   </Stack>
                 </Box>
               )}
@@ -1918,17 +1817,23 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
           )}
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setAddingToDate(null)} variant="outlined">
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, gap: 1 }}>
+          <Button onClick={() => setAddingToDate(null)} variant="outlined" sx={{ borderRadius: 2, flex: 1 }}>
             Kapat
           </Button>
-          <Button 
+          <Button
             type="submit"
             form="add-food-form"
-            color="primary" 
-            variant="contained" 
+            variant="contained"
             startIcon={<AddIcon />}
             disabled={addFoodTabValue === 0 && (!selectedTemplate || !templateAmount)}
+            sx={{
+              borderRadius: 2, flex: 1,
+              background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+              boxShadow: 'none',
+              '&:hover': { boxShadow: '0 4px 12px rgba(24,24,27,0.35)' },
+              '&.Mui-disabled': { background: 'rgba(0,0,0,0.12)' },
+            }}
           >
             Ekle
           </Button>

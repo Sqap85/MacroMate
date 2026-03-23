@@ -12,8 +12,6 @@ import {
   Alert,
   Divider,
   Typography,
-  Avatar,
-  Chip,
   InputAdornment,
   ToggleButtonGroup,
   ToggleButton,
@@ -45,7 +43,7 @@ interface ProfileModalProps {
 }
 
 export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: Readonly<ProfileModalProps>) {
-  const { currentUser, updateUserProfile, addPasswordToAccount, deleteAccount, updateUserPassword } = useAuth();
+  const { currentUser, addPasswordToAccount, deleteAccount, updateUserPassword } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
@@ -60,39 +58,6 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
-  // Formik for display name
-  const profileFormik = useFormik({
-    initialValues: {
-      displayName: currentUser?.displayName || '',
-    },
-    validationSchema: Yup.object({
-      displayName: Yup.string()
-        .required('İsim boş olamaz')
-        .max(30, 'İsim en fazla 30 karakter olabilir'),
-    }),
-    enableReinitialize: true,
-    validateOnChange: false,
-    validateOnBlur: false,
-    onSubmit: async (values) => {
-      setLoading(true);
-      setError('');
-
-      try {
-        await updateUserProfile(values.displayName);
-        setLoading(false);
-        
-        if (onSuccess) {
-          onSuccess('İsim başarıyla güncellendi!');
-        }
-        
-      } catch (err: any) {
-        console.error('Profile update error:', err);
-        setError(err.message || 'Profil güncellenirken hata oluştu');
-        setLoading(false);
-      }
-    },
-  });
-
   // Formik for adding password (for Google users)
   const addPasswordFormik = useFormik({
     initialValues: {
@@ -104,10 +69,8 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
         .required('Şifre zorunlu')
         .min(8, 'Şifre en az 8 karakter olmalı')
         .max(128, 'Şifre en fazla 128 karakter olabilir')
-        .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
-        .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-        .matches(/\d/, 'En az bir rakam içermelidir')
-        .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
+        .matches(/[a-zA-Z]/, 'En az bir harf içermelidir')
+        .matches(/\d/, 'En az bir rakam içermelidir'),
       confirmPassword: Yup.string()
         .required('Şifre tekrarı zorunlu')
         .oneOf([Yup.ref('newPassword')], 'Şifreler eşleşmiyor'),
@@ -171,10 +134,8 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
         .required('Yeni şifre zorunlu')
         .min(8, 'Şifre en az 8 karakter olmalı')
         .max(128, 'Şifre en fazla 128 karakter olabilir')
-        .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
-        .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-        .matches(/\d/, 'En az bir rakam içermelidir')
-        .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
+        .matches(/[a-zA-Z]/, 'En az bir harf içermelidir')
+        .matches(/\d/, 'En az bir rakam içermelidir'),
       confirmPassword: Yup.string()
         .required('Şifre tekrarı zorunlu')
         .oneOf([Yup.ref('newPassword')], 'Şifreler eşleşmiyor'),
@@ -210,7 +171,6 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
   // Modal açıldığında state'leri reset et
   useEffect(() => {
     if (open) {
-      profileFormik.resetForm();
       addPasswordFormik.resetForm();
       passwordFormik.resetForm();
       setError('');
@@ -231,7 +191,6 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
 
   const handleClose = () => {
     if (isClosing) return;
-    profileFormik.resetForm();
     addPasswordFormik.resetForm();
     passwordFormik.resetForm();
     setError('');
@@ -251,11 +210,7 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
   // Provider bilgilerini al
   const providersList = currentUser?.providerData.map(p => p.providerId) || [];
 
-  const deleteButtonLabel = (() => {
-    if (deleteLoading) return 'Siliniyor...';
-    const useGoogle = (hasBothProviders && deleteMethod === 'google') || (!isEmailProvider && !hasBothProviders);
-    return useGoogle ? 'Google ile Doğrula ve Sil' : 'Hesabı Kalıcı Olarak Sil';
-  })();
+  const deleteButtonLabel = deleteLoading ? 'Siliniyor...' : 'Hesabı Sil';
 
   return (
     <>
@@ -267,84 +222,66 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
       aria-labelledby="profile-dialog-title"
       disableEscapeKeyDown={isClosing}
     >
-      <DialogTitle id="profile-dialog-title">
+      <DialogTitle id="profile-dialog-title" sx={{ pb: 1.5, pt: 2.5, px: 3 }}>
         <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box display="flex" alignItems="center" gap={1}>
-            <PersonIcon color="primary" />
-            <Typography variant="h6">Profil Ayarları</Typography>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: 2,
+              background: 'linear-gradient(135deg, rgba(24,24,27,0.08) 0%, rgba(63,63,70,0.08) 100%)',
+              border: '1.5px solid rgba(24,24,27,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <PersonIcon sx={{ fontSize: 20, color: 'text.primary' }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight={700} lineHeight={1.2}>Profil Ayarları</Typography>
+              <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
+                {currentUser?.email}
+              </Typography>
+            </Box>
           </Box>
-          <IconButton 
-            onClick={handleClose} 
-            size="small"
-            aria-label="Kapat"
-            disabled={isClosing}
-          >
-            <CloseIcon />
+          <IconButton onClick={handleClose} size="small" aria-label="Kapat" disabled={isClosing} sx={{ color: 'text.secondary' }}>
+            <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
       </DialogTitle>
 
-      <DialogContent>
-        <Stack spacing={3} mt={1}>
-          {/* User Avatar & Info */}
-          <Box display="flex" alignItems="center" gap={2}>
-            <Avatar
-              sx={{
-                width: 64,
-                height: 64,
-                bgcolor: 'primary.main',
-                fontSize: '2rem',
-              }}
-            >
-              {currentUser?.displayName?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase() || 'U'}
-            </Avatar>
-            <Box>
-              <Typography variant="body1" fontWeight="medium">
-                {currentUser?.email}
-              </Typography>
-              <Typography 
-                variant="caption" 
-                color="text.secondary"
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-              >
-                {currentUser?.emailVerified ? (
-                  <>
-                    <CheckCircleIcon fontSize="inherit" color="success" />
-                    Email doğrulandı
-                  </>
-                ) : (
-                  <>
-                    <WarningIcon fontSize="inherit" color="warning" />
-                    Email doğrulanmamış
-                  </>
-                )}
-              </Typography>
-            </Box>
+      <DialogContent sx={{ px: 3 }}>
+        <Stack spacing={2.5} mt={1}>
+
+          {/* Email doğrulama durumu */}
+          <Box sx={{
+            display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, borderRadius: 2,
+            bgcolor: currentUser?.emailVerified ? 'rgba(21,128,61,0.06)' : 'rgba(180,83,9,0.06)',
+            border: `1px solid ${currentUser?.emailVerified ? 'rgba(21,128,61,0.2)' : 'rgba(180,83,9,0.2)'}`,
+          }}>
+            {currentUser?.emailVerified
+              ? <CheckCircleIcon sx={{ fontSize: 16, color: '#15803d' }} />
+              : <WarningIcon sx={{ fontSize: 16, color: '#b45309' }} />}
+            <Typography variant="caption" fontWeight={600} color={currentUser?.emailVerified ? '#15803d' : '#b45309'}>
+              {currentUser?.emailVerified ? 'E-posta doğrulandı' : 'E-posta doğrulanmamış'}
+            </Typography>
           </Box>
 
           <Divider />
 
           {/* Login Methods / Providers */}
           <Box>
-            <Typography variant="subtitle2" gutterBottom fontWeight="medium">
+            <Typography variant="caption" color="text.secondary" display="block" mb={1} fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
               Giriş Metodları
             </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
               {providersList.includes('google.com') && (
-                <Chip
-                  icon={<GoogleIcon />}
-                  label="Google"
-                  color="primary"
-                  variant="outlined"
-                />
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: 'rgba(24,24,27,0.06)', border: '1px solid rgba(24,24,27,0.15)' }}>
+                  <GoogleIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Typography variant="caption" fontWeight={600} color="text.secondary">Google</Typography>
+                </Box>
               )}
               {providersList.includes('password') && (
-                <Chip
-                  icon={<EmailIcon />}
-                  label="E-posta & Şifre"
-                  color="success"
-                  variant="outlined"
-                />
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: 'rgba(24,24,27,0.06)', border: '1px solid rgba(24,24,27,0.15)' }}>
+                  <EmailIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Typography variant="caption" fontWeight={600} color="text.secondary">E-posta & Şifre</Typography>
+                </Box>
               )}
             </Stack>
             
@@ -404,41 +341,12 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
                 variant="contained"
                 disabled={loading || !addPasswordFormik.values.newPassword || !addPasswordFormik.values.confirmPassword}
                 fullWidth
-                sx={{ mt: 1 }}
+                sx={{ mt: 1, borderRadius: 2, background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)', boxShadow: 'none', '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }, '&.Mui-disabled': { background: 'rgba(0,0,0,0.12)' } }}
               >
                 Şifre Ekle
               </Button>
             </Box>
           )}
-
-          <Divider />
-
-          {/* Display Name Update */}
-          <Box component="form" onSubmit={profileFormik.handleSubmit}>
-            <Typography variant="subtitle2" gutterBottom fontWeight="medium">
-              İsim Güncelle
-            </Typography>
-            <TextField
-              fullWidth
-              label="İsim"
-              name="displayName"
-              value={profileFormik.values.displayName}
-              onChange={profileFormik.handleChange}
-              error={profileFormik.touched.displayName && Boolean(profileFormik.errors.displayName)}
-              helperText={profileFormik.touched.displayName && profileFormik.errors.displayName}
-              disabled={loading}
-              margin="normal"
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading || profileFormik.values.displayName === currentUser?.displayName}
-              fullWidth
-              sx={{ mt: 1 }}
-            >
-              İsmi Güncelle
-            </Button>
-          </Box>
 
           {/* Password Update - Only for email/password users */}
           {isEmailProvider && (
@@ -521,7 +429,7 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
                   variant="contained"
                   disabled={loading || !passwordFormik.values.currentPassword || !passwordFormik.values.newPassword || !passwordFormik.values.confirmPassword}
                   fullWidth
-                  sx={{ mt: 1 }}
+                  sx={{ mt: 1, borderRadius: 2, background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)', boxShadow: 'none', '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }, '&.Mui-disabled': { background: 'rgba(0,0,0,0.12)' } }}
                 >
                   {loading ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
                 </Button>
@@ -565,39 +473,42 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
       }}
       maxWidth="xs"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-        }
-      }}
+      PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
     >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <DeleteForeverIcon color="error" />
-          <Typography variant="h6" color="error">
-            Hesabı Sil
-          </Typography>
+      <DialogTitle sx={{ pb: 1.5, pt: 2.5, px: 3 }}>
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Box sx={{
+            width: 40, height: 40, borderRadius: 2, flexShrink: 0,
+            bgcolor: 'rgba(220,38,38,0.08)',
+            border: '1.5px solid rgba(220,38,38,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <DeleteForeverIcon sx={{ fontSize: 20, color: '#dc2626' }} />
+          </Box>
+          <Box>
+            <Typography variant="h6" fontWeight={700} lineHeight={1.2}>Hesabı Sil</Typography>
+            <Typography variant="caption" color="error">Bu işlem geri alınamaz</Typography>
+          </Box>
         </Box>
       </DialogTitle>
-      <DialogContent>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Bu işlem geri alınamaz! Hesabınız ve tüm verileriniz kalıcı olarak silinecektir.
-        </Alert>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Silinecek veriler:
-        </Typography>
-        <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 2, color: 'text.secondary' }}>
-          <li>Tüm yemek kayıtları</li>
-          <li>Günlük hedefler</li>
-          <li>Besin şablonları</li>
-          <li>Hesap bilgileri</li>
-        </Typography>
+      <DialogContent sx={{ px: 3, pb: 1 }}>
+        <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.15)', mb: 2 }}>
+          <Typography variant="body2" color="text.secondary" lineHeight={1.6} mb={1}>
+            Hesabınız silindiğinde aşağıdaki veriler <strong>kalıcı olarak</strong> kaldırılır:
+          </Typography>
+          <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0, color: 'text.secondary' }}>
+            <li>Tüm yemek kayıtları</li>
+            <li>Günlük hedefler</li>
+            <li>Besin şablonları</li>
+            <li>Hesap bilgileri</li>
+          </Typography>
+        </Box>
 
         {/* Her iki provider'a da sahip kullanıcılar için yöntem seçimi */}
         {hasBothProviders && (
-          <Box sx={{ mt: 1 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Doğrulama yöntemi seçin:
+          <Box mb={1}>
+            <Typography variant="caption" color="text.secondary" display="block" mb={0.75} fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
+              Doğrulama Yöntemi
             </Typography>
             <ToggleButtonGroup
               value={deleteMethod}
@@ -605,14 +516,20 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
               onChange={(_, val) => { if (val) { setDeleteMethod(val); setDeletePassword(''); setDeleteError(''); } }}
               fullWidth
               size="small"
-              sx={{ mb: 1 }}
+              sx={{
+                '& .MuiToggleButton-root': {
+                  textTransform: 'none', fontWeight: 600, fontSize: '0.8rem',
+                  borderColor: 'rgba(0,0,0,0.12)',
+                  '&.Mui-selected': { bgcolor: 'rgba(24,24,27,0.08)', color: 'text.primary', borderColor: 'rgba(24,24,27,0.25)' },
+                },
+              }}
             >
-              <ToggleButton value="password" sx={{ textTransform: 'none' }}>
-                <EmailIcon sx={{ mr: 0.5 }} fontSize="small" />
+              <ToggleButton value="password">
+                <EmailIcon sx={{ mr: 0.75, fontSize: 16 }} />
                 Şifre ile
               </ToggleButton>
-              <ToggleButton value="google" sx={{ textTransform: 'none' }}>
-                <GoogleIcon sx={{ mr: 0.5 }} fontSize="small" />
+              <ToggleButton value="google">
+                <GoogleIcon sx={{ mr: 0.75, fontSize: 16 }} />
                 Google ile
               </ToggleButton>
             </ToggleButtonGroup>
@@ -629,37 +546,38 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
             onChange={(e) => setDeletePassword(e.target.value)}
             disabled={deleteLoading}
             helperText="Güvenlik için mevcut şifrenizi girin"
-            margin="normal"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowDeletePassword(!showDeletePassword)}
-                    edge="end"
-                    size="small"
-                  >
-                    {showDeletePassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
+            size="small"
+            sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowDeletePassword(!showDeletePassword)} edge="end" size="small">
+                      {showDeletePassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
             }}
           />
         )}
 
         {/* Google ile doğrulama */}
         {(!isEmailProvider || (hasBothProviders && deleteMethod === 'google')) && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Devam etmek için Google hesabınızla doğrulama yapmanız gerekecektir.
-          </Typography>
+          <Box sx={{ mt: 1.5, px: 1.5, py: 1.25, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}>
+            <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
+              Google hesabınızla bir doğrulama adımı açılacak.
+            </Typography>
+          </Box>
         )}
 
         {deleteError && (
-          <Alert severity="error" sx={{ mt: 1 }}>
-            {deleteError}
-          </Alert>
+          <Box sx={{ mt: 1.5, px: 1.5, py: 1.25, borderRadius: 2, bgcolor: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)' }}>
+            <Typography variant="body2" color="error" fontSize="0.8rem">{deleteError}</Typography>
+          </Box>
         )}
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, gap: 1 }}>
         <Button
           onClick={() => {
             setDeleteDialogOpen(false);
@@ -668,6 +586,7 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
           }}
           variant="outlined"
           disabled={deleteLoading}
+          sx={{ borderRadius: 2, flex: 1, borderColor: 'rgba(0,0,0,0.18)', color: 'text.secondary' }}
         >
           İptal
         </Button>
@@ -707,9 +626,14 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
             }
           }}
           variant="contained"
-          color="error"
-          startIcon={<DeleteForeverIcon />}
           disabled={deleteLoading || ((hasBothProviders ? deleteMethod === 'password' : !!isEmailProvider) && !deletePassword)}
+          sx={{
+            borderRadius: 2, flex: 1,
+            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+            boxShadow: 'none',
+            '&:hover': { boxShadow: '0 4px 12px rgba(220,38,38,0.3)' },
+            '&.Mui-disabled': { background: 'rgba(0,0,0,0.12)' },
+          }}
         >
           {deleteButtonLabel}
         </Button>

@@ -349,42 +349,59 @@ export function FoodTemplatesModal({
         fullWidth
         fullScreen={isMobile}
         aria-labelledby="templates-dialog-title"
-        PaperProps={{ sx: { borderRadius: 2, maxHeight: '90vh' } }}
+        PaperProps={{ sx: { borderRadius: 3, maxHeight: '90vh' } }}
       >
         <DialogTitle
+          id="templates-dialog-title"
           sx={{
             position: 'relative',
-            display: 'flex',
-            justifyContent: 'flex-start',
-            alignItems: 'center',
-            pb: 1,
-            flexWrap: 'wrap',
-            gap: 1,
+            pb: 1.5,
+            pt: 2.5,
+            px: 3,
           }}
         >
-          <Box display="flex" alignItems="center" gap={1}>
-            <RestaurantMenuIcon color="primary" />
-            <Typography variant="h6" component="div" id="templates-dialog-title" sx={{ mr: 1 }}>
-              Besin Şablonlarım
-            </Typography>
+          <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <Box sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #18181b22 0%, #3f3f4622 100%)',
+                border: '1.5px solid rgba(24,24,27,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <RestaurantMenuIcon sx={{ fontSize: 20, color: '#18181b' }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" component="div" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                  Besin Şablonlarım
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {templates.length} kayıtlı besin
+                </Typography>
+              </Box>
+            </Box>
+            <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+              <Button variant="outlined" size="small" component="label" sx={{ minWidth: 0, px: 1.5, borderRadius: 1.5 }}>
+                CSV Yükle
+                <input type="file" accept=".csv" hidden onChange={handleImportCSV} />
+              </Button>
+              <Button variant="outlined" size="small" onClick={handleExportCSV} sx={{ minWidth: 0, px: 1.5, borderRadius: 1.5 }}>
+                CSV İndir
+              </Button>
+              <IconButton
+                onClick={onClose}
+                size="small"
+                aria-label="Kapat"
+                sx={{ color: 'text.secondary' }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </Box>
-          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-            <Button variant="outlined" size="small" component="label" sx={{ minWidth: 0, px: 1 }}>
-              CSV Yükle
-              <input type="file" accept=".csv" hidden onChange={handleImportCSV} />
-            </Button>
-            <Button variant="outlined" size="small" onClick={handleExportCSV} sx={{ minWidth: 0, px: 1 }}>
-              CSV İndir
-            </Button>
-          </Box>
-          <IconButton
-            onClick={onClose}
-            size="small"
-            aria-label="Kapat"
-            sx={{ position: 'absolute', top: 8, right: 8, minWidth: 0 }}
-          >
-            <CloseIcon />
-          </IconButton>
         </DialogTitle>
 
         <Divider />

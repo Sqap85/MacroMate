@@ -1,4 +1,4 @@
-/* App.css - Minimal custom styles */
+/* App.css - MacroMate Professional Design */
 * {
   margin: 0;
   padding: 0;
@@ -7,7 +7,41 @@
 
 body {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  background-attachment: fixed;
+  background-color: #e4e4e7;
+  background-attachment: scroll;
 }
 
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(24, 24, 27, 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(24, 24, 27, 0.55);
+}
+
+/* Gradient progress bars */
+.progress-protein .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #0369a1, #7dd3fc) !important;
+}
+.progress-carbs .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #15803d, #86efac) !important;
+}
+.progress-fat .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #b45309, #fcd34d) !important;
+}
+.progress-calories .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #0369a1, #38bdf8) !important;
+}
+.progress-calories-warning .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #d97706, #fbbf24) !important;
+}
+.progress-calories-error .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #dc2626, #f87171) !important;
+}

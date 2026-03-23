@@ -159,23 +159,20 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: Readonly<{ onCa
 
   if (verified) {
     return (
-      <Box sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      }}>
-        <Container maxWidth="sm">
-          <Paper elevation={6} sx={{ p: 6, textAlign: 'center', borderRadius: 4 }}>
-            <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
-            <Typography variant="h4" fontWeight="bold" color="success.main" gutterBottom>
-              Başarılı!
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f5f5f5' }}>
+        <Container maxWidth="xs">
+          <Paper elevation={2} sx={{ p: 5, textAlign: 'center', borderRadius: 4 }}>
+            <Box sx={{
+              width: 64, height: 64, borderRadius: '18px', mx: 'auto', mb: 2.5,
+              bgcolor: 'rgba(21,128,61,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CheckCircleIcon sx={{ fontSize: 32, color: '#15803d' }} />
+            </Box>
+            <Typography variant="h5" fontWeight={800} gutterBottom>Email Doğrulandı!</Typography>
+            <Typography variant="body2" color="text.secondary" mb={3}>
+              Uygulamaya yönlendiriliyorsunuz...
             </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Email adresiniz doğrulandı. Uygulamaya yönlendiriliyorsunuz...
-            </Typography>
-            <CircularProgress sx={{ mt: 3 }} />
+            <CircularProgress size={28} sx={{ color: '#15803d' }} />
           </Paper>
         </Container>
       </Box>
@@ -189,92 +186,86 @@ export function EmailVerificationScreen({ onCancelPasswordAdd }: Readonly<{ onCa
   })();
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      py: 4,
-    }}>
-      <Container maxWidth="sm">
-        <Paper elevation={6} sx={{ p: 5, borderRadius: 4 }}>
-          <Box textAlign="center" mb={4}>
-            <Typography variant="h3" fontWeight="bold" sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              mb: 1,
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f5f5f5', py: 4 }}>
+      <Container maxWidth="xs">
+        <Paper elevation={2} sx={{ p: 4, borderRadius: 4 }}>
+
+          {/* Header */}
+          <Box textAlign="center" mb={3}>
+            <Box sx={{
+              width: 56, height: 56, borderRadius: '16px', mx: 'auto', mb: 2,
+              bgcolor: 'rgba(2,132,199,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              MacroMate
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Kalori ve Makro Takibi
-            </Typography>
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Box textAlign="center" mb={4}>
-            <EmailIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              <EmailIcon sx={{ fontSize: 28, color: '#0284c7' }} />
+            </Box>
+            <Typography variant="h6" fontWeight={800} gutterBottom>
               Email Adresinizi Doğrulayın
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
-              Size gönderilen doğrulama linkine tıklayın:
+            <Typography variant="body2" color="text.secondary">
+              Doğrulama bağlantısı şu adrese gönderildi:
             </Typography>
-            <Paper sx={{ p: 2, backgroundColor: 'grey.100', borderRadius: 2, mb: 3 }}>
-              <Typography variant="body1" fontWeight="medium" sx={{ wordBreak: 'break-word' }}>
+            <Box sx={{ mt: 1.5, px: 2, py: 1, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}>
+              <Typography variant="body2" fontWeight={600} sx={{ wordBreak: 'break-word' }}>
                 {currentUser.email}
               </Typography>
-            </Paper>
-
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-            {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-
-            <Stack spacing={2}>
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={checking ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
-                onClick={() => handleCheckVerification(false)}
-                disabled={checking}
-                fullWidth
-                sx={{
-                  py: 1.5,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  '&:hover': { background: 'linear-gradient(135deg, #5568d3 0%, #63418d 100%)' },
-                }}
-              >
-                {checking ? 'Kontrol Ediliyor...' : 'Email Doğrulandı mı? (Kontrol Et)'}
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                startIcon={resending ? <CircularProgress size={20} color="inherit" /> : <EmailIcon />}
-                onClick={handleResendEmail}
-                disabled={resending || countdown > 0}
-                fullWidth
-                sx={{ py: 1.5 }}
-              >
-                {resendLabel}
-              </Button>
-            </Stack>
+            </Box>
           </Box>
 
-          <Divider sx={{ my: 3 }} />
+          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>{success}</Alert>}
 
-          <Box sx={{ backgroundColor: 'info.lighter', p: 2, borderRadius: 2, mb: 3 }}>
-            <Typography variant="body2" fontWeight="bold" gutterBottom>💡 İpuçları:</Typography>
-            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0 }}>
-              <li>Spam/gereksiz klasörünü kontrol edin</li>
-              <li>Email 5-10 dakika içinde gelecektir</li>
+          <Stack spacing={1.5} mb={3}>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={checking ? <CircularProgress size={18} color="inherit" /> : <RefreshIcon />}
+              onClick={() => handleCheckVerification(false)}
+              disabled={checking}
+              fullWidth
+              sx={{
+                py: 1.4, fontWeight: 700, borderRadius: 2,
+                background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+                boxShadow: 'none',
+                '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
+              }}
+            >
+              {checking ? 'Kontrol Ediliyor...' : 'Doğrulamayı Kontrol Et'}
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={resending ? <CircularProgress size={18} color="inherit" /> : <EmailIcon />}
+              onClick={handleResendEmail}
+              disabled={resending || countdown > 0}
+              fullWidth
+              sx={{ py: 1.4, borderRadius: 2, fontWeight: 600, borderColor: 'rgba(0,0,0,0.18)', color: 'text.secondary' }}
+            >
+              {resendLabel}
+            </Button>
+          </Stack>
+
+          <Divider sx={{ mb: 2.5 }} />
+
+          {/* Tips */}
+          <Box sx={{ px: 1.5, py: 1.5, borderRadius: 2, bgcolor: 'rgba(2,132,199,0.06)', border: '1px solid rgba(2,132,199,0.15)', mb: 2.5 }}>
+            <Typography variant="caption" fontWeight={700} color="#0284c7" display="block" mb={0.75}>
+              İpucu
+            </Typography>
+            <Typography variant="caption" color="text.secondary" component="ul" sx={{ pl: 2, mb: 0 }}>
+              <li>Spam / gereksiz klasörünü kontrol edin</li>
+              <li>Email 5–10 dakika içinde gelebilir</li>
               <li>Doğru email adresini girdiğinizden emin olun</li>
             </Typography>
           </Box>
 
-          <Button variant="text" startIcon={<LogoutIcon />} onClick={handleLogout} fullWidth sx={{ color: 'text.secondary' }}>
+          <Button
+            variant="text"
+            startIcon={<LogoutIcon sx={{ fontSize: 16 }} />}
+            onClick={handleLogout}
+            fullWidth
+            size="small"
+            sx={{ color: 'text.disabled', fontSize: '0.75rem', '&:hover': { color: 'text.secondary' } }}
+          >
             Çıkış Yap
           </Button>
         </Paper>

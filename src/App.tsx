@@ -1,11 +1,12 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Container, Typography, Box, AppBar, Toolbar, Stack, Link as MuiLink, Fade, IconButton, Tooltip, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Container, Typography, Box, AppBar, Toolbar, Stack, Link as MuiLink, Fade, IconButton, Tooltip, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LogoutIcon from '@mui/icons-material/Logout';
-import PersonIcon from '@mui/icons-material/Person';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { FoodForm } from './components/FoodForm';
 import { StatsCard } from './components/StatsCard';
 import { FoodList } from './components/FoodList';
@@ -15,7 +16,8 @@ import { useFoodTracker } from './hooks/useFoodTracker';
 import { useAuth } from './contexts/AuthContext';
 import { migrateFromLocalStorage } from './services/firestoreService';
 import type { AlertColor } from '@mui/material';
-import type { FoodTemplate, MealType } from './types';
+import type { Food, FoodTemplate, MealType, DailyGoal } from './types';
+type FoodInput = Omit<Food, 'id' | 'timestamp'>;
 import './App.css';
 import { formatDate } from './utils/dateUtils';
 
@@ -36,7 +38,7 @@ const ProfileModal = lazy(() =>
 );
 
 function App() {
-  const { currentUser, logout, isGuest } = useAuth();
+  const { currentUser, logout, isGuest, continueAsGuest } = useAuth();
   const { 
     foods, 
     allFoods, 
@@ -131,7 +133,7 @@ function App() {
     }
   }, [currentUser]);
 
-  const handleAddFood = async (food: any, customTimestamp?: number) => {
+  const handleAddFood = async (food: FoodInput, customTimestamp?: number) => {
     try {
       await addFood(food, customTimestamp);
       setToast({
@@ -237,7 +239,7 @@ function App() {
     }
   };
 
-  const handleEditFood = async (id: string, updatedFood: any) => {
+  const handleEditFood = async (id: string, updatedFood: Partial<Food>) => {
     try {
       await editFood(id, updatedFood);
       setToast({
@@ -254,7 +256,7 @@ function App() {
     }
   };
 
-  const handleSaveGoal = async (goal: any) => {
+  const handleSaveGoal = async (goal: DailyGoal) => {
     try {
       await updateGoal(goal);
       setToast({
@@ -271,7 +273,7 @@ function App() {
     }
   };
 
-  const handleAddTemplate = async (template: Omit<any, 'id'>, suppressToast?: boolean) => {
+  const handleAddTemplate = async (template: Omit<FoodTemplate, 'id'>, suppressToast?: boolean) => {
     try {
       await addFoodTemplate(template);
       if (!suppressToast) {
@@ -307,7 +309,7 @@ function App() {
     }
   };
 
-  const handleEditTemplate = async (id: string, template: Omit<any, 'id'>) => {
+  const handleEditTemplate = async (id: string, template: Omit<FoodTemplate, 'id'>) => {
     try {
       await editFoodTemplate(id, template);
       setToast({
@@ -380,8 +382,8 @@ function App() {
         flexDirection="column"
         gap={2}
       >
-        <CircularProgress size={60} />
-        <Typography variant="h6" color="text.secondary">
+        <CircularProgress size={36} sx={{ color: '#18181b' }} />
+        <Typography variant="body1" color="text.secondary" fontWeight={500}>
           Veriler yükleniyor...
         </Typography>
       </Box>
@@ -406,101 +408,110 @@ function App() {
   return (
     <>
       {/* Header */}
-      <AppBar position="static" elevation={0}>
-        <Toolbar>
-          <Typography variant="h5" component="h1" fontWeight="bold">
-            MacroMate
-          </Typography>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              ml: 2, 
-              opacity: 0.9,
-              display: { xs: 'none', sm: 'block' } 
+      <AppBar position="sticky" elevation={0}>
+        <Toolbar sx={{ minHeight: { xs: 60, sm: 68 } }}>
+          {/* Logo */}
+          <Typography
+            variant="h6"
+            component="h1"
+            sx={{
+              fontWeight: 800,
+              fontSize: { xs: '1.2rem', sm: '1.35rem' },
+              background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.5px',
+              lineHeight: 1,
+              userSelect: 'none',
             }}
           >
-            Kalori Takip Uygulaması
+            MacroMate
           </Typography>
+
           <Box sx={{ flexGrow: 1 }} />
-          
+
           {currentUser || isGuest ? (
-            <>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  mr: 2, 
-                  opacity: 0.9,
-                  display: { xs: 'none', sm: 'block' }
-                }}
-              >
-                {isGuest ? (
-                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                    <PersonIcon sx={{ fontSize: 16 }} /> Misafir
-                  </Box>
-                ) : (
-                  `Merhaba, ${currentUser?.displayName || currentUser?.email}`
-                )}
-              </Typography>
+            <Box display="flex" alignItems="center" gap={0.5}>
               {isGuest ? (
                 <>
-                  <Tooltip title="Kayıtlar & Planlama sadece kayıtlı kullanıcılar için">
+                  <Tooltip title="Kayıtlar sadece kayıtlı kullanıcılar için">
                     <span>
-                      <IconButton color="inherit" disabled sx={{ opacity: 0.5 }}>
-                        <CalendarMonthIcon />
+                      <IconButton size="small" disabled sx={{ opacity: 0.35, color: 'text.secondary' }}>
+                        <CalendarMonthIcon fontSize="small" />
                       </IconButton>
                     </span>
                   </Tooltip>
                   <Tooltip title="Hesap Oluştur">
-                    <IconButton color="inherit" onClick={() => setAuthOpen(true)}>
-                      <PersonAddIcon />
+                    <IconButton
+                      size="small"
+                      onClick={() => setAuthOpen(true)}
+                      sx={{
+                        color: 'primary.main',
+                        bgcolor: 'rgba(24,24,27,0.1)',
+                        '&:hover': { bgcolor: 'rgba(24,24,27,0.2)' },
+                      }}
+                    >
+                      <PersonAddIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 </>
               ) : (
                 <>
                   <Tooltip title="Kayıtlar & Planlama">
-                    <IconButton color="inherit" onClick={handleOpenHistory} disabled={allFoodsLoading}>
-                      <CalendarMonthIcon />
+                    <IconButton
+                      size="small"
+                      onClick={handleOpenHistory}
+                      disabled={allFoodsLoading}
+                      sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'rgba(24,24,27,0.08)' } }}
+                    >
+                      <CalendarMonthIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  {!isGuest && (
-                    <Tooltip title="Profil Ayarları">
-                      <IconButton color="inherit" onClick={() => setProfileOpen(true)}>
-                        <AccountCircleIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )}
+                  <Tooltip title="Profil Ayarları">
+                    <IconButton
+                      size="small"
+                      onClick={() => setProfileOpen(true)}
+                      sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'rgba(24,24,27,0.08)' } }}
+                    >
+                      <AccountCircleIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </>
               )}
-              <Tooltip title={isGuest ? "Misafir Modundan Çık" : "Çıkış Yap"}>
-                <IconButton color="inherit" onClick={handleLogoutClick}>
-                  <LogoutIcon />
+              <Tooltip title={isGuest ? 'Misafir Modundan Çık' : 'Çıkış Yap'}>
+                <IconButton
+                  size="small"
+                  onClick={handleLogoutClick}
+                  sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(239,68,68,0.08)' } }}
+                >
+                  <LogoutIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-            </>
+            </Box>
           ) : null}
         </Toolbar>
       </AppBar>
 
       {/* Ana İçerik */}
-      <Container maxWidth="lg" sx={{ py: currentUser || isGuest ? 4 : 0 }}>
-        {currentUser || isGuest ? (
+      {currentUser || isGuest ? (
+        <Container maxWidth="lg" sx={{ py: 4 }}>
           <Stack spacing={3}>
             {/* İstatistikler */}
             <Fade in timeout={500}>
               <Box>
-                <StatsCard 
-                  stats={dailyStats} 
-                  goal={dailyGoal} 
+                <StatsCard
+                  stats={dailyStats}
+                  goal={dailyGoal}
                   onOpenSettings={() => setSettingsOpen(true)}
                 />
               </Box>
             </Fade>
-            
+
             {/* Yemek Ekleme Formu */}
             <Fade in timeout={700}>
               <Box>
-                <FoodForm 
+                <FoodForm
                   onAddFood={handleAddFood}
                   foodTemplates={foodTemplates}
                   onAddFromTemplate={handleAddFromTemplate}
@@ -509,12 +520,12 @@ function App() {
                 />
               </Box>
             </Fade>
-            
+
             {/* Yemek Listesi */}
             <Fade in timeout={900}>
               <Box>
-                <FoodList 
-                  foods={foods} 
+                <FoodList
+                  foods={foods}
                   onDeleteFood={handleDeleteFood}
                   onEditFood={handleEditFood}
                   foodTemplates={foodTemplates}
@@ -522,96 +533,161 @@ function App() {
               </Box>
             </Fade>
           </Stack>
-        ) : (
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            height="calc(100vh - 64px - 72px)"
-            minHeight="unset"
-            textAlign="center"
-          >
-            <Typography 
-              variant="h2" 
-              fontWeight="bold" 
+        </Container>
+      ) : (
+        <Box
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            height: 'calc(100vh - 60px)',
+            textAlign: 'center',
+            px: 2,
+            pb: 6,
+          }}
+        >
+          {/* App Icon */}
+          <Fade in timeout={400}>
+            <Box
               sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontSize: { xs: '2.5rem', md: '3.5rem' },
-                mb: 2,
+                width: 72, height: 72, borderRadius: '22px',
+                background: 'linear-gradient(135deg, #d97706 0%, #fbbf24 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 32px rgba(217,119,6,0.30)',
+                mb: 3,
               }}
             >
-               MacroMate
-            </Typography>
-            
-            <Typography 
-              variant="h6" 
-              color="text.secondary" 
-              maxWidth="500px"
-              sx={{ 
-                fontWeight: 400,
-                mb: 5,
-                px: 2,
-              }}
-            >
-              Kalori ve makrolarınızı takip edin
-            </Typography>
+              <LocalFireDepartmentIcon sx={{ fontSize: 36, color: '#fff' }} />
+            </Box>
+          </Fade>
 
-            <Button 
-              variant="contained" 
-              size="large"
-              onClick={() => setAuthOpen(true)}
-              sx={{ 
-                px: 5, 
-                py: 1.8, 
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                borderRadius: 2,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                boxShadow: '0 4px 14px rgba(102, 126, 234, 0.4)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #5568d3 0%, #6a4190 100%)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 6px 18px rgba(102, 126, 234, 0.5)',
-                }
-              }}
-            >
-              Hemen Başla
-            </Button>
-          </Box>
-        )}
-      </Container>
+          {/* Tagline */}
+          <Fade in timeout={550}>
+            <Box>
+              <Typography
+                variant="h3"
+                fontWeight={800}
+                sx={{
+                  fontSize: { xs: '1.85rem', sm: '2.5rem', md: '3rem' },
+                  letterSpacing: '-0.5px',
+                  lineHeight: 1.15,
+                  mb: 1.5,
+                  maxWidth: 500,
+                }}
+              >
+                Sağlıklı beslenmenin
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'block',
+                    background: 'linear-gradient(135deg, #d97706 0%, #0284c7 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  akıllı takipçisi
+                </Box>
+              </Typography>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{ mb: 3, maxWidth: 380, mx: 'auto', lineHeight: 1.6 }}
+              >
+                Günlük kalori ve makrolarınızı öğün bazında takip edin, hedeflerinize ulaşın.
+              </Typography>
+            </Box>
+          </Fade>
+
+          {/* Feature chips */}
+          <Fade in timeout={700}>
+            <Box display="flex" gap={1} flexWrap="wrap" justifyContent="center" mb={4}>
+              {['Öğün Takibi', 'Makro Hesaplama', 'Kişisel Hedefler', 'Barkod Tarama'].map((feat) => (
+                <Chip
+                  key={feat}
+                  label={feat}
+                  size="small"
+                  sx={{
+                    borderRadius: '20px',
+                    bgcolor: 'rgba(0,0,0,0.06)',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    fontWeight: 500,
+                    color: 'text.secondary',
+                    fontSize: '0.75rem',
+                  }}
+                />
+              ))}
+            </Box>
+          </Fade>
+
+          {/* CTAs */}
+          <Fade in timeout={850}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => setAuthOpen(true)}
+                sx={{
+                  px: 5, py: 1.6,
+                  fontSize: '1rem', fontWeight: 700, borderRadius: 3,
+                  background: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+                  '&:hover': { boxShadow: '0 6px 24px rgba(0,0,0,0.28)' },
+                  minWidth: 180,
+                }}
+              >
+                Giriş Yap / Kayıt Ol
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={continueAsGuest}
+                sx={{
+                  px: 4, py: 1.6,
+                  fontSize: '1rem', fontWeight: 600, borderRadius: 3,
+                  borderColor: 'rgba(0,0,0,0.18)',
+                  color: 'text.secondary',
+                  '&:hover': { borderColor: 'rgba(0,0,0,0.35)', bgcolor: 'rgba(0,0,0,0.04)', color: 'text.primary' },
+                  minWidth: 180,
+                }}
+              >
+                Misafir Olarak Dene
+              </Button>
+            </Stack>
+          </Fade>
+        </Box>
+      )}
         
-      {/* Footer */}
-      <Box 
+      {/* Footer — only shown when logged in */}
+      {(currentUser || isGuest) && <Box
         component="footer"
-        py={3.1}
-        bgcolor="primary.main"
-        display="flex" 
-        alignItems="center" 
+        py={2.5}
+        display="flex"
+        alignItems="center"
         justifyContent="center"
+        gap={1.5}
+        sx={{
+          borderTop: '1px solid rgba(24,24,27,0.12)',
+          mt: 4,
+          background: 'rgba(255,255,255,0.5)',
+          backdropFilter: 'blur(10px)',
+        }}
       >
-        <Typography sx={{ color: 'primary.contrastText' }}>
-          85 Company © {new Date().getFullYear()} - MIT License
+        <Typography variant="caption" color="text.secondary" fontWeight={500}>
+          85 Company © {new Date().getFullYear()}
         </Typography>
+        <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }} />
+        <Typography variant="caption" color="text.secondary">MIT License</Typography>
         <MuiLink
           href="https://github.com/Sqap85/MacroMate"
           target="_blank"
           rel="noopener noreferrer"
+          sx={{ display: 'flex', alignItems: 'center' }}
         >
-          <GitHubIcon
-            sx={{
-              color: "primary.contrastText",
-              marginLeft: "10px",
-              ":hover": { opacity: 0.8 },
-            }}
-          />
+          <GitHubIcon sx={{ fontSize: 16, color: 'text.secondary', ':hover': { color: 'primary.main' }, transition: 'color 0.2s' }} />
         </MuiLink>
-      </Box>
+      </Box>}
 
       {/* Modals & Notifications */}
       <Suspense fallback={null}>
@@ -674,34 +750,73 @@ function App() {
         maxWidth="xs"
         fullWidth
         aria-labelledby="logout-dialog-title"
+        slotProps={{ paper: { sx: { borderRadius: 3, overflow: 'hidden' } } }}
       >
-        <DialogTitle id="logout-dialog-title">
-          {isGuest ? "Misafir Modundan Çık" : "Çıkış Yap"}
+        <DialogTitle id="logout-dialog-title" sx={{ pb: 1.5, pt: 2.5, px: 3 }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: 2, flexShrink: 0,
+              background: isGuest ? 'rgba(220,38,38,0.08)' : 'rgba(24,24,27,0.06)',
+              border: `1.5px solid ${isGuest ? 'rgba(220,38,38,0.2)' : 'rgba(24,24,27,0.12)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {isGuest
+                ? <WarningAmberIcon sx={{ fontSize: 20, color: '#dc2626' }} />
+                : <LogoutIcon sx={{ fontSize: 20, color: 'text.primary' }} />}
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
+                {isGuest ? 'Misafir Modundan Çık' : 'Çıkış Yap'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {isGuest ? 'Verileriniz silinecek' : 'Hesabınızdan çıkış yapılacak'}
+              </Typography>
+            </Box>
+          </Box>
         </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {isGuest ? (
-              <>
-                Misafir modundan çıkmak istediğinize emin misiniz?
-                <br /><br />
-                <strong>Uyarı:</strong> Tüm verileriniz silinecektir. Verilerinizi kaydetmek için lütfen hesap oluşturun.
-              </>
-            ) : (
-              "Çıkış yapmak istediğinize emin misiniz?"
-            )}
-          </DialogContentText>
+
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          {isGuest ? (
+            <Box sx={{
+              p: 2, borderRadius: 2,
+              bgcolor: 'rgba(220,38,38,0.05)',
+              border: '1px solid rgba(220,38,38,0.15)',
+            }}>
+              <Typography variant="body2" color="text.secondary" lineHeight={1.6}>
+                Misafir modundan çıktığınızda <strong>tüm verileriniz kalıcı olarak silinir.</strong>
+                {' '}Verilerinizi korumak için önce hesap oluşturabilirsiniz.
+              </Typography>
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Çıkış yapmak istediğinize emin misiniz?
+            </Typography>
+          )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelLogout} color="primary">
+
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, gap: 1 }}>
+          <Button
+            onClick={handleCancelLogout}
+            variant="outlined"
+            sx={{ borderRadius: 2, flex: 1, borderColor: 'rgba(0,0,0,0.18)', color: 'text.secondary' }}
+          >
             İptal
           </Button>
-          <Button 
-            onClick={handleLogout} 
-            color={isGuest ? "error" : "primary"}
+          <Button
+            onClick={handleLogout}
             variant="contained"
             autoFocus
+            startIcon={isGuest ? <WarningAmberIcon /> : <LogoutIcon />}
+            sx={{
+              borderRadius: 2, flex: 1,
+              background: isGuest
+                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
+                : 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+              boxShadow: 'none',
+              '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
+            }}
           >
-            {isGuest ? "Çık ve Verileri Sil" : "Çıkış Yap"}
+            {isGuest ? 'Çık ve Sil' : 'Çıkış Yap'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -4,7 +4,6 @@ import {
   Typography,
   LinearProgress,
   Box,
-  Chip,
   Stack,
   IconButton,
   Tooltip,
@@ -23,22 +22,47 @@ interface StatsCardProps {
   onOpenSettings?: () => void;
 }
 
-// Kalan/Fazla label hesapla — nested ternary yerine
 function getMacroRemainingLabel(remaining: number): string {
-  if (remaining > 0) return `Kalan: ${formatGrams(remaining)}g`;
+  if (remaining > 0) return `${formatGrams(remaining)}g kalan`;
   if (remaining === 0) return 'Hedefte ✓';
-  return `Fazla: ${formatGrams(Math.abs(remaining))}g`;
+  return `+${formatGrams(Math.abs(remaining))}g fazla`;
+}
+
+// Circular SVG progress inspired by 21st.dev Vo2MaxCard
+function CircularProgress({ value, size = 120, strokeWidth = 10, color = '#18181b' }: {
+  value: number; size?: number; strokeWidth?: number; color?: string;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.min(value, 100) / 100) * circumference;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle
+        cx={cx} cy={cy} r={radius}
+        fill="none"
+        stroke="rgba(0,0,0,0.06)"
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={cx} cy={cy} r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeDasharray={`${circumference} ${circumference}`}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)' }}
+      />
+    </svg>
+  );
 }
 
 export function StatsCard({ stats, goal, onOpenSettings }: Readonly<StatsCardProps>) {
   const getPercentage = (current: number, target: number) =>
     Math.min((current / target) * 100, 100);
-
-  const getColor = (percentage: number): 'primary' | 'warning' | 'error' => {
-    if (percentage < 70) return 'primary';
-    if (percentage < 100) return 'warning';
-    return 'error';
-  };
 
   const caloriePercentage = getPercentage(stats.totalCalories, goal.calories);
   const proteinPercentage = getPercentage(stats.totalProtein, goal.protein);
@@ -46,116 +70,228 @@ export function StatsCard({ stats, goal, onOpenSettings }: Readonly<StatsCardPro
   const fatPercentage     = getPercentage(stats.totalFat, goal.fat);
 
   const calorieRemaining = Math.round(goal.calories - stats.totalCalories);
-  const proteinRemaining = Math.round(goal.protein  - stats.totalProtein);
-  const carbsRemaining   = Math.round(goal.carbs    - stats.totalCarbs);
-  const fatRemaining     = Math.round(goal.fat      - stats.totalFat);
+  const rawCaloriePct = goal.calories > 0 ? (stats.totalCalories / goal.calories) * 100 : 0;
 
-  // Kalori durum kutusu — nested ternary yerine
+  // Circular ring color — blue when on track, amber when slightly over, red when way over
+  const ringColor = rawCaloriePct > 115
+    ? '#dc2626'
+    : rawCaloriePct > 100
+      ? '#d97706'
+      : '#0284c7';
+
   const renderCalorieStatus = () => {
     if (calorieRemaining > 0) {
       return (
-        <Box p={1.5} bgcolor="primary.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
-          <TrendingDownIcon fontSize="small" sx={{ color: 'primary.contrastText' }} />
-          <Typography variant="body2" color="primary.contrastText" fontWeight="600">
-            Kalan: {calorieRemaining} kcal
+        <Box
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center',
+            px: 2, py: 1, borderRadius: 20,
+            bgcolor: 'rgba(24,24,27,0.08)',
+            border: '1px solid rgba(24,24,27,0.15)',
+          }}
+        >
+          <TrendingDownIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+          <Typography variant="body2" fontWeight={600} color="primary.main">
+            {calorieRemaining} kcal kalan
           </Typography>
         </Box>
       );
     }
     if (calorieRemaining === 0) {
       return (
-        <Box p={1.5} bgcolor="success.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
-          <CheckCircleIcon fontSize="small" sx={{ color: 'success.contrastText' }} />
-          <Typography variant="body2" color="success.contrastText" fontWeight="600">
+        <Box
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center',
+            px: 2, py: 1, borderRadius: 20,
+            bgcolor: 'rgba(21,128,61,0.08)',
+            border: '1px solid rgba(21,128,61,0.2)',
+          }}
+        >
+          <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+          <Typography variant="body2" fontWeight={600} color="success.main">
             Hedef Tamamlandı!
           </Typography>
         </Box>
       );
     }
     return (
-      <Box p={1.5} bgcolor="error.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
-        <TrendingUpIcon fontSize="small" sx={{ color: 'error.contrastText' }} />
-        <Typography variant="body2" color="error.contrastText" fontWeight="600">
+      <Box
+        sx={{
+          display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center',
+          px: 2, py: 1, borderRadius: 20,
+          bgcolor: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.2)',
+        }}
+      >
+        <TrendingUpIcon sx={{ fontSize: 16, color: 'error.main' }} />
+        <Typography variant="body2" fontWeight={600} color="error.main">
           Hedef Aşıldı: +{Math.abs(calorieRemaining)} kcal
         </Typography>
       </Box>
     );
   };
 
+  const macros = [
+    {
+      label: 'Protein',
+      value: stats.totalProtein,
+      goal: goal.protein,
+      pct: proteinPercentage,
+      remaining: goal.protein - stats.totalProtein,
+      progressClass: 'progress-protein',
+      color: '#0369a1',
+      bg: 'rgba(3,105,161,0.08)',
+      border: 'rgba(3,105,161,0.2)',
+    },
+    {
+      label: 'Karbonhidrat',
+      value: stats.totalCarbs,
+      goal: goal.carbs,
+      pct: carbsPercentage,
+      remaining: goal.carbs - stats.totalCarbs,
+      progressClass: 'progress-carbs',
+      color: '#15803d',
+      bg: 'rgba(21,128,61,0.08)',
+      border: 'rgba(21,128,61,0.2)',
+    },
+    {
+      label: 'Yağ',
+      value: stats.totalFat,
+      goal: goal.fat,
+      pct: fatPercentage,
+      remaining: goal.fat - stats.totalFat,
+      progressClass: 'progress-fat',
+      color: '#b45309',
+      bg: 'rgba(180,83,9,0.08)',
+      border: 'rgba(180,83,9,0.2)',
+    },
+  ];
+
   return (
-    <Card elevation={3}>
-      <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-          <Box display="flex" alignItems="center">
-            <LocalFireDepartmentIcon color="error" sx={{ mr: 1, fontSize: 20 }} />
-            <Typography variant="subtitle1" fontWeight="bold">
-              Günlük Özet
-            </Typography>
+    <Card elevation={2}>
+      <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
+        {/* Header */}
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2.5}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Box
+              sx={{
+                width: 32, height: 32, borderRadius: '9px',
+                background: 'linear-gradient(135deg, #d97706, #fbbf24)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(217,119,6,0.3)',
+              }}
+            >
+              <LocalFireDepartmentIcon sx={{ fontSize: 18, color: '#fff' }} />
+            </Box>
+            <Typography variant="subtitle1" fontWeight={700}>Günlük Özet</Typography>
           </Box>
           {onOpenSettings && (
             <Tooltip title="Hedefleri Düzenle">
-              <IconButton onClick={onOpenSettings} size="small" color="primary">
+              <IconButton
+                onClick={onOpenSettings}
+                size="small"
+                sx={{
+                  color: 'text.secondary',
+                  bgcolor: 'rgba(0,0,0,0.04)',
+                  '&:hover': { bgcolor: 'rgba(24,24,27,0.1)', color: 'primary.main' },
+                }}
+              >
                 <SettingsIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           )}
         </Box>
 
-        {/* Kalori */}
-        <Box mb={2}>
-          <Box display="flex" justifyContent="space-between" mb={0.5}>
-            <Typography variant="body2" fontWeight="600">Kalori</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {stats.totalCalories} / {goal.calories} kcal
-            </Typography>
+        {/* Main: Circular Calorie + Macros */}
+        <Box
+          display="flex"
+          flexDirection={{ xs: 'column', sm: 'row' }}
+          alignItems={{ xs: 'center', sm: 'center' }}
+          gap={{ xs: 2, sm: 3 }}
+        >
+          {/* Circular Progress */}
+          <Box
+            position="relative"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            flexShrink={0}
+          >
+            <CircularProgress value={caloriePercentage} size={130} strokeWidth={12} color={ringColor} />
+            <Box
+              position="absolute"
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Typography
+                variant="h5"
+                fontWeight={800}
+                sx={{ lineHeight: 1, color: ringColor }}
+              >
+                {Math.round(stats.totalCalories)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                / {goal.calories}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                kcal
+              </Typography>
+            </Box>
           </Box>
-          <LinearProgress variant="determinate" value={caloriePercentage}
-            color={getColor(caloriePercentage)} sx={{ height: 8, borderRadius: 4 }} />
+
+          {/* Macro Bars */}
+          <Box flex={1} width="100%">
+            <Stack spacing={1.5}>
+              {macros.map((macro) => (
+                <Box key={macro.label}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                    <Box display="flex" alignItems="center" gap={0.75}>
+                      <Box
+                        sx={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          bgcolor: macro.color,
+                          boxShadow: `0 0 6px ${macro.color}80`,
+                        }}
+                      />
+                      <Typography variant="caption" fontWeight={600} color="text.primary">
+                        {macro.label}
+                      </Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatGrams(macro.value)}g / {formatGrams(macro.goal)}g
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'inline-flex', alignItems: 'center',
+                          px: 0.75, py: 0.25, borderRadius: 6,
+                          bgcolor: macro.bg, border: `1px solid ${macro.border}`,
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 700, color: macro.color, lineHeight: 1 }}>
+                          {getMacroRemainingLabel(macro.remaining)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={macro.pct}
+                    className={macro.progressClass}
+                    sx={{ height: 7, borderRadius: 4 }}
+                  />
+                </Box>
+              ))}
+            </Stack>
+          </Box>
         </Box>
 
-        {/* Makro Besinler */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2}>
-          <Box flex={1}>
-            <Chip label="Protein" color="info" size="small"
-              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }} />
-            <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
-              {formatGrams(stats.totalProtein)}g / {formatGrams(goal.protein)}g
-            </Typography>
-            <LinearProgress variant="determinate" value={proteinPercentage}
-              color={getColor(proteinPercentage)} sx={{ height: 5, borderRadius: 3, mt: 0.5 }} />
-            <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {getMacroRemainingLabel(proteinRemaining)}
-            </Typography>
-          </Box>
-
-          <Box flex={1}>
-            <Chip label="Karbonhidrat" color="success" size="small"
-              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }} />
-            <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
-              {formatGrams(stats.totalCarbs)}g / {formatGrams(goal.carbs)}g
-            </Typography>
-            <LinearProgress variant="determinate" value={carbsPercentage}
-              color={getColor(carbsPercentage)} sx={{ height: 5, borderRadius: 3, mt: 0.5 }} />
-            <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {getMacroRemainingLabel(carbsRemaining)}
-            </Typography>
-          </Box>
-
-          <Box flex={1}>
-            <Chip label="Yağ" color="warning" size="small"
-              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }} />
-            <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
-              {formatGrams(stats.totalFat)}g / {formatGrams(goal.fat)}g
-            </Typography>
-            <LinearProgress variant="determinate" value={fatPercentage}
-              color={getColor(fatPercentage)} sx={{ height: 5, borderRadius: 3, mt: 0.5 }} />
-            <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {getMacroRemainingLabel(fatRemaining)}
-            </Typography>
-          </Box>
-        </Stack>
-
-        {renderCalorieStatus()}
+        {/* Calorie Status */}
+        <Box mt={2.5} display="flex" justifyContent="center">
+          {renderCalorieStatus()}
+        </Box>
       </CardContent>
     </Card>
   );
