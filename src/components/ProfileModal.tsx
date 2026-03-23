@@ -44,7 +44,7 @@ interface ProfileModalProps {
   onStartPasswordAdd?: () => void;
 }
 
-export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: ProfileModalProps) {
+export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: Readonly<ProfileModalProps>) {
   const { currentUser, updateUserProfile, addPasswordToAccount, deleteAccount, updateUserPassword } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -106,7 +106,7 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
         .max(128, 'Şifre en fazla 128 karakter olabilir')
         .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
         .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-        .matches(/[0-9]/, 'En az bir rakam içermelidir')
+        .matches(/\d/, 'En az bir rakam içermelidir')
         .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
       confirmPassword: Yup.string()
         .required('Şifre tekrarı zorunlu')
@@ -173,7 +173,7 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
         .max(128, 'Şifre en fazla 128 karakter olabilir')
         .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
         .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-        .matches(/[0-9]/, 'En az bir rakam içermelidir')
+        .matches(/\d/, 'En az bir rakam içermelidir')
         .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
       confirmPassword: Yup.string()
         .required('Şifre tekrarı zorunlu')
@@ -250,6 +250,12 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
 
   // Provider bilgilerini al
   const providersList = currentUser?.providerData.map(p => p.providerId) || [];
+
+  const deleteButtonLabel = (() => {
+    if (deleteLoading) return 'Siliniyor...';
+    const useGoogle = (hasBothProviders && deleteMethod === 'google') || (!isEmailProvider && !hasBothProviders);
+    return useGoogle ? 'Google ile Doğrula ve Sil' : 'Hesabı Kalıcı Olarak Sil';
+  })();
 
   return (
     <>
@@ -705,11 +711,7 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: P
           startIcon={<DeleteForeverIcon />}
           disabled={deleteLoading || ((hasBothProviders ? deleteMethod === 'password' : !!isEmailProvider) && !deletePassword)}
         >
-          {deleteLoading ? 'Siliniyor...' : (
-            (hasBothProviders && deleteMethod === 'google') || (!isEmailProvider && !hasBothProviders)
-              ? 'Google ile Doğrula ve Sil'
-              : 'Hesabı Kalıcı Olarak Sil'
-          )}
+          {deleteButtonLabel}
         </Button>
       </DialogActions>
     </Dialog>

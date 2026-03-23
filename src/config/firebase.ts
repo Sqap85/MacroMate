@@ -23,7 +23,7 @@ const firebaseConfig = {
  */
 export const emailVerificationSettings: ActionCodeSettings = {
   // Doğrulama sonrası yönlendirilecek URL
-  url: window.location.origin,
+  url: globalThis.location.origin,
   // Web'de handle etmek için
   handleCodeInApp: false,
 };
@@ -34,7 +34,7 @@ export const emailVerificationSettings: ActionCodeSettings = {
  */
 export const passwordResetSettings: ActionCodeSettings = {
   // Sıfırlama sonrası yönlendirilecek URL
-  url: window.location.origin,
+  url: globalThis.location.origin,
   // Firebase'in kendi sayfasında handle et
   handleCodeInApp: false,
 };

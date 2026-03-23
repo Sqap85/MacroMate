@@ -54,7 +54,7 @@ interface FoodFormProps {
   ) => void;
 }
 
-export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTemplates, onSaveTemplateAndAdd }: FoodFormProps) {
+export function FoodForm({ onAddFood, foodTemplates, onAddFromTemplate, onOpenTemplates, onSaveTemplateAndAdd }: Readonly<FoodFormProps>) {
   const [tabValue, setTabValue] = useState(0);
   const [barcodeScannerOpen, setBarcodeScannerOpen] = useState(false);
   const [formData, setFormData] = useState<FoodFormData>({

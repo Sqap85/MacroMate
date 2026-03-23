@@ -330,7 +330,7 @@ function App() {
         localStorage.removeItem('macromate-foods');
         localStorage.removeItem('macromate-goal');
         localStorage.removeItem('macromate-templates');
-        window.location.reload();
+        globalThis.location.reload();
       }
       await logout();
       setToast({

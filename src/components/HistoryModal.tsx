@@ -652,6 +652,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
   const isFutureTab = tabValue === 2;
   const activeDays = currentStats.days.filter(d => d.foods.length > 0).length;
   const hasAnyData = isFutureTab ? true : activeDays > 0;
+  const summaryTitle = isMobile ? 'Ortalama' : 'Ortalama Günlük Değerler';
   const orderedDays = useMemo(
     () => (isFutureTab ? currentStats.days : currentStats.days.slice().reverse()),
     [currentStats.days, isFutureTab]
@@ -866,9 +867,9 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
             />
           </Tabs>
 
-          {tabValue === 1 ? (
-            <StatsTab foods={foods} goal={goal} />
-          ) : hasAnyData ? (
+          {tabValue === 1 && <StatsTab foods={foods} goal={goal} />}
+
+          {tabValue !== 1 && hasAnyData && (
             <>
               {/* Gelecek planları için özel başlık */}
               {isFutureTab && (
@@ -900,7 +901,7 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                     <Box display="flex" alignItems="center" gap={1}>
                       <TrendingUpIcon color="primary" sx={{ fontSize: isMobile ? 20 : 24 }} />
                       <Typography variant={isMobile ? 'subtitle2' : 'h6'} fontWeight="bold">
-                        {tabValue === 1 ? 'Genel İstatistikler' : isMobile ? 'Ortalama' : 'Ortalama Günlük Değerler'}
+                        {summaryTitle}
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
@@ -1169,6 +1170,10 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                   const percentage = getPercentage(day.totalCalories, goal.calories);
                   const hasData = day.foods.length > 0;
                   const isExpanded = expandedDays[day.date];
+                  const borderColor = isFutureTab
+                    ? (hasData ? 'success.main' : 'grey.300')
+                    : (hasData ? 'primary.main' : 'grey.400');
+                  const cardBgColor = (isFutureTab && hasData) ? 'success.50' : 'background.paper';
                   
                   return (
                     <Card 
@@ -1177,9 +1182,9 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                       sx={{
                         opacity: hasData ? 1 : 0.7,
                         borderLeft: 3,
-                        borderLeftColor: isFutureTab ? (hasData ? 'success.main' : 'grey.300') : (hasData ? 'primary.main' : 'grey.400'),
+                        borderLeftColor: borderColor,
                         overflow: 'visible',
-                        bgcolor: isFutureTab ? (hasData ? 'success.50' : 'background.paper') : 'background.paper',
+                        bgcolor: cardBgColor,
                       }}
                     >
                       <CardContent sx={{ 
@@ -1414,7 +1419,9 @@ export function HistoryModal({ open, onClose, isLoading = false, foods, goal, on
                 </Box>
               )}
             </>
-          ) : (
+          )}
+
+          {tabValue !== 1 && !hasAnyData && (
             <Box textAlign="center" py={isMobile ? 4 : 8}>
               <CalendarMonthIcon sx={{ fontSize: isMobile ? 60 : 80, color: 'text.secondary', mb: isMobile ? 1.5 : 2 }} />
               <Typography variant={isMobile ? 'subtitle1' : 'h6'} color="text.secondary" gutterBottom>

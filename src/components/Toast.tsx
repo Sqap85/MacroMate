@@ -8,7 +8,7 @@ interface ToastProps {
   onClose: () => void;
 }
 
-export function Toast({ open, message, severity, onClose }: ToastProps) {
+export function Toast({ open, message, severity, onClose }: Readonly<ToastProps>) {
   return (
     <Snackbar
       open={open}

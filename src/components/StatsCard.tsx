@@ -23,34 +23,63 @@ interface StatsCardProps {
   onOpenSettings?: () => void;
 }
 
-export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
-  // Yüzde hesapla
-  const getPercentage = (current: number, target: number) => {
-    return Math.min((current / target) * 100, 100);
-  };
+// Kalan/Fazla label hesapla — nested ternary yerine
+function getMacroRemainingLabel(remaining: number): string {
+  if (remaining > 0) return `Kalan: ${formatGrams(remaining)}g`;
+  if (remaining === 0) return 'Hedefte ✓';
+  return `Fazla: ${formatGrams(Math.abs(remaining))}g`;
+}
 
-  // Progress bar rengi
-  const getColor = (percentage: number): "primary" | "warning" | "error" => {
-    if (percentage < 70) return "primary";
-    if (percentage < 100) return "warning";
-    return "error";
+export function StatsCard({ stats, goal, onOpenSettings }: Readonly<StatsCardProps>) {
+  const getPercentage = (current: number, target: number) =>
+    Math.min((current / target) * 100, 100);
+
+  const getColor = (percentage: number): 'primary' | 'warning' | 'error' => {
+    if (percentage < 70) return 'primary';
+    if (percentage < 100) return 'warning';
+    return 'error';
   };
 
   const caloriePercentage = getPercentage(stats.totalCalories, goal.calories);
   const proteinPercentage = getPercentage(stats.totalProtein, goal.protein);
-  const carbsPercentage = getPercentage(stats.totalCarbs, goal.carbs);
-  const fatPercentage = getPercentage(stats.totalFat, goal.fat);
+  const carbsPercentage   = getPercentage(stats.totalCarbs, goal.carbs);
+  const fatPercentage     = getPercentage(stats.totalFat, goal.fat);
 
-  // Kalan/Fazla hesapla
   const calorieRemaining = Math.round(goal.calories - stats.totalCalories);
-  const proteinRemaining = Math.round(goal.protein - stats.totalProtein);
-  const carbsRemaining = Math.round(goal.carbs - stats.totalCarbs);
-  const fatRemaining = Math.round(goal.fat - stats.totalFat);
+  const proteinRemaining = Math.round(goal.protein  - stats.totalProtein);
+  const carbsRemaining   = Math.round(goal.carbs    - stats.totalCarbs);
+  const fatRemaining     = Math.round(goal.fat      - stats.totalFat);
 
-  const getRemainingLabel = (remaining: number) => {
-    if (remaining > 0) return `Kalan: ${formatGrams(remaining)}g`;
-    if (remaining === 0) return 'Hedefte ✓';
-    return `Fazla: ${formatGrams(Math.abs(remaining))}g`;
+  // Kalori durum kutusu — nested ternary yerine
+  const renderCalorieStatus = () => {
+    if (calorieRemaining > 0) {
+      return (
+        <Box p={1.5} bgcolor="primary.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
+          <TrendingDownIcon fontSize="small" sx={{ color: 'primary.contrastText' }} />
+          <Typography variant="body2" color="primary.contrastText" fontWeight="600">
+            Kalan: {calorieRemaining} kcal
+          </Typography>
+        </Box>
+      );
+    }
+    if (calorieRemaining === 0) {
+      return (
+        <Box p={1.5} bgcolor="success.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
+          <CheckCircleIcon fontSize="small" sx={{ color: 'success.contrastText' }} />
+          <Typography variant="body2" color="success.contrastText" fontWeight="600">
+            Hedef Tamamlandı!
+          </Typography>
+        </Box>
+      );
+    }
+    return (
+      <Box p={1.5} bgcolor="error.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
+        <TrendingUpIcon fontSize="small" sx={{ color: 'error.contrastText' }} />
+        <Typography variant="body2" color="error.contrastText" fontWeight="600">
+          Hedef Aşıldı: +{Math.abs(calorieRemaining)} kcal
+        </Typography>
+      </Box>
+    );
   };
 
   return (
@@ -75,113 +104,58 @@ export function StatsCard({ stats, goal, onOpenSettings }: StatsCardProps) {
         {/* Kalori */}
         <Box mb={2}>
           <Box display="flex" justifyContent="space-between" mb={0.5}>
-            <Typography variant="body2" fontWeight="600">
-              Kalori
-            </Typography>
+            <Typography variant="body2" fontWeight="600">Kalori</Typography>
             <Typography variant="caption" color="text.secondary">
               {stats.totalCalories} / {goal.calories} kcal
             </Typography>
           </Box>
-          <LinearProgress
-            variant="determinate"
-            value={caloriePercentage}
-            color={getColor(caloriePercentage)}
-            sx={{ height: 8, borderRadius: 4 }}
-          />
+          <LinearProgress variant="determinate" value={caloriePercentage}
+            color={getColor(caloriePercentage)} sx={{ height: 8, borderRadius: 4 }} />
         </Box>
 
         {/* Makro Besinler */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2}>
-          {/* Protein */}
           <Box flex={1}>
-            <Chip
-              label="Protein"
-              color="info"
-              size="small"
-              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }}
-            />
+            <Chip label="Protein" color="info" size="small"
+              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }} />
             <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
               {formatGrams(stats.totalProtein)}g / {formatGrams(goal.protein)}g
             </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={proteinPercentage}
-              color={getColor(proteinPercentage)}
-              sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
-            />
+            <LinearProgress variant="determinate" value={proteinPercentage}
+              color={getColor(proteinPercentage)} sx={{ height: 5, borderRadius: 3, mt: 0.5 }} />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {getRemainingLabel(proteinRemaining)}
+              {getMacroRemainingLabel(proteinRemaining)}
             </Typography>
           </Box>
 
-          {/* Karbonhidrat */}
           <Box flex={1}>
-            <Chip
-              label="Karbonhidrat"
-              color="success"
-              size="small"
-              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }}
-            />
+            <Chip label="Karbonhidrat" color="success" size="small"
+              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }} />
             <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
               {formatGrams(stats.totalCarbs)}g / {formatGrams(goal.carbs)}g
             </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={carbsPercentage}
-              color={getColor(carbsPercentage)}
-              sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
-            />
+            <LinearProgress variant="determinate" value={carbsPercentage}
+              color={getColor(carbsPercentage)} sx={{ height: 5, borderRadius: 3, mt: 0.5 }} />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {getRemainingLabel(carbsRemaining)}
+              {getMacroRemainingLabel(carbsRemaining)}
             </Typography>
           </Box>
 
-          {/* Yağ */}
           <Box flex={1}>
-            <Chip
-              label="Yağ"
-              color="warning"
-              size="small"
-              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }}
-            />
+            <Chip label="Yağ" color="warning" size="small"
+              sx={{ mb: 0.5, width: '100%', height: 22, fontSize: '0.75rem' }} />
             <Typography variant="caption" align="center" display="block" fontSize="0.75rem">
               {formatGrams(stats.totalFat)}g / {formatGrams(goal.fat)}g
             </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={fatPercentage}
-              color={getColor(fatPercentage)}
-              sx={{ height: 5, borderRadius: 3, mt: 0.5 }}
-            />
+            <LinearProgress variant="determinate" value={fatPercentage}
+              color={getColor(fatPercentage)} sx={{ height: 5, borderRadius: 3, mt: 0.5 }} />
             <Typography variant="caption" align="center" display="block" fontSize="0.65rem" color="text.secondary" mt={0.5}>
-              {getRemainingLabel(fatRemaining)}
+              {getMacroRemainingLabel(fatRemaining)}
             </Typography>
           </Box>
         </Stack>
 
-        {/* Kalan Kalori veya Hedef Aşıldı */}
-        {calorieRemaining > 0 ? (
-          <Box p={1.5} bgcolor="primary.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
-            <TrendingDownIcon fontSize="small" sx={{ color: 'primary.contrastText' }} />
-            <Typography variant="body2" color="primary.contrastText" fontWeight="600">
-              Kalan: {calorieRemaining} kcal
-            </Typography>
-          </Box>
-        ) : calorieRemaining === 0 ? (
-          <Box p={1.5} bgcolor="success.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
-            <CheckCircleIcon fontSize="small" sx={{ color: 'success.contrastText' }} />
-            <Typography variant="body2" color="success.contrastText" fontWeight="600">
-              Hedef Tamamlandı!
-            </Typography>
-          </Box>
-        ) : (
-          <Box p={1.5} bgcolor="error.light" borderRadius={2} display="flex" alignItems="center" justifyContent="center" gap={1}>
-            <TrendingUpIcon fontSize="small" sx={{ color: 'error.contrastText' }} />
-            <Typography variant="body2" color="error.contrastText" fontWeight="600">
-              Hedef Aşıldı: +{Math.abs(calorieRemaining)} kcal
-            </Typography>
-          </Box>
-        )}
+        {renderCalorieStatus()}
       </CardContent>
     </Card>
   );

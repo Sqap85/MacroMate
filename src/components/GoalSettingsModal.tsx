@@ -21,7 +21,7 @@ interface GoalSettingsModalProps {
   onSave: (goal: DailyGoal) => void;
 }
 
-export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: GoalSettingsModalProps) {
+export function GoalSettingsModal({ open, onClose, currentGoal, onSave }: Readonly<GoalSettingsModalProps>) {
   const [goal, setGoal] = useState<DailyGoal>(currentGoal);
 
   const handleSave = () => {

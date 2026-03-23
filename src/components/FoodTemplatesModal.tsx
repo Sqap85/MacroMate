@@ -56,7 +56,7 @@ export function FoodTemplatesModal({
   onDeleteTemplate,
   onEditTemplate,
   onBulkDelete,
-}: FoodTemplatesModalProps) {
+}: Readonly<FoodTemplatesModalProps>) {
   // Barkod tarayıcı (save-only modu)
   const [barcodeScannerOpen, setBarcodeScannerOpen] = useState(false);
 
@@ -226,7 +226,7 @@ export function FoodTemplatesModal({
     a.download = 'food_templates.csv';
     document.body.appendChild(a);
     a.click();
-    a.remove();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -259,7 +259,7 @@ export function FoodTemplatesModal({
         showToast({ open: true, message: 'CSV başlıkları hatalı. Doğru format: "name","unit","calories","protein","carbs","fat"', severity: 'error' });
         return;
       }
-      const header = lines[0].split(',').map(h => h.replace(/\"/g, '').trim());
+      const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
       const nameIdx = header.indexOf('name');
       const unitIdx = header.indexOf('unit');
       const calIdx = header.indexOf('calories');
@@ -268,9 +268,10 @@ export function FoodTemplatesModal({
       const fatIdx = header.indexOf('fat');
 
       const dangerous = (val: string) => /^[=+\-@]/.test(val);
+      const parseCsvCell = (cell: string) => cell.replace(/^"|"$/g, '').replace(/""/g, '"');
       let validNewCount = 0;
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(cell => cell.replaceAll(/^"|"$/g, '').replaceAll(/""/g, '"'));
+        const row = lines[i].split(',').map(parseCsvCell);
         if (row.length < 6) continue;
         const name = row[nameIdx]?.trim() || '';
         const unit = row[unitIdx]?.trim();
@@ -299,7 +300,7 @@ export function FoodTemplatesModal({
       const skipped: string[] = [];
       let negativeSkipped = 0;
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(cell => cell.replaceAll(/^"|"$/g, '').replaceAll(/""/g, '"'));
+        const row = lines[i].split(',').map(parseCsvCell);
         if (row.length < 6) continue;
         const name = row[nameIdx]?.trim() || '';
         const unit = row[unitIdx]?.trim();

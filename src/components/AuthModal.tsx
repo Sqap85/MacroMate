@@ -37,7 +37,7 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-export function AuthModal({ open, onClose }: AuthModalProps) {
+export function AuthModal({ open, onClose }: Readonly<AuthModalProps>) {
   const { signup, login, loginWithGoogle, continueAsGuest, resetPassword } = useAuth();
   const [tabValue, setTabValue] = useState(0); // 0: Login, 1: Signup
   const [error, setError] = useState('');
@@ -66,7 +66,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           .max(128, 'Şifre en fazla 128 karakter olabilir')
           .matches(/[a-z]/, 'En az bir küçük harf içermelidir')
           .matches(/[A-Z]/, 'En az bir büyük harf içermelidir')
-          .matches(/[0-9]/, 'En az bir rakam içermelidir')
+          .matches(/\d/, 'En az bir rakam içermelidir')
           .matches(/[@$!%*?&#.]/, 'En az bir özel karakter içermelidir (@$!%*?&#.)'),
     displayName: !isLogin
       ? Yup.string()

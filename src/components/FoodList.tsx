@@ -100,7 +100,7 @@ interface FoodListProps {
   foodTemplates: FoodTemplate[];
 }
 
-export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: FoodListProps) {
+export function FoodList({ foods, onDeleteFood, onEditFood, foodTemplates }: Readonly<FoodListProps>) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);

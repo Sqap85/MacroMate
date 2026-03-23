@@ -68,6 +68,8 @@ interface DayAggregate {
   fat: number;
 }
 
+// ── Yardımcı fonksiyonlar (küçük, tek sorumluluk) ──
+
 function getDateKey(timestamp: number): string {
   const d = new Date(timestamp);
   const y = d.getFullYear();
@@ -77,103 +79,145 @@ function getDateKey(timestamp: number): string {
 }
 
 function parseDateKey(dateKey: string): Date {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  const [y, mo, d] = dateKey.split('-').map(Number);
+  return new Date(y, mo - 1, d);
 }
 
 function getCurrentStreak(activeDateKeys: string[]): number {
   if (activeDateKeys.length === 0) return 0;
-
   const activeSet = new Set(activeDateKeys);
   const cursor = new Date();
   cursor.setHours(0, 0, 0, 0);
-
   let streak = 0;
-  while (true) {
-    const y = cursor.getFullYear();
-    const m = String(cursor.getMonth() + 1).padStart(2, '0');
-    const d = String(cursor.getDate()).padStart(2, '0');
-    const key = `${y}-${m}-${d}`;
 
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const key = getDateKey(cursor.getTime());
     if (!activeSet.has(key)) break;
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
-
   return streak;
 }
 
+// ✅ Redundant assignment düzeltildi: current = 0 ile başla
 function getLongestStreak(sortedDateKeys: string[]): number {
   if (sortedDateKeys.length === 0) return 0;
+  let longest = 0;
+  let current = 0;
 
-  let longest = 1;
-  let current = 1;
-
-  for (let i = 1; i < sortedDateKeys.length; i += 1) {
-    const prev = parseDateKey(sortedDateKeys[i - 1]);
-    const next = parseDateKey(sortedDateKeys[i]);
-    const diffDays = Math.round((next.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) {
-      current += 1;
-      longest = Math.max(longest, current);
-    } else {
+  for (let i = 0; i < sortedDateKeys.length; i += 1) {
+    if (i === 0) {
       current = 1;
+    } else {
+      const prev = parseDateKey(sortedDateKeys[i - 1]);
+      const next = parseDateKey(sortedDateKeys[i]);
+      const diffDays = Math.round((next.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        current += 1;
+      } else {
+        current = 1;
+      }
     }
+    longest = Math.max(longest, current);
   }
-
   return longest;
 }
 
-function calculateStats(foods: Food[], goal: DailyGoal): CalculatedStats {
+function buildDayMap(foods: Food[]): Map<string, DayAggregate> {
   const dayMap = new Map<string, DayAggregate>();
-
   for (const food of foods) {
     const key = getDateKey(food.timestamp);
     const existing = dayMap.get(key);
-
     if (existing) {
       existing.calories += food.calories;
-      existing.protein += food.protein;
-      existing.carbs += food.carbs;
-      existing.fat += food.fat;
+      existing.protein  += food.protein;
+      existing.carbs    += food.carbs;
+      existing.fat      += food.fat;
     } else {
       dayMap.set(key, {
         calories: food.calories,
-        protein: food.protein,
-        carbs: food.carbs,
-        fat: food.fat,
+        protein:  food.protein,
+        carbs:    food.carbs,
+        fat:      food.fat,
       });
     }
   }
+  return dayMap;
+}
 
+function calcRecords(
+  activeDateKeys: string[],
+  dayMap: Map<string, DayAggregate>,
+  goal: DailyGoal,
+): StatsRecords {
+  let bestDay: StatsRecords['bestDay'] = null;
+  let highestProtein: StatsRecords['highestProtein'] = null;
+
+  for (const dateKey of activeDateKeys) {
+    const day = dayMap.get(dateKey)!;
+    if (!bestDay || Math.abs(day.calories - goal.calories) < Math.abs(bestDay.calories - goal.calories)) {
+      bestDay = { date: dateKey, calories: day.calories };
+    }
+    if (!highestProtein || day.protein > highestProtein.protein) {
+      highestProtein = { date: dateKey, protein: day.protein };
+    }
+  }
+  return { bestDay, highestProtein };
+}
+
+function calcMonthlyBars(
+  activeDateKeys: string[],
+  dayMap: Map<string, DayAggregate>,
+  goal: DailyGoal,
+): MonthlyBarData[] {
+  const now = new Date();
+  const bars: MonthlyBarData[] = [];
+
+  for (let offset = 5; offset >= 0; offset -= 1) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const year  = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    let daysOnTarget = 0;
+    let totalDays = 0;
+
+    for (const dateKey of activeDateKeys) {
+      const d = parseDateKey(dateKey);
+      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+      totalDays += 1;
+      const day = dayMap.get(dateKey)!;
+      if (Math.abs(day.calories - goal.calories) <= goal.calories * 0.1) {
+        daysOnTarget += 1;
+      }
+    }
+
+    bars.push({
+      month: monthDate.toLocaleDateString('tr-TR', { month: 'short' }),
+      percentage: totalDays > 0 ? Math.round((daysOnTarget / totalDays) * 100) : 0,
+      daysOnTarget,
+      totalDays,
+    });
+  }
+  return bars;
+}
+
+function calculateStats(foods: Food[], goal: DailyGoal): CalculatedStats {
+  const dayMap = buildDayMap(foods);
   const activeDateKeys = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b));
   const totalActiveDays = activeDateKeys.length;
   const divisor = totalActiveDays || 1;
 
   let totalCalories = 0;
-  let totalProtein = 0;
-  let totalCarbs = 0;
-  let totalFat = 0;
-
-  let bestDay: { date: string; calories: number } | null = null;
-  let highestProtein: { date: string; protein: number } | null = null;
+  let totalProtein  = 0;
+  let totalCarbs    = 0;
+  let totalFat      = 0;
 
   for (const dateKey of activeDateKeys) {
     const day = dayMap.get(dateKey)!;
-
     totalCalories += day.calories;
-    totalProtein += day.protein;
-    totalCarbs += day.carbs;
-    totalFat += day.fat;
-
-    if (!bestDay || Math.abs(day.calories - goal.calories) < Math.abs(bestDay.calories - goal.calories)) {
-      bestDay = { date: dateKey, calories: day.calories };
-    }
-
-    if (!highestProtein || day.protein > highestProtein.protein) {
-      highestProtein = { date: dateKey, protein: day.protein };
-    }
+    totalProtein  += day.protein;
+    totalCarbs    += day.carbs;
+    totalFat      += day.fat;
   }
 
   const now = new Date();
@@ -182,60 +226,33 @@ function calculateStats(foods: Food[], goal: DailyGoal): CalculatedStats {
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   }).length;
 
-  const streak: StatsStreak = {
-    current: getCurrentStreak(activeDateKeys),
-    longest: getLongestStreak(activeDateKeys),
-    thisMonth,
-    totalActiveDays,
-  };
-
-  const monthlyBars: MonthlyBarData[] = [];
-  for (let offset = 5; offset >= 0; offset -= 1) {
-    const monthDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-    const year = monthDate.getFullYear();
-    const month = monthDate.getMonth();
-
-    let daysOnTarget = 0;
-    let totalDays = 0;
-
-    for (const dateKey of activeDateKeys) {
-      const d = parseDateKey(dateKey);
-      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
-
-      totalDays += 1;
-      const day = dayMap.get(dateKey)!;
-      if (Math.abs(day.calories - goal.calories) <= goal.calories * 0.1) {
-        daysOnTarget += 1;
-      }
-    }
-
-    const percentage = totalDays > 0 ? Math.round((daysOnTarget / totalDays) * 100) : 0;
-    monthlyBars.push({
-      month: monthDate.toLocaleDateString('tr-TR', { month: 'short' }),
-      percentage,
-      daysOnTarget,
-      totalDays,
-    });
-  }
-
   return {
-    streak,
-    records: {
-      bestDay,
-      highestProtein,
+    streak: {
+      current: getCurrentStreak(activeDateKeys),
+      longest: getLongestStreak(activeDateKeys),
+      thisMonth,
+      totalActiveDays,
     },
-    monthlyBars,
+    records:     calcRecords(activeDateKeys, dayMap, goal),
+    monthlyBars: calcMonthlyBars(activeDateKeys, dayMap, goal),
     averageCalories: Math.round(totalCalories / divisor),
-    averageProtein: Math.round(totalProtein / divisor),
-    averageCarbs: Math.round(totalCarbs / divisor),
-    averageFat: Math.round(totalFat / divisor),
+    averageProtein:  Math.round(totalProtein  / divisor),
+    averageCarbs:    Math.round(totalCarbs    / divisor),
+    averageFat:      Math.round(totalFat      / divisor),
   };
 }
 
-export function StatsTab({ foods, goal }: StatsTabProps) {
-  const theme = useTheme();
+// ✅ Nested ternary yerine fonksiyon
+function getBarColor(percentage: number): string {
+  if (percentage >= 70) return '#4caf50';
+  if (percentage >= 40) return '#ff9800';
+  return '#ef5350';
+}
+
+export function StatsTab({ foods, goal }: Readonly<StatsTabProps>) {
+  const theme   = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const stats = useMemo(() => calculateStats(foods, goal), [foods, goal]);
+  const stats   = useMemo(() => calculateStats(foods, goal), [foods, goal]);
 
   if (foods.length === 0) {
     return (
@@ -328,7 +345,7 @@ export function StatsTab({ foods, goal }: StatsTabProps) {
       </Card>
 
       {/* Rekorlar */}
-      {(records.bestDay || records.highestProtein) && (
+      {(records.bestDay ?? records.highestProtein) && (
         <Card sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
           <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
             <Box display="flex" alignItems="center" gap={1} mb={isMobile ? 1.5 : 2}>
@@ -384,8 +401,9 @@ export function StatsTab({ foods, goal }: StatsTabProps) {
                   contentStyle={{ fontSize: isMobile ? 11 : 13 }}
                 />
                 <Bar dataKey="percentage" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                  {/* ✅ index yerine entry.month key olarak kullanılıyor */}
                   {monthlyBars.map((entry: MonthlyBarData) => (
-                    <Cell key={entry.month} fill={entry.percentage >= 70 ? '#4caf50' : entry.percentage >= 40 ? '#ff9800' : '#ef5350'} />
+                    <Cell key={entry.month} fill={getBarColor(entry.percentage)} />
                   ))}
                 </Bar>
               </BarChart>
