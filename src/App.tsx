@@ -330,12 +330,19 @@ function App() {
         localStorage.removeItem('macromate-foods');
         localStorage.removeItem('macromate-goal');
         localStorage.removeItem('macromate-templates');
-        globalThis.location.reload();
+        localStorage.removeItem('guestMode');
+        await logout();
+        setToast({
+          open: true,
+          message: 'Veriler silindi ve çıkış yapıldı',
+          severity: 'info',
+        });
+        return;
       }
       await logout();
       setToast({
         open: true,
-        message: isGuest ? 'Veriler silindi ve çıkış yapıldı' : 'Çıkış yapıldı',
+        message: 'Çıkış yapıldı',
         severity: 'info',
       });
     } catch (error) {
@@ -348,7 +355,7 @@ function App() {
 
   const handleOpenHistory = async () => {
     if (allFoodsLoading) return;
-    setHistoryOpen(true); // ✅ önce aç
+    setHistoryOpen(true);
     if (!allFoodsLoaded) {
       try {
         await ensureAllFoodsLoaded();
@@ -473,7 +480,7 @@ function App() {
       </AppBar>
 
       {/* Ana İçerik */}
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: currentUser || isGuest ? 4 : 0 }}>
         {currentUser || isGuest ? (
           <Stack spacing={3}>
             {/* İstatistikler */}
@@ -518,7 +525,8 @@ function App() {
             flexDirection="column"
             alignItems="center"
             justifyContent="center"
-            minHeight="70vh"
+            height="calc(100vh - 64px - 72px)"
+            minHeight="unset"
             textAlign="center"
           >
             <Typography 
@@ -578,7 +586,6 @@ function App() {
       {/* Footer */}
       <Box 
         component="footer"
-        mt={6}
         py={3}
         bgcolor="primary.main"
         display="flex" 
