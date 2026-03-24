@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Papa from 'papaparse';
 import {
   Dialog,
   DialogTitle,
@@ -232,6 +233,7 @@ export function FoodTemplatesModal({
 
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const MAX_TOTAL = 1000;
+    const MAX_ROWS = 1000;
     const file = e.target.files?.[0];
     if (!file) return;
     const MAX_SIZE = 2 * 1024 * 1024;
@@ -244,22 +246,26 @@ export function FoodTemplatesModal({
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (!text) { showToast({ open: true, message: 'Dosya okunamadı.', severity: 'error' }); return; }
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      const MAX_ROWS = 1000;
-      if (lines.length - 1 > MAX_ROWS) {
-        showToast({ open: true, message: `Çok fazla satır var (maksimum ${MAX_ROWS} şablon).`, severity: 'error' });
-        return;
-      }
-      if (lines.length < 2) {
+
+      const parsed = Papa.parse<string[]>(text, { skipEmptyLines: true });
+      const rows = parsed.data;
+
+      if (rows.length < 2) {
         showToast({ open: true, message: 'Geçersiz veya boş CSV dosyası.', severity: 'error' });
         return;
       }
-      const expectedHeader = '"name","unit","calories","protein","carbs","fat"';
-      if (lines[0].trim() !== expectedHeader) {
-        showToast({ open: true, message: 'CSV başlıkları hatalı. Doğru format: "name","unit","calories","protein","carbs","fat"', severity: 'error' });
+      if (rows.length - 1 > MAX_ROWS) {
+        showToast({ open: true, message: `Çok fazla satır var (maksimum ${MAX_ROWS} şablon).`, severity: 'error' });
         return;
       }
-      const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+
+      const expectedHeader = ['name', 'unit', 'calories', 'protein', 'carbs', 'fat'];
+      const header = rows[0].map(h => h.trim());
+      if (header.join(',') !== expectedHeader.join(',')) {
+        showToast({ open: true, message: 'CSV başlıkları hatalı. Doğru format: name,unit,calories,protein,carbs,fat', severity: 'error' });
+        return;
+      }
+
       const nameIdx = header.indexOf('name');
       const unitIdx = header.indexOf('unit');
       const calIdx = header.indexOf('calories');
@@ -268,10 +274,12 @@ export function FoodTemplatesModal({
       const fatIdx = header.indexOf('fat');
 
       const dangerous = (val: string) => /^[=+\-@]/.test(val);
-      const parseCsvCell = (cell: string) => cell.replace(/^"|"$/g, '').replace(/""/g, '"');
+
+      const dataRows = rows.slice(1);
+
+      // Önce limit kontrolü
       let validNewCount = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(parseCsvCell);
+      for (const row of dataRows) {
         if (row.length < 6) continue;
         const name = row[nameIdx]?.trim() || '';
         const unit = row[unitIdx]?.trim();
@@ -299,8 +307,7 @@ export function FoodTemplatesModal({
       let added = 0;
       const skipped: string[] = [];
       let negativeSkipped = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(parseCsvCell);
+      for (const row of dataRows) {
         if (row.length < 6) continue;
         const name = row[nameIdx]?.trim() || '';
         const unit = row[unitIdx]?.trim();

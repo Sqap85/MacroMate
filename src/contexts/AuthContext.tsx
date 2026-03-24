@@ -209,12 +209,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsGuest(true);
       setCurrentUser(null);
       setLoading(false);
-      return;
+      // return YOK: misafir modunda da listener kurulmalı,
+      // yoksa Google/email ile giriş yapınca state güncellenmiyor.
+    } else {
+      setIsGuest(false);
     }
-    setIsGuest(false);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
+      if (user) {
+        // Giriş yapıldı: misafir modundan çık
+        setCurrentUser(user);
+        setLoading(false);
+      } else if (localStorage.getItem('guestMode') !== 'true') {
+        // Giriş yok ve misafir de değil
+        setCurrentUser(null);
+        setLoading(false);
+      }
+      // user=null ve guestMode=true ise: üstte zaten set edildi, dokunma
     });
     return unsubscribe;
   }, []);
