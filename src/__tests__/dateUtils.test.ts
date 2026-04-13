@@ -22,10 +22,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+let _foodCounter = 0;
 const makeFood = (dateStr: string, calories: number, overrides: Partial<Food> = {}): Food => {
   const [y, m, d] = dateStr.split('-').map(Number);
   return {
-    id: `food-${Math.random()}`,
+    id: `food-${++_foodCounter}`,
     name: 'Test',
     calories,
     protein: 10,
