@@ -1,4 +1,3 @@
-// Besin bilgisi için tip tanımı
 export interface Food {
   id: string;
   name: string;
@@ -7,21 +6,20 @@ export interface Food {
   carbs: number;
   fat: number;
   timestamp: number;
-  mealType?: MealType; // Öğün türü opsiyonel
-  fromTemplate?: boolean; // Şablondan mı eklendi
-  templateId?: string; // Hangi şablondan
-  originalAmount?: number; // Orijinal miktar (gram veya adet)
-  originalUnit?: MeasurementUnit; // Orijinal birim
+  mealType?: MealType;
+  fromTemplate?: boolean;
+  templateId?: string;
+  originalAmount?: number; // grams or pieces
+  originalUnit?: MeasurementUnit;
 }
 
-// Besin şablonu ölçü birimi
 export type MeasurementUnit = 'gram' | 'piece';
 
-// Besin şablonu (100g veya 1 adet bazında)
+// Values stored per 100g or per piece
 export interface FoodTemplate {
   id: string;
   name: string;
-  unit: MeasurementUnit; // 'gram' veya 'piece'
+  unit: MeasurementUnit;
   calories: number;
   protein: number;
   carbs: number;
@@ -29,10 +27,8 @@ export interface FoodTemplate {
   barcode?: string;
 }
 
-// Öğün türleri
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-// Günlük hedefler
 export interface DailyGoal {
   calories: number;
   protein: number;
@@ -40,14 +36,13 @@ export interface DailyGoal {
   fat: number;
 }
 
-// Günlük istatistikler
 export interface DailyStats {
   totalCalories: number;
   totalProtein: number;
   totalCarbs: number;
   totalFat: number;
   foods: Food[];
-  date: string; // YYYY-MM-DD formatında
+  date: string; // YYYY-MM-DD
 }
 
 // Form input state
@@ -60,7 +55,6 @@ export interface FoodFormData {
   mealType?: MealType;
 }
 
-// Haftalık istatistikler
 export interface WeeklyStats {
   days: DailyStats[];
   averageCalories: number;
@@ -70,7 +64,6 @@ export interface WeeklyStats {
   totalDays: number;
 }
 
-// Kilo kaydı
 export interface WeightEntry {
   id: string;
   weight: number;

@@ -1,7 +1,6 @@
 /**
  * OpenFoodFacts API Service
- * Barkod ile ürün bilgisi çeker
- * Ücretsiz, API key gerektirmez
+ * Fetches product info by barcode. No API key required.
  */
 
 export interface OpenFoodFactsProduct {
@@ -19,9 +18,6 @@ export interface BarcodeSearchResult {
   error?: string;
 }
 
-/**
- * Barkod ile ürün ara
- */
 export const searchByBarcode = async (barcode: string): Promise<BarcodeSearchResult> => {
   try {
     const response = await fetch(
@@ -41,7 +37,7 @@ export const searchByBarcode = async (barcode: string): Promise<BarcodeSearchRes
     const p = data.product;
     const nutrients = p.nutriments || {};
 
-    // Ürün adı - Türkçe önce, yoksa İngilizce, yoksa genel
+    // Turkish name first, English fallback, then generic
     const name =
       p.product_name_tr ||
       p.product_name_en ||
@@ -49,7 +45,7 @@ export const searchByBarcode = async (barcode: string): Promise<BarcodeSearchRes
       p.generic_name ||
       'Bilinmeyen Ürün';
 
-    // 100g başına değerler
+    // Values per 100g
     const calories = Math.round(nutrients['energy-kcal_100g'] || nutrients['energy_100g'] / 4.184 || 0);
     const protein = Math.round((nutrients['proteins_100g'] || 0) * 10) / 10;
     const carbs = Math.round((nutrients['carbohydrates_100g'] || 0) * 10) / 10;
@@ -64,7 +60,7 @@ export const searchByBarcode = async (barcode: string): Promise<BarcodeSearchRes
       product: { name, calories, protein, carbs, fat, barcode },
     };
   } catch (error) {
-    console.error('OpenFoodFacts API hatası:', error);
+    console.error('OpenFoodFacts API error:', error);
     return { found: false, error: 'Bağlantı hatası' };
   }
 };

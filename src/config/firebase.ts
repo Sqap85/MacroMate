@@ -3,10 +3,6 @@ import { getAuth } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import type { ActionCodeSettings } from 'firebase/auth';
 
-/**
- * Firebase Configuration
- * Environment variables'dan alınıyor (.env dosyası)
- */
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -17,36 +13,21 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-/**
- * Email Verification Action Code Settings
- * Email doğrulama linki ayarları
- */
 export const emailVerificationSettings: ActionCodeSettings = {
-  // Doğrulama sonrası yönlendirilecek URL
   url: globalThis.location.origin,
-  // Web'de handle etmek için
   handleCodeInApp: false,
 };
 
-/**
- * Password Reset Action Code Settings
- * Şifre sıfırlama linki ayarları
- */
 export const passwordResetSettings: ActionCodeSettings = {
-  // Sıfırlama sonrası yönlendirilecek URL
   url: globalThis.location.origin,
-  // Firebase'in kendi sayfasında handle et
   handleCodeInApp: false,
 };
 
-// Firebase'i initialize et
 const app = initializeApp(firebaseConfig);
 
-// Authentication servisini al
 export const auth = getAuth(app);
 
-// Firestore servisini yeni cache API ile initialize et
-// Offline persistence ve multi-tab desteği
+// Offline persistence + multi-tab sync
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
