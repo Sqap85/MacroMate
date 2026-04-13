@@ -5,13 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # Start Vite dev server with HMR
-npm run build     # TypeScript compile + Vite production build
-npm run lint      # Run ESLint
-npm run preview   # Preview production build locally
+npm run dev              # Start Vite dev server with HMR
+npm run build            # TypeScript compile + Vite production build
+npm run preview          # Preview production build locally
+npm run test             # Run unit tests (Vitest, single pass)
+npm run test:watch       # Run tests in watch mode
+npm run test -- --coverage  # Run tests with coverage report
 ```
 
-There is no test runner configured in this project. Always run `npm run build` after changes to verify no TypeScript or lint errors.
+Always run `npm run build` after changes to verify no TypeScript errors. Run `npm run test` to verify nothing is broken.
 
 ## Architecture
 
@@ -39,12 +41,13 @@ Barcode scanning uses `@zxing/browser` + OpenFoodFacts public API.
 
 ### Tech stack
 
-- **React 19 + TypeScript** with Vite
+- **React 19 + TypeScript 6** with Vite 8
 - **MUI v7** for UI
 - **Firebase 12** (Auth + Firestore)
 - **Formik + Yup** for forms/validation
 - **Recharts** for statistics charts
 - **vite-plugin-pwa** for PWA/service worker
+- **Vitest + React Testing Library** for unit tests (`src/__tests__/`)
 
 ### Environment variables
 
@@ -115,7 +118,7 @@ All confirmation dialogs follow this pattern:
 
 ## UI Language
 
-All user-facing text is **Turkish**. Keep labels, error messages, toast messages, tooltips, and dialog content in Turkish. Code comments can be in Turkish or English.
+All user-facing text is **Turkish**. Keep labels, error messages, toast messages, tooltips, and dialog content in Turkish. Code comments must be in **English only**.
 
 ---
 
