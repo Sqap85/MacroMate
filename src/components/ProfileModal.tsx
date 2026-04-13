@@ -198,7 +198,6 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
     onClose();
   };
 
-  // Email provider check (Google login kullanıcıları şifre değiştiremez)
   const isEmailProvider = currentUser?.providerData.some(
     (provider) => provider.providerId === 'password'
   );
@@ -207,7 +206,6 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
   );
   const hasBothProviders = isEmailProvider && isGoogleProvider;
 
-  // Provider bilgilerini al
   const providersList = currentUser?.providerData.map(p => p.providerId) || [];
 
   const deleteButtonLabel = deleteLoading ? 'Siliniyor...' : 'Hesabı Sil';
@@ -271,13 +269,13 @@ export function ProfileModal({ open, onClose, onSuccess, onStartPasswordAdd }: R
               Giriş Metodları
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap">
-              {providersList.includes('google.com') && (
+              {providersList.some(id => id === 'google.com') && (
                 <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: 'rgba(24,24,27,0.06)', border: '1px solid rgba(24,24,27,0.15)' }}>
                   <GoogleIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
                   <Typography variant="caption" fontWeight={600} color="text.secondary">Google</Typography>
                 </Box>
               )}
-              {providersList.includes('password') && (
+              {providersList.some(id => id === 'password') && (
                 <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: 'rgba(24,24,27,0.06)', border: '1px solid rgba(24,24,27,0.15)' }}>
                   <EmailIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
                   <Typography variant="caption" fontWeight={600} color="text.secondary">E-posta & Şifre</Typography>
