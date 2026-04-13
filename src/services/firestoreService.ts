@@ -15,119 +15,50 @@ import {
 import { db } from '../config/firebase';
 import type { Food, DailyGoal, FoodTemplate } from '../types';
 
-/**
- * Firestore Service
- * 
- * Tüm database operasyonları burada
- * Her kullanıcının verileri kendi user ID'si altında
- */
-
-// Collection isimleri
 const COLLECTIONS = {
   FOODS: 'foods',
   GOALS: 'goals',
   TEMPLATES: 'templates',
 };
 
-/**
- * Undefined değerleri temizle (Firestore kabul etmiyor)
- */
+// Firestore rejects documents that contain undefined values
 const removeUndefined = (obj: any): any => {
   const cleaned: any = {};
   Object.keys(obj).forEach(key => {
-    if (obj[key] !== undefined) {
-      cleaned[key] = obj[key];
-    }
+    if (obj[key] !== undefined) cleaned[key] = obj[key];
   });
   return cleaned;
 };
 
-// ============================================
-// FOOD OPERATIONS (Yemekler)
-// ============================================
+// ── FOOD OPERATIONS ──────────────────────────────────────────────────────────
 
-/**
- * Kullanıcının tüm yemeklerini getir
- */
 export const getUserFoods = async (userId: string): Promise<Food[]> => {
   const foodsRef = collection(db, COLLECTIONS.FOODS);
-  const q = query(
-    foodsRef,
-    where('userId', '==', userId),
-    orderBy('timestamp', 'desc')
-  );
-  
+  const q = query(foodsRef, where('userId', '==', userId), orderBy('timestamp', 'desc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Food[];
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Food[];
 };
 
-/**
- * Yemekleri realtime dinle (auto-update)
- */
-export const listenToUserFoods = (
-  userId: string,
-  callback: (foods: Food[]) => void
-) => {
+export const listenToUserFoods = (userId: string, callback: (foods: Food[]) => void) => {
   const foodsRef = collection(db, COLLECTIONS.FOODS);
-  const q = query(
-    foodsRef,
-    where('userId', '==', userId),
-    orderBy('timestamp', 'desc')
-  );
-  
-  return onSnapshot(q, 
-    (snapshot) => {
-      const foods = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Food[];
-      callback(foods);
-    },
-    (error) => {
-      console.error('Error listening to foods:', error);
-      callback([]);
-    }
-  );
-};
-
-/**
- * Yemekleri limitli realtime dinle (performans için)
- */
-export const listenToUserFoodsLimited = (
-  userId: string,
-  maxCount: number,
-  callback: (foods: Food[]) => void
-) => {
-  const foodsRef = collection(db, COLLECTIONS.FOODS);
-  const q = query(
-    foodsRef,
-    where('userId', '==', userId),
-    orderBy('timestamp', 'desc'),
-    limit(maxCount)
-  );
-
+  const q = query(foodsRef, where('userId', '==', userId), orderBy('timestamp', 'desc'));
   return onSnapshot(
     q,
-    (snapshot) => {
-      const foods = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Food[];
-      callback(foods);
-    },
-    (error) => {
-      console.error('Error listening to limited foods:', error);
-      callback([]);
-    }
+    (snapshot) => callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Food[]),
+    (error) => { console.error('Error listening to foods:', error); callback([]); }
   );
 };
 
-/**
- * Belirli zaman aralığındaki yemekleri realtime dinle
- */
+export const listenToUserFoodsLimited = (userId: string, maxCount: number, callback: (foods: Food[]) => void) => {
+  const foodsRef = collection(db, COLLECTIONS.FOODS);
+  const q = query(foodsRef, where('userId', '==', userId), orderBy('timestamp', 'desc'), limit(maxCount));
+  return onSnapshot(
+    q,
+    (snapshot) => callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Food[]),
+    (error) => { console.error('Error listening to limited foods:', error); callback([]); }
+  );
+};
+
 export const listenToUserFoodsInRange = (
   userId: string,
   startTimestamp: number,
@@ -142,212 +73,104 @@ export const listenToUserFoodsInRange = (
     where('timestamp', '<=', endTimestamp),
     orderBy('timestamp', 'desc')
   );
-
   return onSnapshot(
     q,
-    (snapshot) => {
-      const foods = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Food[];
-      callback(foods);
-    },
-    (error) => {
-      console.error('Error listening to foods in range:', error);
-      callback([]);
-    }
+    (snapshot) => callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Food[]),
+    (error) => { console.error('Error listening to foods in range:', error); callback([]); }
   );
 };
 
-/**
- * Yeni yemek ekle
- */
 export const addFood = async (userId: string, food: Omit<Food, 'id'>): Promise<string> => {
   const foodsRef = collection(db, COLLECTIONS.FOODS);
-  const docRef = await addDoc(foodsRef, removeUndefined({
-    ...food,
-    userId,
-    timestamp: food.timestamp || Date.now(),
-  }));
+  const docRef = await addDoc(foodsRef, removeUndefined({ ...food, userId, timestamp: food.timestamp || Date.now() }));
   return docRef.id;
 };
 
-/**
- * Yemek güncelle
- */
 export const updateFood = async (foodId: string, updates: Partial<Food>): Promise<void> => {
   const foodRef = doc(db, COLLECTIONS.FOODS, foodId);
   await updateDoc(foodRef, removeUndefined({ ...updates }));
 };
 
-/**
- * Yemek sil
- */
 export const deleteFood = async (foodId: string): Promise<void> => {
-  const foodRef = doc(db, COLLECTIONS.FOODS, foodId);
-  await deleteDoc(foodRef);
+  await deleteDoc(doc(db, COLLECTIONS.FOODS, foodId));
 };
 
-// ============================================
-// GOAL OPERATIONS (Hedefler)
-// ============================================
+// ── GOAL OPERATIONS ──────────────────────────────────────────────────────────
 
-/**
- * Kullanıcının hedefini getir
- */
 export const getUserGoal = async (userId: string): Promise<DailyGoal | null> => {
-  const goalsRef = collection(db, COLLECTIONS.GOALS);
-  const q = query(goalsRef, where('userId', '==', userId));
-  
+  const q = query(collection(db, COLLECTIONS.GOALS), where('userId', '==', userId));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
-  
-  const docData = snapshot.docs[0];
-  return {
-    ...docData.data(),
-  } as DailyGoal;
+  return { ...snapshot.docs[0].data() } as DailyGoal;
 };
 
-/**
- * Hedefi dinle (realtime)
- */
-export const listenToUserGoal = (
-  userId: string,
-  callback: (goal: DailyGoal | null) => void
-) => {
-  const goalsRef = collection(db, COLLECTIONS.GOALS);
-  const q = query(goalsRef, where('userId', '==', userId));
-  
-  return onSnapshot(q, 
+export const listenToUserGoal = (userId: string, callback: (goal: DailyGoal | null) => void) => {
+  const q = query(collection(db, COLLECTIONS.GOALS), where('userId', '==', userId));
+  return onSnapshot(
+    q,
     (snapshot) => {
-      if (snapshot.empty) {
-        callback(null);
-        return;
-      }
-      const docData = snapshot.docs[0];
-      callback(docData.data() as DailyGoal);
+      if (snapshot.empty) { callback(null); return; }
+      callback(snapshot.docs[0].data() as DailyGoal);
     },
-    (error) => {
-      console.error('Error listening to goal:', error);
-      callback(null);
-    }
+    (error) => { console.error('Error listening to goal:', error); callback(null); }
   );
 };
 
-/**
- * Hedef kaydet veya güncelle
- */
 export const saveUserGoal = async (userId: string, goal: DailyGoal): Promise<void> => {
   const goalsRef = collection(db, COLLECTIONS.GOALS);
-  const q = query(goalsRef, where('userId', '==', userId));
-  
-  const snapshot = await getDocs(q);
-  
+  const snapshot = await getDocs(query(goalsRef, where('userId', '==', userId)));
   if (snapshot.empty) {
-    // Yeni hedef oluştur
-    await addDoc(goalsRef, removeUndefined({
-      ...goal,
-      userId,
-    }));
+    await addDoc(goalsRef, removeUndefined({ ...goal, userId }));
   } else {
-    // Mevcut hedefi güncelle
-    const docRef = doc(db, COLLECTIONS.GOALS, snapshot.docs[0].id);
-    await updateDoc(docRef, removeUndefined({ ...goal }));
+    await updateDoc(doc(db, COLLECTIONS.GOALS, snapshot.docs[0].id), removeUndefined({ ...goal }));
   }
 };
 
-// ============================================
-// TEMPLATE OPERATIONS (Besin Şablonları)
-// ============================================
+// ── TEMPLATE OPERATIONS ──────────────────────────────────────────────────────
 
-/**
- * Kullanıcının şablonlarını getir
- */
 export const getUserTemplates = async (userId: string): Promise<FoodTemplate[]> => {
-  const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
-  const q = query(
-    templatesRef,
-    where('userId', '==', userId),
-    orderBy('name', 'asc')
-  );
-  
+  const q = query(collection(db, COLLECTIONS.TEMPLATES), where('userId', '==', userId), orderBy('name', 'asc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as FoodTemplate[];
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as FoodTemplate[];
 };
 
-/**
- * Şablonları dinle (realtime)
- */
-export const listenToUserTemplates = (
-  userId: string,
-  callback: (templates: FoodTemplate[]) => void
-) => {
-  const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
-  const q = query(
-    templatesRef,
-    where('userId', '==', userId),
-    orderBy('name', 'asc')
-  );
-  
-  return onSnapshot(q, 
-    (snapshot) => {
-      const templates = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as FoodTemplate[];
-      callback(templates);
-    },
-    (error) => {
-      console.error('Error listening to templates:', error);
-      callback([]);
-    }
+export const listenToUserTemplates = (userId: string, callback: (templates: FoodTemplate[]) => void) => {
+  const q = query(collection(db, COLLECTIONS.TEMPLATES), where('userId', '==', userId), orderBy('name', 'asc'));
+  return onSnapshot(
+    q,
+    (snapshot) => callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as FoodTemplate[]),
+    (error) => { console.error('Error listening to templates:', error); callback([]); }
   );
 };
 
-/**
- * Yeni şablon ekle
- */
-export const addTemplate = async (
-  userId: string,
-  template: Omit<FoodTemplate, 'id'>
-): Promise<string> => {
+export const addTemplate = async (userId: string, template: Omit<FoodTemplate, 'id'>): Promise<string> => {
   const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
-  const docRef = await addDoc(templatesRef, removeUndefined({
-    ...template,
-    userId,
-  }));
+  const docRef = await addDoc(templatesRef, removeUndefined({ ...template, userId }));
   return docRef.id;
 };
 
-/**
- * Şablon güncelle
- */
-export const updateTemplate = async (
-  templateId: string,
-  updates: Partial<FoodTemplate>
-): Promise<void> => {
-  const templateRef = doc(db, COLLECTIONS.TEMPLATES, templateId);
-  await updateDoc(templateRef, removeUndefined({ ...updates }));
+// Batch write for CSV import — avoids concurrent addDoc race conditions
+export const addTemplatesBatch = async (userId: string, templates: Omit<FoodTemplate, 'id'>[]): Promise<void> => {
+  if (templates.length === 0) return;
+  const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
+  const batch = writeBatch(db);
+  for (const template of templates) {
+    batch.set(doc(templatesRef), removeUndefined({ ...template, userId }));
+  }
+  await batch.commit();
 };
 
-/**
- * Şablon sil
- */
+export const updateTemplate = async (templateId: string, updates: Partial<FoodTemplate>): Promise<void> => {
+  await updateDoc(doc(db, COLLECTIONS.TEMPLATES, templateId), removeUndefined({ ...updates }));
+};
+
 export const deleteTemplate = async (templateId: string): Promise<void> => {
-  const templateRef = doc(db, COLLECTIONS.TEMPLATES, templateId);
-  await deleteDoc(templateRef);
+  await deleteDoc(doc(db, COLLECTIONS.TEMPLATES, templateId));
 };
 
-// ============================================
-// USER DATA DELETION (Hesap Silme)
-// ============================================
+// ── BULK DELETION ─────────────────────────────────────────────────────────────
 
-/**
- * Dökümanları 500'lük chunk'lar halinde sil (Firestore batch limiti)
- */
+// Firestore batch limit is 500 writes — chunk to stay under it
 const deleteInBatches = async (refs: any[]): Promise<void> => {
   const BATCH_SIZE = 490;
   for (let i = 0; i < refs.length; i += BATCH_SIZE) {
@@ -357,103 +180,69 @@ const deleteInBatches = async (refs: any[]): Promise<void> => {
   }
 };
 
-/**
- * Kullanıcının tüm verilerini sil (hesap silme öncesi)
- */
 export const deleteAllUserData = async (userId: string): Promise<void> => {
-  const foodsRef = collection(db, COLLECTIONS.FOODS);
-  const goalsRef = collection(db, COLLECTIONS.GOALS);
-  const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
-
   const [foodsSnap, goalsSnap, templatesSnap] = await Promise.all([
-    getDocs(query(foodsRef, where('userId', '==', userId))),
-    getDocs(query(goalsRef, where('userId', '==', userId))),
-    getDocs(query(templatesRef, where('userId', '==', userId))),
+    getDocs(query(collection(db, COLLECTIONS.FOODS), where('userId', '==', userId))),
+    getDocs(query(collection(db, COLLECTIONS.GOALS), where('userId', '==', userId))),
+    getDocs(query(collection(db, COLLECTIONS.TEMPLATES), where('userId', '==', userId))),
   ]);
-
-  const allRefs = [
+  await deleteInBatches([
     ...foodsSnap.docs.map(d => d.ref),
     ...goalsSnap.docs.map(d => d.ref),
     ...templatesSnap.docs.map(d => d.ref),
-  ];
-
-  await deleteInBatches(allRefs);
+  ]);
 };
 
-/**
- * Çoklu yemek sil (batch, 500 limit korumalı)
- */
 export const deleteFoodsBulk = async (ids: string[]): Promise<void> => {
   if (!ids || ids.length === 0) return;
-  const refs = ids.map(id => doc(db, COLLECTIONS.FOODS, id));
-  await deleteInBatches(refs);
+  await deleteInBatches(ids.map(id => doc(db, COLLECTIONS.FOODS, id)));
 };
 
-/**
- * Çoklu şablon sil (batch, 500 limit korumalı)
- */
 export const deleteTemplatesBulk = async (ids: string[]): Promise<void> => {
   if (!ids || ids.length === 0) return;
-  const refs = ids.map(id => doc(db, COLLECTIONS.TEMPLATES, id));
-  await deleteInBatches(refs);
+  await deleteInBatches(ids.map(id => doc(db, COLLECTIONS.TEMPLATES, id)));
 };
 
-// ============================================
-// MIGRATION OPERATIONS (LocalStorage → Firestore)
-// ============================================
+// ── MIGRATION ─────────────────────────────────────────────────────────────────
 
-/**
- * LocalStorage'daki verileri Firestore'a taşı
- */
 export const migrateFromLocalStorage = async (userId: string): Promise<void> => {
   const batch = writeBatch(db);
-  
+
   const safeParse = <T>(key: string): T | null => {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    try {
-      return JSON.parse(raw) as T;
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(raw) as T; } catch { return null; }
   };
 
   try {
-    // Foods migrate et
     const foods = safeParse<Food[]>('macromate-foods');
     if (Array.isArray(foods)) {
       const foodsRef = collection(db, COLLECTIONS.FOODS);
       foods.forEach((food) => {
-        const newFoodRef = doc(foodsRef);
-        batch.set(newFoodRef, removeUndefined({ ...food, userId }));
+        batch.set(doc(foodsRef), removeUndefined({ ...food, userId }));
       });
     }
 
-    // Goal migrate et
     const goal = safeParse<DailyGoal>('macromate-goal');
     if (goal && typeof goal === 'object') {
-      const goalsRef = collection(db, COLLECTIONS.GOALS);
-      batch.set(doc(goalsRef), removeUndefined({ ...goal, userId }));
+      batch.set(doc(collection(db, COLLECTIONS.GOALS)), removeUndefined({ ...goal, userId }));
     }
 
-    // Templates migrate et
     const templates = safeParse<FoodTemplate[]>('macromate-templates');
     if (Array.isArray(templates)) {
       const templatesRef = collection(db, COLLECTIONS.TEMPLATES);
       templates.forEach((template) => {
-        const newTemplateRef = doc(templatesRef);
-        batch.set(newTemplateRef, removeUndefined({ ...template, userId }));
+        batch.set(doc(templatesRef), removeUndefined({ ...template, userId }));
       });
     }
 
     await batch.commit();
 
-    // Migration başarılı - LocalStorage'ı temizle
     localStorage.removeItem('macromate-foods');
     localStorage.removeItem('macromate-goal');
     localStorage.removeItem('macromate-templates');
   } catch (error) {
-    console.error('Migration hatası:', error);
+    console.error('Migration error:', error);
     throw error;
   }
 };

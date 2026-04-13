@@ -47,9 +47,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
 
@@ -64,9 +62,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
-      setEmailVerificationDismissed(false);
-    }
+    if (currentUser) setEmailVerificationDismissed(false);
   }, [currentUser]);
 
   const signup = async (email: string, password: string, displayName: string) => {
@@ -103,7 +99,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      console.error('Google giriş hatası:', error);
+      console.error('Google sign-in error:', error);
       throw error;
     }
   };
@@ -139,9 +135,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         await auth.currentUser.reload();
         const wasVerified = currentUser?.emailVerified || false;
         const isNowVerified = auth.currentUser.emailVerified;
-        if (wasVerified !== isNowVerified) {
-          setCurrentUser({ ...auth.currentUser });
-        }
+        if (wasVerified !== isNowVerified) setCurrentUser({ ...auth.currentUser });
       }
     } catch (error) {
       console.error('Error refreshing user:', error);
@@ -209,27 +203,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsGuest(true);
       setCurrentUser(null);
       setLoading(false);
-      // return YOK: misafir modunda da listener kurulmalı,
-      // yoksa Google/email ile giriş yapınca state güncellenmiyor.
+      // Do NOT return here — the listener must still be registered so that
+      // Google/email sign-in while in guest mode updates currentUser correctly.
     } else {
       setIsGuest(false);
     }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Giriş yapıldı: misafir modundan çık
         setCurrentUser(user);
         setLoading(false);
       } else if (localStorage.getItem('guestMode') !== 'true') {
-        // Giriş yok ve misafir de değil
         setCurrentUser(null);
         setLoading(false);
       }
-      // user=null ve guestMode=true ise: üstte zaten set edildi, dokunma
+      // user=null + guestMode=true: state already set above, do nothing
     });
     return unsubscribe;
   }, []);
 
-  // ✅ value objesi her render'da yeniden oluşturulmuyor
   const value = useMemo<AuthContextType>(() => ({
     currentUser,
     loading,

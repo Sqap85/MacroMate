@@ -44,6 +44,7 @@ interface FoodTemplatesModalProps {
   onClose: () => void;
   templates: FoodTemplate[];
   onAddTemplate: (template: Omit<FoodTemplate, 'id'>, suppressToast?: boolean) => void;
+  onAddTemplatesBatch?: (templates: Omit<FoodTemplate, 'id'>[]) => Promise<void>;
   onDeleteTemplate: (id: string) => void;
   onEditTemplate: (id: string, template: Omit<FoodTemplate, 'id'>) => void;
   onBulkDelete?: (ids: string[]) => void;
@@ -54,6 +55,7 @@ export function FoodTemplatesModal({
   onClose,
   templates,
   onAddTemplate,
+  onAddTemplatesBatch,
   onDeleteTemplate,
   onEditTemplate,
   onBulkDelete,
@@ -243,7 +245,7 @@ export function FoodTemplatesModal({
       return;
     }
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const text = event.target?.result as string;
       if (!text) { showToast({ open: true, message: 'Dosya okunamadı.', severity: 'error' }); return; }
 
@@ -277,34 +279,7 @@ export function FoodTemplatesModal({
 
       const dataRows = rows.slice(1);
 
-      // Önce limit kontrolü
-      let validNewCount = 0;
-      for (const row of dataRows) {
-        if (row.length < 6) continue;
-        const name = row[nameIdx]?.trim() || '';
-        const unit = row[unitIdx]?.trim();
-        const calories = Number(row[calIdx]);
-        const protein = Number(row[proIdx]);
-        const carbs = Number(row[carbIdx]);
-        const fat = Number(row[fatIdx]);
-        if (
-          !name || name.length > 50 || dangerous(name) ||
-          !['piece', 'gram'].includes(unit) ||
-          Number.isNaN(calories) || Number.isNaN(protein) || Number.isNaN(carbs) || Number.isNaN(fat) ||
-          calories <= 0 || calories > 5000 ||
-          protein < 0 || protein > 500 ||
-          carbs < 0 || carbs > 1000 ||
-          fat < 0 || fat > 500
-        ) continue;
-        const exists = templates.some(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());
-        if (!exists) validNewCount++;
-      }
-      if (templates.length + validNewCount > MAX_TOTAL) {
-        showToast({ open: true, message: `Toplam şablon limiti aşıldı (maksimum ${MAX_TOTAL}).`, severity: 'error' });
-        return;
-      }
-
-      let added = 0;
+      const toAdd: Omit<FoodTemplate, 'id'>[] = [];
       const skipped: string[] = [];
       let negativeSkipped = 0;
       for (const row of dataRows) {
@@ -323,14 +298,27 @@ export function FoodTemplatesModal({
           calories <= 0 || calories > 5000 || protein > 500 || carbs > 1000 || fat > 500
         ) continue;
         const exists = templates.some(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());
-        if (name && calories && !exists) {
-          onAddTemplate({ name, unit: unit as MeasurementUnit, calories, protein, carbs, fat }, true);
-          added++;
-        } else if (name && exists) {
+        if (!exists) {
+          toAdd.push({ name, unit: unit as MeasurementUnit, calories, protein, carbs, fat });
+        } else {
           skipped.push(name);
         }
       }
 
+      if (templates.length + toAdd.length > MAX_TOTAL) {
+        showToast({ open: true, message: `Toplam şablon limiti aşıldı (maksimum ${MAX_TOTAL}).`, severity: 'error' });
+        return;
+      }
+
+      if (toAdd.length > 0) {
+        if (onAddTemplatesBatch) {
+          await onAddTemplatesBatch(toAdd);
+        } else {
+          for (const t of toAdd) onAddTemplate(t, true);
+        }
+      }
+
+      const added = toAdd.length;
       if (added > 0 && skipped.length === 0 && negativeSkipped === 0) {
         showToast({ open: true, message: `${added} şablon başarıyla eklendi.`, severity: 'success' });
       } else if (added > 0 && negativeSkipped > 0) {

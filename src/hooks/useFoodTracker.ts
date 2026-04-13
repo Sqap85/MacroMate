@@ -4,11 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from './useLocalStorage';
 import * as firestoreService from '../services/firestoreService';
 
-/**
- * Kalori takibi için ana hook
- * - Kayıtlı kullanıcılar: Firestore kullanır
- * - Misafir kullanıcılar: LocalStorage kullanır
- */
 export function useFoodTracker() {
   const allFoodsLoadPromiseRef = useRef<Promise<void> | null>(null);
   const getTodayRange = () => {
@@ -18,8 +13,7 @@ export function useFoodTracker() {
     return { start, end };
   };
   const { currentUser, isGuest } = useAuth();
-  
-  // Misafir kullanıcılar için LocalStorage
+
   const [localFoods, setLocalFoods] = useLocalStorage<Food[]>('macromate-foods', []);
   const [localGoal, setLocalGoal] = useLocalStorage<DailyGoal>('macromate-goal', {
     calories: 2000,
@@ -28,8 +22,7 @@ export function useFoodTracker() {
     fat: 65,
   });
   const [localTemplates, setLocalTemplates] = useLocalStorage<FoodTemplate[]>('macromate-templates', []);
-  
-  // Varsayılan günlük hedefler
+
   const defaultGoal: DailyGoal = {
     calories: 2000,
     protein: 150,
@@ -48,9 +41,7 @@ export function useFoodTracker() {
 
   const { start: todayStart, end: todayEnd } = useMemo(() => getTodayRange(), [todayTick]);
 
-  // Bir güne ait tüm yemekleri sil
   const deleteAllDayFoods = async (dateString: string) => {
-    // Tarihi parse et
     const dateParts = dateString.split('-');
     const dayStart = new Date(
       Number.parseInt(dateParts[0], 10),
@@ -74,7 +65,6 @@ export function useFoodTracker() {
       activeFoods = foods;
     }
     const dayFoods = activeFoods.filter(f => f.timestamp >= dayStart && f.timestamp <= dayEnd);
-
     if (dayFoods.length === 0) return;
 
     if (isGuest) {
@@ -95,12 +85,11 @@ export function useFoodTracker() {
         setHistoryFoods((prev) => prev.filter((food) => !idSet.has(food.id)));
       }
     } catch (error) {
-      console.error('Günlük yemek silme hatası:', error);
+      console.error('Delete day foods error:', error);
       throw error;
     }
   };
 
-  // Besin şablonlarını toplu sil
   const deleteFoodTemplatesBulk = async (ids: string[]) => {
     if (isGuest) {
       const updated = localTemplates.filter(t => !ids.includes(t.id));
@@ -112,24 +101,23 @@ export function useFoodTracker() {
     try {
       await firestoreService.deleteTemplatesBulk(ids);
     } catch (error) {
-      console.error('Toplu şablon silme hatası:', error);
+      console.error('Bulk delete templates error:', error);
       throw error;
     }
   };
 
+  // Poll every minute to detect day change
   useEffect(() => {
     const interval = setInterval(() => {
       const next = new Date().toDateString();
       setTodayTick((prev) => (prev === next ? prev : next));
     }, 60_000);
-
     return () => clearInterval(interval);
   }, []);
 
-  // Misafir modunda LocalStorage verilerini state'e yansıt
+  // Sync localStorage state for guest users
   useEffect(() => {
     if (!isGuest) return;
-
     setFoods(localFoods);
     setHistoryFoods(localFoods);
     setAllFoodsLoaded(true);
@@ -138,12 +126,11 @@ export function useFoodTracker() {
     setLoading(false);
   }, [isGuest, localFoods, localGoal, localTemplates]);
 
-  // Firestore'dan verileri dinle (realtime updates) - Sadece kayıtlı kullanıcılar için
+  // Subscribe to Firestore real-time updates (authenticated users only)
   useEffect(() => {
     if (isGuest) return;
 
     if (!currentUser) {
-      // Kullanıcı yoksa temizle ve loading'i kapat
       setFoods([]);
       setHistoryFoods([]);
       setAllFoodsLoaded(false);
@@ -161,44 +148,32 @@ export function useFoodTracker() {
     let hasLoadedTemplates = false;
 
     const checkAllLoaded = () => {
-      if (hasLoadedFoods && hasLoadedGoal && hasLoadedTemplates) {
-        setLoading(false);
-      }
+      if (hasLoadedFoods && hasLoadedGoal && hasLoadedTemplates) setLoading(false);
     };
 
-    // Foods listener
     const unsubFoods = firestoreService.listenToUserFoodsInRange(currentUser.uid, todayStart, todayEnd, (newFoods) => {
       setFoods(newFoods);
       hasLoadedFoods = true;
       checkAllLoaded();
     });
 
-    // Goal listener  
     const unsubGoal = firestoreService.listenToUserGoal(currentUser.uid, (newGoal) => {
-      if (newGoal) {
-        setDailyGoal(newGoal);
-      } else {
-        setDailyGoal(defaultGoal);
-      }
+      setDailyGoal(newGoal ?? defaultGoal);
       hasLoadedGoal = true;
       checkAllLoaded();
     });
 
-    // Templates listener
     const unsubTemplates = firestoreService.listenToUserTemplates(currentUser.uid, (newTemplates) => {
       setFoodTemplates(newTemplates);
       hasLoadedTemplates = true;
       checkAllLoaded();
     });
 
-    // Timeout fallback - 10 saniye sonra zorla yükle
+    // Force-unblock loading after 10 s if a listener never fires
     const timeout = setTimeout(() => {
-      if (!hasLoadedFoods || !hasLoadedGoal || !hasLoadedTemplates) {
-        setLoading(false);
-      }
+      if (!hasLoadedFoods || !hasLoadedGoal || !hasLoadedTemplates) setLoading(false);
     }, 10000);
 
-    // Cleanup listeners
     return () => {
       clearTimeout(timeout);
       unsubFoods();
@@ -207,7 +182,6 @@ export function useFoodTracker() {
     };
   }, [currentUser, isGuest, todayStart, todayEnd]);
 
-  // Bugünün tarihini al (YYYY-MM-DD formatında)
   const getTodayString = (): string => {
     const today = new Date();
     const year = today.getFullYear();
@@ -218,18 +192,13 @@ export function useFoodTracker() {
 
   const activeAllFoods = isGuest ? localFoods : historyFoods;
 
-  // Bugünün yemeklerini ve planlarını filtrele
   const todayFoods = useMemo((): Food[] => {
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0).getTime();
     const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime();
-
-    return foods.filter(food => 
-      food.timestamp >= todayStart && food.timestamp <= todayEnd
-    );
+    return foods.filter(food => food.timestamp >= todayStart && food.timestamp <= todayEnd);
   }, [foods]);
 
-  // Günlük istatistikleri hesapla
   const dailyStats = useMemo((): DailyStats => {
     const stats = todayFoods.reduce(
       (acc, food) => ({
@@ -240,22 +209,15 @@ export function useFoodTracker() {
       }),
       { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
     );
-
-    return {
-      ...stats,
-      foods: todayFoods,
-      date: getTodayString(),
-    };
+    return { ...stats, foods: todayFoods, date: getTodayString() };
   }, [todayFoods]);
 
-  // Yeni yemek ekle
   const addFood = async (food: Omit<Food, 'id' | 'timestamp'>, customTimestamp?: number) => {
     const newFood: Omit<Food, 'id'> = {
       ...food,
       timestamp: customTimestamp || Date.now(),
     };
 
-    // Misafir modu
     if (isGuest) {
       const newFoodWithId = { ...newFood, id: Date.now().toString() };
       setLocalFoods([...localFoods, newFoodWithId]);
@@ -264,25 +226,19 @@ export function useFoodTracker() {
       return;
     }
 
-    // Kayıtlı kullanıcı
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
-    
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     try {
       const newFoodId = await firestoreService.addFood(currentUser.uid, newFood);
       if (allFoodsLoaded) {
         setHistoryFoods((prev) => [{ ...newFood, id: newFoodId }, ...prev]);
       }
     } catch (error) {
-      console.error('Yemek ekleme hatası:', error);
+      console.error('Add food error:', error);
       throw error;
     }
   };
 
-  // Yemek sil
   const deleteFood = async (id: string) => {
-    // Misafir modu
     if (isGuest) {
       const updated = localFoods.filter(f => f.id !== id);
       setLocalFoods(updated);
@@ -291,97 +247,94 @@ export function useFoodTracker() {
       return;
     }
 
-    // Kayıtlı kullanıcı
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     try {
       await firestoreService.deleteFood(id);
       if (allFoodsLoaded) {
         setHistoryFoods((prev) => prev.filter((food) => food.id !== id));
       }
     } catch (error) {
-      console.error('Yemek silme hatası:', error);
+      console.error('Delete food error:', error);
       throw error;
     }
   };
 
-  // Yemek düzenle
   const editFood = async (id: string, updatedFood: Partial<Food>) => {
-    // Misafir modu
     if (isGuest) {
-      const updated = localFoods.map(f => 
-        f.id === id ? { ...f, ...updatedFood } : f
-      );
+      const updated = localFoods.map(f => f.id === id ? { ...f, ...updatedFood } : f);
       setLocalFoods(updated);
       setFoods(updated);
       setHistoryFoods(updated);
       return;
     }
 
-    // Kayıtlı kullanıcı
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     try {
       await firestoreService.updateFood(id, updatedFood);
       if (allFoodsLoaded) {
-        setHistoryFoods((prev) =>
-          prev.map((food) => (food.id === id ? { ...food, ...updatedFood } : food))
-        );
+        setHistoryFoods((prev) => prev.map((food) => (food.id === id ? { ...food, ...updatedFood } : food)));
       }
     } catch (error) {
-      console.error('Yemek güncelleme hatası:', error);
+      console.error('Edit food error:', error);
       throw error;
     }
   };
 
-  // Hedefleri güncelle
   const updateGoal = async (newGoal: DailyGoal) => {
-    // Misafir modu
     if (isGuest) {
       setLocalGoal(newGoal);
       setDailyGoal(newGoal);
       return;
     }
 
-    // Kayıtlı kullanıcı
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     try {
       await firestoreService.saveUserGoal(currentUser.uid, newGoal);
     } catch (error) {
-      console.error('Hedef güncelleme hatası:', error);
+      console.error('Update goal error:', error);
       throw error;
     }
   };
 
-  // Besin şablonu ekle
   const addFoodTemplate = async (template: Omit<FoodTemplate, 'id'>) => {
-    // Misafir modu
     if (isGuest) {
       const newTemplate = { ...template, id: Date.now().toString() };
-      setLocalTemplates([...localTemplates, newTemplate]);
-      setFoodTemplates([...foodTemplates, newTemplate]);
+      setLocalTemplates(prev => [...prev, newTemplate]);
+      setFoodTemplates(prev => [...prev, newTemplate]);
       return;
     }
 
-    // Kayıtlı kullanıcı
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     try {
       await firestoreService.addTemplate(currentUser.uid, template);
     } catch (error) {
-      console.error('Şablon ekleme hatası:', error);
+      console.error('Add template error:', error);
       throw error;
     }
   };
 
-  // Besin şablonu sil
+  // Batch import: avoids stale-closure bug (guest) and concurrent write race (Firestore)
+  const addFoodTemplatesBatch = async (templates: Omit<FoodTemplate, 'id'>[]) => {
+    if (templates.length === 0) return;
+
+    if (isGuest) {
+      const now = Date.now();
+      const newTemplates = templates.map((t, i) => ({ ...t, id: (now + i).toString() }));
+      setLocalTemplates(prev => [...prev, ...newTemplates]);
+      setFoodTemplates(prev => [...prev, ...newTemplates]);
+      return;
+    }
+
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
+    try {
+      await firestoreService.addTemplatesBatch(currentUser.uid, templates);
+    } catch (error) {
+      console.error('Batch add templates error:', error);
+      throw error;
+    }
+  };
+
   const deleteFoodTemplate = async (id: string) => {
-    // Misafir modu
     if (isGuest) {
       const updated = localTemplates.filter(t => t.id !== id);
       setLocalTemplates(updated);
@@ -389,66 +342,52 @@ export function useFoodTracker() {
       return;
     }
 
-    // Kayıtlı kullanıcı
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     try {
       await firestoreService.deleteTemplate(id);
     } catch (error) {
-      console.error('Şablon silme hatası:', error);
+      console.error('Delete template error:', error);
       throw error;
     }
   };
 
-  // Besin şablonu düzenle
   const editFoodTemplate = async (id: string, updatedTemplate: Omit<FoodTemplate, 'id'>) => {
-    // Misafir modu
     if (isGuest) {
-      const updated = localTemplates.map(t => 
-        t.id === id ? { ...updatedTemplate, id } : t
-      );
+      const updated = localTemplates.map(t => t.id === id ? { ...updatedTemplate, id } : t);
       setLocalTemplates(updated);
       setFoodTemplates(updated);
       return;
     }
 
-    // Kayıtlı kullanıcı
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     try {
       await firestoreService.updateTemplate(id, updatedTemplate);
     } catch (error) {
-      console.error('Şablon güncelleme hatası:', error);
+      console.error('Edit template error:', error);
       throw error;
     }
   };
 
-  // Şablondan yemek ekle (miktar ile çarparak)
   const addFoodFromTemplate = async (templateId: string, amount: number, mealType?: string) => {
-    // currentUser veya isGuest kontrolü
     if (!currentUser && !isGuest) return;
-    
+
     const template = foodTemplates.find(t => t.id === templateId);
     if (!template) return;
 
-    // İsim formatı
     let displayName: string;
     let calories: number;
     let protein: number;
     let carbs: number;
     let fat: number;
-    
+
     if (template.unit === 'piece') {
-      // Adet bazında: değerler zaten adet başına, direkt çarp
       displayName = `${template.name} (${amount} adet)`;
       calories = Math.round(template.calories * amount);
       protein = Math.round(template.protein * amount * 10) / 10;
       carbs = Math.round(template.carbs * amount * 10) / 10;
       fat = Math.round(template.fat * amount * 10) / 10;
     } else {
-      // Gram bazında: 100g'a göre hesapla
+      // gram-based: values stored per 100 g
       displayName = `${template.name} (${amount}g)`;
       const multiplier = amount / 100;
       calories = Math.round(template.calories * multiplier);
@@ -470,8 +409,7 @@ export function useFoodTracker() {
       originalAmount: amount,
       originalUnit: template.unit,
     };
-    
-    // Misafir modu
+
     if (isGuest) {
       const newFoodWithId = { ...newFood, id: Date.now().toString() };
       setLocalFoods([...localFoods, newFoodWithId]);
@@ -480,7 +418,6 @@ export function useFoodTracker() {
       return;
     }
 
-    // Kayıtlı kullanıcı
     if (!currentUser) return;
     const newFoodId = await firestoreService.addFood(currentUser.uid, newFood);
     if (allFoodsLoaded) {
@@ -495,12 +432,10 @@ export function useFoodTracker() {
       return;
     }
 
-    if (!currentUser) {
-      throw new Error('Lütfen önce giriş yapın');
-    }
-
+    if (!currentUser) throw new Error('Lütfen önce giriş yapın');
     if (allFoodsLoaded) return;
 
+    // Deduplicate concurrent calls
     if (allFoodsLoadPromiseRef.current) {
       await allFoodsLoadPromiseRef.current;
       return;
@@ -539,6 +474,7 @@ export function useFoodTracker() {
     updateGoal,
     foodTemplates,
     addFoodTemplate,
+    addFoodTemplatesBatch,
     deleteFoodTemplate,
     editFoodTemplate,
     addFoodFromTemplate,

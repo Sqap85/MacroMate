@@ -54,6 +54,7 @@ function App() {
     updateGoal,
     foodTemplates,
     addFoodTemplate,
+    addFoodTemplatesBatch,
     deleteFoodTemplate,
     editFoodTemplate,
     addFoodFromTemplate,
@@ -61,7 +62,6 @@ function App() {
     deleteAllDayFoods,
   } = useFoodTracker();
 
-  // Toplu silme fonksiyonu
   const handleBulkDeleteTemplates = async (ids: string[]) => {
     try {
       await deleteFoodTemplatesBulk(ids);
@@ -92,7 +92,7 @@ function App() {
   });
   const [pendingPasswordAdd, setPendingPasswordAdd] = useState(false);
 
-  // Kullanıcı giriş yaptığında LocalStorage'dan migrate et
+  // Migrate guest localStorage data to Firestore on sign-in
   useEffect(() => {
     if (currentUser) {
       const wasGuest = sessionStorage.getItem('migrateFromGuest');
@@ -169,17 +169,14 @@ function App() {
     }
   };
 
-  // ✅ Barkoddan gelen ürünü besinlere kaydet ve yemeğe ekle
   const handleSaveTemplateAndAdd = async (
     template: Omit<FoodTemplate, 'id'>,
     amount: number,
     mealType?: MealType
   ) => {
     try {
-      // Önce şablonu kaydet (toast gösterme)
       await addFoodTemplate(template);
 
-      // Gram bazında değerleri hesapla ve yemeği ekle
       const multiplier = amount / 100;
       await addFood({
         name: `${template.name} (${amount}g)`,
@@ -407,10 +404,8 @@ function App() {
 
   return (
     <>
-      {/* Header */}
       <AppBar position="sticky" elevation={0}>
         <Toolbar sx={{ minHeight: { xs: 60, sm: 68 } }}>
-          {/* Logo */}
           <Typography
             variant="h6"
             component="h1"
@@ -493,11 +488,9 @@ function App() {
         </Toolbar>
       </AppBar>
 
-      {/* Ana İçerik */}
       {currentUser || isGuest ? (
         <Container maxWidth="lg" sx={{ py: 4 }}>
           <Stack spacing={3}>
-            {/* İstatistikler */}
             <Fade in timeout={500}>
               <Box>
                 <StatsCard
@@ -508,7 +501,6 @@ function App() {
               </Box>
             </Fade>
 
-            {/* Yemek Ekleme Formu */}
             <Fade in timeout={700}>
               <Box>
                 <FoodForm
@@ -521,7 +513,6 @@ function App() {
               </Box>
             </Fade>
 
-            {/* Yemek Listesi */}
             <Fade in timeout={900}>
               <Box>
                 <FoodList
@@ -547,7 +538,6 @@ function App() {
             pb: 6,
           }}
         >
-          {/* App Icon */}
           <Fade in timeout={400}>
             <Box
               sx={{
@@ -562,7 +552,6 @@ function App() {
             </Box>
           </Fade>
 
-          {/* Tagline */}
           <Fade in timeout={550}>
             <Box>
               <Typography
@@ -600,7 +589,6 @@ function App() {
             </Box>
           </Fade>
 
-          {/* Feature chips */}
           <Fade in timeout={700}>
             <Box display="flex" gap={1} flexWrap="wrap" justifyContent="center" mb={4}>
               {['Öğün Takibi', 'Makro Hesaplama', 'Kişisel Hedefler', 'Barkod Tarama'].map((feat) => (
@@ -621,7 +609,6 @@ function App() {
             </Box>
           </Fade>
 
-          {/* CTAs */}
           <Fade in timeout={850}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
               <Button
@@ -730,6 +717,7 @@ function App() {
           onClose={() => setTemplatesOpen(false)}
           templates={foodTemplates}
           onAddTemplate={handleAddTemplate}
+          onAddTemplatesBatch={addFoodTemplatesBatch}
           onDeleteTemplate={handleDeleteTemplate}
           onEditTemplate={handleEditTemplate}
           onBulkDelete={handleBulkDeleteTemplates}
