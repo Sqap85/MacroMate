@@ -17,7 +17,7 @@ export default defineConfig({
         name: 'MacroMate',
         short_name: 'MacroMate',
         description: 'Kalori ve Makro Takibi',
-        theme_color: '#667eea',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
